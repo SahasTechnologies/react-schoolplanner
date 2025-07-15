@@ -490,7 +490,8 @@ const SchoolPlanner = () => {
           console.warn('Skipping event with invalid date in render:', event);
           return;
         }
-        const dayOfWeek = eventDate.getUTCDay();
+        // Use local time for day assignment
+        const dayOfWeek = eventDate.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
         let dayIndex;
         if (dayOfWeek === 0 || dayOfWeek === 6) {
           return;
