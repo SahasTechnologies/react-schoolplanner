@@ -50,7 +50,6 @@
 
     // Remove enhanced biweekly schedule and pattern logic
 
-    const customColourInputRef = useRef<HTMLInputElement>(null); // Ref for hidden colour input, correct type
     const customColourInputRef = useRef<HTMLInputElement | null>(null);
 
     // Default colours for the palette
