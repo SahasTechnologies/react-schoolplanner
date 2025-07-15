@@ -3,7 +3,7 @@
 // Favicon and title are set in index.html, see instructions below.
 import * as React from 'react';
 import { useState, useRef } from 'react';
-import { Upload, Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Settings, Edit2, User } from 'lucide-react';
+import { Calendar, FileText, BarChart3, Settings } from 'lucide-react';
 import Home from './components/Home';
 import WeekView from './components/WeekView';
 import Markbook from './components/Markbook';
@@ -33,7 +33,6 @@ const SchoolPlanner = () => {
   const [weekData, setWeekData] = useState<WeekData | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [dragOver, setDragOver] = useState(false);
   const [currentPage, setCurrentPage] = useState('home'); // Initial page
   const [subjects, setSubjects] = useState<Subject[]>([]);
   
@@ -52,7 +51,6 @@ const SchoolPlanner = () => {
 
   // Remove enhanced biweekly schedule and pattern logic
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const customColourInputRef = useRef<HTMLInputElement>(null); // Ref for hidden colour input
 
   // Default colours for the palette
@@ -385,32 +383,6 @@ const SchoolPlanner = () => {
       }
     };
     reader.readAsText(file);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      processFile(e.target.files[0]);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(true);
-  };
-
-  const handleDragLeave = () => {
-    setDragOver(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-    const files = e.dataTransfer.files;
-    if (files.length > 0 && files[0].name.endsWith('.ics')) {
-      processFile(files[0]);
-    } else {
-      setError('Please drop a valid .ics file.');
-    }
   };
 
   const clearData = () => {
