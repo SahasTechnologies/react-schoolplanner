@@ -2,7 +2,7 @@
 //   react, react-dom, lucide-react, @types/react, @types/react-dom
 // Favicon and title are set in index.html, see instructions below.
 import * as React from 'react';
-import { useState, useRef, Suspense } from 'react';
+import { useState, useRef } from 'react';
 import { Upload, Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Settings, Edit2, User, Book } from 'lucide-react';
 
 interface CalendarEvent {
@@ -640,7 +640,7 @@ const SchoolPlanner = () => {
           
           // Simple check: if it's a function and not the default export, use it
           if (typeof Icon === 'function' && iconName !== 'default') {
-            setIconComponent(() => Icon);
+            setIconComponent(() => Icon as React.ComponentType<any>);
           } else {
             setIconComponent(() => Book);
           }
