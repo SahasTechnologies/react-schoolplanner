@@ -1,7 +1,7 @@
 // NOTE: This file requires the following dependencies to be present in your package.json for deployment:
 //   react, react-dom, lucide-react, @types/react, @types/react-dom
 import * as React from 'react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { Upload, Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Settings, Edit2, User, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface CalendarEvent {
@@ -29,7 +29,6 @@ const CorporateICSScheduleViewer = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-  const [showUpload, setShowUpload] = useState(true); // Still used for the specific upload component
   const [currentPage, setCurrentPage] = useState('home'); // Initial page
   const [subjects, setSubjects] = useState<Subject[]>([]);
   
@@ -470,7 +469,6 @@ const CorporateICSScheduleViewer = () => {
           }
         }
 
-        setShowUpload(false);
         setWelcomeStep('completed');
 
         // Extract and combine subjects from ALL events (not just the first week)
@@ -529,7 +527,6 @@ const CorporateICSScheduleViewer = () => {
 
   const clearData = () => {
     setWeekData(null);
-    setShowUpload(true);
     setError('');
     setSubjects([]);
     setWelcomeStep('welcome'); // Reset to welcome screen
