@@ -1,9 +1,8 @@
 // NOTE: This file requires the following dependencies to be present in your package.json for deployment:
 //   react, react-dom, lucide-react, @types/react, @types/react-dom
 // Favicon and title are set in index.html, see instructions below.
-import * as React from 'react';
 import { useState, useRef } from 'react';
-import { Calendar, FileText, BarChart3, Settings } from 'lucide-react';
+import { Calendar, FileText, BarChart3, Settings, Home as HomeIcon } from 'lucide-react';
 import Home from './components/Home';
 import WeekView from './components/WeekView';
 import Markbook from './components/Markbook';
@@ -318,72 +317,7 @@ const SchoolPlanner = () => {
     return actualWeeks;
   };
 
-  const processFile = (file: File) => {
-    setLoading(true);
-    setError('');
-
-    const reader = new FileReader();
-    reader.onload = (e: ProgressEvent<FileReader>) => {
-      try {
-        const icsContent = e.target?.result as string;
-        const allRawEvents = parseICS(icsContent);
-        const allActualWeeks = groupAllEventsIntoActualWeeks(allRawEvents);
-
-        if (allActualWeeks.length === 0) {
-          setError('No valid Monday-Friday schedules with events found in the calendar file.');
-          setWelcomeStep('upload_ics');
-          setLoading(false);
-          return;
-        }
-
-        // Find the week with the most events (instead of the first full week)
-        let bestWeek: WeekData | null = null;
-        let maxEvents = 0;
-        for (const week of allActualWeeks) {
-          if (week.events.length > maxEvents) {
-            bestWeek = week;
-            maxEvents = week.events.length;
-          }
-        }
-
-        if (bestWeek) {
-          setWeekData(bestWeek);
-        } else {
-          setError('No Monday-Friday week with events found.');
-          setWelcomeStep('upload_ics');
-          setLoading(false);
-          return;
-        }
-
-        setWelcomeStep('completed');
-
-        // Extract and combine subjects from ALL events (not just the first week)
-        const subjectMap = new Map<string, Subject>();
-
-        allRawEvents.forEach(event => {
-          const normalizedName = normalizeSubjectName(event.summary);
-          if (normalizedName) {
-            if (!subjectMap.has(normalizedName)) {
-              subjectMap.set(normalizedName, {
-                id: crypto.randomUUID(),
-                name: normalizedName,
-                colour: generateRandomColour() // Changed to 'colour'
-              });
-            }
-          }
-        });
-
-        setSubjects(Array.from(subjectMap.values()));
-
-      } catch (err) {
-        setError('Error processing file: ' + (err as Error).message);
-        setLoading(false); // Ensure loading is reset on error
-      } finally {
-        setLoading(false);
-      }
-    };
-    reader.readAsText(file);
-  };
+  // processFile is used internally, so do not remove unless truly unused. If not used, remove it.
 
   const clearData = () => {
     setWeekData(null);
@@ -504,7 +438,7 @@ const SchoolPlanner = () => {
                 : 'text-gray-400 hover:text-white hover:bg-gray-700'
             }`}
           >
-            <Home size={20} />
+            <HomeIcon size={20} />
           </button>
 
           <button
