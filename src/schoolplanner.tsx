@@ -256,10 +256,10 @@ const SchoolPlanner = () => {
   // Helper to get the Monday of a given date's week (use UTC)
   const getMonday = (d: Date): Date => {
     const date = new Date(d);
-    const day = date.getUTCDay(); // Use UTC!
-    const diff = date.getUTCDate() - day + (day === 0 ? -6 : 1);
-    date.setUTCDate(diff);
-    date.setUTCHours(0, 0, 0, 0);
+    const day = date.getDay(); // Use local time
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+    date.setDate(diff);
+    date.setHours(0, 0, 0, 0);
     return date;
   };
 
