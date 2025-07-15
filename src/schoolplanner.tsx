@@ -291,6 +291,7 @@ const SchoolPlanner = () => {
       const mondayDate = new Date(mondayKey);
       // Use local time for week range
       const localMonday = new Date(mondayDate.getFullYear(), mondayDate.getMonth(), mondayDate.getDate(), 0, 0, 0, 0);
+      // Calculate localFriday as the same week Friday at 23:59:59.999
       const localFriday = new Date(localMonday);
       localFriday.setDate(localMonday.getDate() + 4);
       localFriday.setHours(23, 59, 59, 999);
