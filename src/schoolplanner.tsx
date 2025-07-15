@@ -3,7 +3,7 @@
 // Favicon and title are set in index.html, see instructions below.
 import * as React from 'react';
 import { useState, useRef, Suspense } from 'react';
-import { Upload, Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Settings, Edit2, User, Book, FlaskConical, Palette, Calculator, Music, Globe, Dumbbell, Languages, Code2, Users, Library, Mic2, Star, Briefcase, HeartHandshake, Brain, Bot, GraduationCap, PenLine, BookOpen, BookMarked, BookUser } from 'lucide-react';
+import { Upload, Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Settings, Edit2, User } from 'lucide-react';
 
 interface CalendarEvent {
   dtstart: Date;
@@ -630,7 +630,11 @@ const SchoolPlanner = () => {
   // Dynamic icon loader component
   const DynamicLucideIcon = ({ iconName, ...props }: { iconName: string; size?: number; className?: string }) => {
     const LucideIcon = React.useMemo(
-      () => React.lazy(() => import('lucide-react').then(mod => ({ default: mod[iconName] || mod['Book'] }))),
+      () => React.lazy(() => import('lucide-react').then(mod => {
+        const Icon = mod[iconName];
+        // Fallback to Book icon if not found
+        return { default: typeof Icon === 'function' ? Icon : mod['Book'] };
+      })),
       [iconName]
     );
     return (
