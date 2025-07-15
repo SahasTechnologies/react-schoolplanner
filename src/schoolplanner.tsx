@@ -632,10 +632,10 @@ const SchoolPlanner = () => {
     const LucideIcon = React.useMemo(
       () => React.lazy(() => import('lucide-react').then(mod => {
         const Icon = mod[iconName];
-        // Only return if it's a valid React component (function with $$typeof property)
-        const isValidComponent = typeof Icon === 'function' && Icon.$$typeof;
+        // Only use if it's a function and not a known utility export
+        const isValid = typeof Icon === 'function' && iconName !== 'createLucideIcon' && iconName !== 'default';
         const BookIcon = mod['Book'];
-        return { default: isValidComponent ? Icon : BookIcon };
+        return { default: isValid ? Icon : BookIcon };
       })),
       [iconName]
     );
