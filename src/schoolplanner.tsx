@@ -1,12 +1,26 @@
-import React, { useState, useRef } from 'react';
-import { Upload, Calendar, FileText, Download, Clock, MapPin, Users } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Upload, Calendar, FileText, Clock, MapPin } from 'lucide-react';
+
+interface CalendarEvent {
+  dtstart: Date;
+  dtend?: Date;
+  summary: string;
+  location?: string;
+  description?: string;
+}
+
+interface WeekData {
+  monday: Date;
+  friday: Date;
+  events: CalendarEvent[];
+}
 
 const CorporateICSScheduleViewer = () => {
-  const [weekData, setWeekData] = useState(null);
+  const [weekData, setWeekData] = useState<WeekData | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const subjectColors = {
     'mathematics': '#8B5CF6',
@@ -27,7 +41,7 @@ const CorporateICSScheduleViewer = () => {
     'climbing': '#EC4899'
   };
 
-  const getEventColor = (title) => {
+  const getEventColor = (title: string): string => {
     const titleLower = title.toLowerCase();
     for (const [key, color] of Object.entries(subjectColors)) {
       if (titleLower.includes(key)) {
@@ -37,10 +51,10 @@ const CorporateICSScheduleViewer = () => {
     return '#64748B';
   };
 
-  const parseICS = (icsContent) => {
-    const events = [];
+  const parseICS = (icsContent: string): CalendarEvent[] => {
+    const events: CalendarEvent[] = [];
     const lines = icsContent.split(/\r?\n/);
-    let currentEvent = null;
+    let currentEvent: Partial<CalendarEvent> | null = null;
     
     console.log('Parsing ICS content, total lines:', lines.length);
     
@@ -54,10 +68,10 @@ const CorporateICSScheduleViewer = () => {
       }
       
       if (line === 'BEGIN:VEVENT') {
-        currentEvent = {};
+        currentEvent = {} as Partial<CalendarEvent>;
       } else if (line === 'END:VEVENT' && currentEvent) {
         if (currentEvent.dtstart && currentEvent.dtend && currentEvent.summary) {
-          events.push(currentEvent);
+          events.push(currentEvent as CalendarEvent);
           console.log('Added event:', currentEvent.summary, 'from', currentEvent.dtstart, 'to', currentEvent.dtend);
         }
         currentEvent = null;
@@ -84,7 +98,7 @@ const CorporateICSScheduleViewer = () => {
     return events;
   };
 
-  const parseDateTime = (dateStr) => {
+  const parseDateTime = (dateStr: string): Date => {
     console.log('Parsing datetime:', dateStr);
     
     // Handle timezone parameters
@@ -95,7 +109,7 @@ const CorporateICSScheduleViewer = () => {
       const parts = dateStr.split(';');
       cleanDateStr = parts[parts.length - 1];
       // Check for timezone info
-      if (parts.some(part => part.includes('TZID'))) {
+      if (parts.some((part: string) => part.includes('TZID'))) {
         // Handle timezone - for now we'll treat as local time
         isUTC = false;
       }
@@ -151,16 +165,16 @@ const CorporateICSScheduleViewer = () => {
     }
   };
 
-  const findFirstMondayWeek = (events) => {
+  const findFirstMondayWeek = (events: CalendarEvent[]): WeekData => {
     if (events.length === 0) {
       throw new Error('No events found in the calendar file');
     }
     
-    events.sort((a, b) => a.dtstart - b.dtstart);
+    events.sort((a: CalendarEvent, b: CalendarEvent) => a.dtstart.getTime() - b.dtstart.getTime());
     
     // Find the first Monday that has events in the week
     let firstMonday = null;
-    let weekEvents = [];
+    let weekEvents: CalendarEvent[] = [];
     
     // Start from the first event and look for the first complete week (Mon-Fri)
     for (const event of events) {
@@ -185,7 +199,7 @@ const CorporateICSScheduleViewer = () => {
       fridayOfWeek.setHours(23, 59, 59, 999);
       
       // Check if this week has any events
-      const eventsInWeek = events.filter(e => {
+      const eventsInWeek = events.filter((e: CalendarEvent) => {
         const eDate = new Date(e.dtstart);
         return !isNaN(eDate.getTime()) && eDate >= mondayOfWeek && eDate <= fridayOfWeek;
       });
@@ -216,19 +230,19 @@ const CorporateICSScheduleViewer = () => {
     };
   };
 
-  const processFile = (file) => {
+  const processFile = (file: File) => {
     setLoading(true);
     setError('');
     
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = (e: ProgressEvent<FileReader>) => {
       try {
-        const icsContent = e.target.result;
+        const icsContent = e.target?.result as string;
         const events = parseICS(icsContent);
         const firstMondayWeek = findFirstMondayWeek(events);
         setWeekData(firstMondayWeek);
       } catch (err) {
-        setError('Error processing file: ' + err.message);
+        setError('Error processing file: ' + (err as Error).message);
       } finally {
         setLoading(false);
       }
@@ -236,13 +250,13 @@ const CorporateICSScheduleViewer = () => {
     reader.readAsText(file);
   };
 
-  const handleFileChange = (e) => {
-    if (e.target.files.length > 0) {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
       processFile(e.target.files[0]);
     }
   };
 
-  const handleDragOver = (e) => {
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(true);
   };
@@ -251,7 +265,7 @@ const CorporateICSScheduleViewer = () => {
     setDragOver(false);
   };
 
-  const handleDrop = (e) => {
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
     const files = e.dataTransfer.files;
@@ -260,7 +274,7 @@ const CorporateICSScheduleViewer = () => {
     }
   };
 
-  const formatTime = (date) => {
+  const formatTime = (date: Date): string => {
     return date.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
@@ -268,7 +282,7 @@ const CorporateICSScheduleViewer = () => {
     });
   };
 
-  const formatDate = (date) => {
+  const formatDate = (date: Date): string => {
     return date.toLocaleDateString('en-US', {
       weekday: 'long',
       day: 'numeric',
@@ -280,9 +294,9 @@ const CorporateICSScheduleViewer = () => {
     if (!weekData) return null;
 
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-    const dayEvents = [[], [], [], [], []];
+    const dayEvents: CalendarEvent[][] = [[], [], [], [], []];
     
-    weekData.events.forEach(event => {
+    weekData.events.forEach((event: CalendarEvent) => {
       const eventDate = new Date(event.dtstart);
       
       // Skip invalid dates
@@ -297,8 +311,8 @@ const CorporateICSScheduleViewer = () => {
       }
     });
     
-    dayEvents.forEach(dayEventList => {
-      dayEventList.sort((a, b) => a.dtstart - b.dtstart);
+    dayEvents.forEach((dayEventList: CalendarEvent[]) => {
+      dayEventList.sort((a: CalendarEvent, b: CalendarEvent) => a.dtstart.getTime() - b.dtstart.getTime());
     });
 
     return (
@@ -332,7 +346,7 @@ const CorporateICSScheduleViewer = () => {
                       <p>No events</p>
                     </div>
                   ) : (
-                    dayEvents[index].map((event, eventIndex) => (
+                    dayEvents[index].map((event: CalendarEvent, eventIndex: number) => (
                       <div
                         key={eventIndex}
                         className="rounded-lg p-3 text-white text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
