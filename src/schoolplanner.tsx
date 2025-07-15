@@ -631,10 +631,11 @@ const SchoolPlanner = () => {
   const DynamicLucideIcon = ({ iconName, ...props }: { iconName: string; size?: number; className?: string }) => {
     const LucideIcon = React.useMemo(
       () => React.lazy(() => import('lucide-react').then(mod => {
-        // Only allow valid icon components (functions with displayName or name)
-        const Icon = typeof mod[iconName] === 'function' && (mod[iconName].displayName || mod[iconName].name) ? mod[iconName] : undefined;
-        const BookIcon = typeof mod['Book'] === 'function' ? mod['Book'] : () => null;
-        return { default: Icon || BookIcon };
+        const Icon = mod[iconName];
+        // Only return if it's a valid React component (function with $$typeof property)
+        const isValidComponent = typeof Icon === 'function' && Icon.$$typeof;
+        const BookIcon = mod['Book'];
+        return { default: isValidComponent ? Icon : BookIcon };
       })),
       [iconName]
     );
