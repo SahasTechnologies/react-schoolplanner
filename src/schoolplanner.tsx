@@ -1138,4 +1138,3 @@ export default SchoolPlanner;
 // 1. Edit public/index.html
 // 2. Set <title>School Planner</title>
 // 3. For favicon, export the Lucide 'School' icon as SVG and set as <link rel="icon" href="/school.svg"> in index.html.
-
