@@ -1,3 +1,4 @@
+import React from 'react';
   // NOTE: This file requires the following dependencies to be present in your package.json for deployment:
   //   react, react-dom, lucide-react, @types/react, @types/react-dom
   // Favicon and title are set in index.html, see instructions below.
@@ -50,7 +51,7 @@
 
     // Remove enhanced biweekly schedule and pattern logic
 
-    const customColourInputRef = useRef<HTMLInputElement | null>(null);
+    const customColourInputRef = useRef<HTMLInputElement>(null); // Ref for hidden colour input, correct type
 
     // Default colours for the palette
     const defaultColours = [
@@ -153,6 +154,76 @@
       return subject ? subject.colour : generateRandomColour(); // Changed to 'subject.colour'
     };
 
+    // parseICS is unused, so remove it if not used elsewhere
+
+    const parseDateTime = (dateStr: string): Date => {
+      // console.log('Parsing datetime:', dateStr); // Commented out to reduce console noise
+
+      // Handle timezone parameters
+      let cleanDateStr = dateStr;
+      let isUTC = false;
+
+      if (dateStr.includes(';')) {
+        const parts = dateStr.split(';');
+        cleanDateStr = parts[parts.length - 1];
+        // Check for timezone info
+        if (parts.some((part: string) => part.includes('TZID'))) {
+          // Handle timezone - for now we'll treat as local time
+          isUTC = false;
+        }
+      }
+
+      cleanDateStr = cleanDateStr.trim();
+
+      if (cleanDateStr.endsWith('Z')) {
+        isUTC = true;
+        cleanDateStr = cleanDateStr.slice(0, -1);
+      }
+
+      if (cleanDateStr.length === 8) {
+        // YYYYMMDD format
+        const year = parseInt(cleanDateStr.substring(0, 4));
+        const month = parseInt(cleanDateStr.substring(4, 6)) - 1;
+        const day = parseInt(cleanDateStr.substring(6, 8));
+        const date = new Date(year, month, day);
+        // console.log('Parsed date (YYYYMMDD):', date); // Commented out
+        return date;
+      } else if (cleanDateStr.length >= 15) { // Handle YYYYMMDDTHHMMSS and longer with TZID
+        // YYYYMMDDTHHMMSS format
+        const year = parseInt(cleanDateStr.substring(0, 4));
+        const month = parseInt(cleanDateStr.substring(4, 6)) - 1;
+        const day = parseInt(cleanDateStr.substring(6, 8));
+        const hour = parseInt(cleanDateStr.substring(9, 11));
+        const minute = parseInt(cleanDateStr.substring(11, 13));
+        const second = parseInt(cleanDateStr.substring(13, 15) || '0'); // Seconds might be optional
+
+        const date = isUTC ?
+          new Date(Date.UTC(year, month, day, hour, minute, second)) :
+          new Date(year, month, day, hour, minute, second);
+        // console.log('Parsed datetime:', date, isUTC ? '(UTC)' : '(local)'); // Commented out
+        return date;
+      } else {
+        // Try to parse as-is
+        const date = new Date(cleanDateStr);
+        // console.log('Parsed datetime (fallback):', date); // Commented out
+        return date;
+      }
+    };
+
+    // Helper to get the Monday of a given date's week (use UTC)
+    const getMonday = (d: Date): Date => {
+      const date = new Date(d);
+      const day = date.getDay(); // Use local time
+      const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+      date.setDate(diff);
+      date.setHours(0, 0, 0, 0);
+      return date;
+    };
+
+    // groupAllEventsIntoActualWeeks is unused, so remove it if not used elsewhere
+
+    // processFile is used internally, so do not remove unless truly unused. If not used, remove it.
+
     const clearData = () => {
       setWeekData(null);
       setError('');
@@ -251,10 +322,19 @@
 
     // Main render logic based on welcomeStep
     if (welcomeStep !== 'completed') {
+      // Dedicated Welcome Screen
       return (
         <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center font-inter">
-          {/* Welcome screen content is now handled by Home component */}
-          {renderCurrentPage()}
+          <div className="bg-gray-800 rounded-xl shadow-lg p-10 max-w-md w-full text-center">
+            <h1 className="text-4xl font-bold mb-4">Welcome to School Planner</h1>
+            <p className="text-gray-300 mb-8">Organize your school schedule, subjects, and more!</p>
+            <button
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors duration-200"
+              onClick={() => setWelcomeStep('completed')}
+            >
+              Get Started
+            </button>
+          </div>
         </div>
       );
     }
