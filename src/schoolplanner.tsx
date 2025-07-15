@@ -3,7 +3,12 @@
 // Favicon and title are set in index.html, see instructions below.
 import * as React from 'react';
 import { useState, useRef } from 'react';
-import { Upload, Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Settings, Edit2, User, Book } from 'lucide-react';
+import { 
+  Upload, Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Settings, Edit2, User, Book,
+  Calculator, FlaskConical, Palette, Music, Globe, Dumbbell, Languages, Code2, Brain, Mic2, 
+  Users, BookOpen, PenLine, BookUser, Briefcase, HeartHandshake, Library, BookMarked, Star, 
+  GraduationCap, Bot
+} from 'lucide-react';
 
 interface CalendarEvent {
   dtstart: Date;
@@ -581,92 +586,56 @@ const SchoolPlanner = () => {
     );
   };
 
-  // Subject icon name mapping (string names, not components)
-  const subjectIconNameMap: Record<string, string> = {
-    'Mathematics': 'Calculator',
-    'Science': 'FlaskConical',
-    'Visual Arts': 'Palette',
-    'Music': 'Music',
-    'Geography': 'Globe',
-    'PD/H/PE': 'Dumbbell',
-    'Languages': 'Languages',
-    'Coding Club': 'Code2',
-    'Information Technology': 'Code2',
-    'Computing': 'Code2',
-    'STEM': 'Brain',
-    'Drama': 'Mic2',
-    'Drama Club': 'Mic2',
-    'Debate Club': 'Users',
-    'Reading Group': 'BookOpen',
-    'Writing Workshop': 'PenLine',
-    'Study Hall': 'BookUser',
-    'Tutorial': 'BookUser',
-    'Mentoring Session': 'Users',
-    'Career Guidance': 'Briefcase',
-    'Counseling': 'HeartHandshake',
-    'Wellbeing': 'HeartHandshake',
-    'Pastoral Care': 'Users',
-    'Library': 'Library',
-    'History': 'BookMarked',
-    'English': 'BookOpen',
-    'French': 'Languages',
-    'Japanese': 'Languages',
-    'Latin': 'Languages',
-    'Sport': 'Dumbbell',
-    'Rec Sport': 'Dumbbell',
-    'Roll Call': 'Users',
-    'Band Practice': 'Music',
-    'Choir': 'Music',
-    'Orchestra': 'Music',
-    'Design & Technology': 'Palette',
-    'Technology': 'Palette',
-    'Assembly': 'Users',
-    'Chapel': 'Star',
-    'BHOPE': 'GraduationCap',
-    'Commerce': 'Briefcase',
-    'Robotics': 'Bot',
-  };
-
-  // Simple icon component that always falls back to Book
-  const DynamicLucideIcon = ({ iconName, ...props }: { iconName: string; size?: number; className?: string }) => {
-    const [IconComponent, setIconComponent] = React.useState<React.ComponentType<any> | null>(null);
-    const [isLoading, setIsLoading] = React.useState(true);
-
-    React.useEffect(() => {
-      const loadIcon = async () => {
-        try {
-          const mod = await import('lucide-react');
-          const Icon = mod[iconName as keyof typeof mod];
-          
-          // Simple check: if it's a function and not the default export, use it
-          if (typeof Icon === 'function' && iconName !== 'default') {
-            setIconComponent(() => Icon as React.ComponentType<any>);
-          } else {
-            setIconComponent(() => Book);
-          }
-        } catch (error) {
-          console.warn(`Failed to load icon ${iconName}:`, error);
-          setIconComponent(() => Book);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-
-      loadIcon();
-    }, [iconName]);
-
-    if (isLoading) {
-      return <span style={{ display: 'inline-block', width: props.size || 20, height: props.size || 20 }} />;
-    }
-
-    const IconToRender = IconComponent || Book;
-    return <IconToRender {...props} />;
+  // Static icon mapping - only imports the icons we actually need
+  const subjectIconMap: Record<string, React.ComponentType<any>> = {
+    'Mathematics': Calculator,
+    'Science': FlaskConical,
+    'Visual Arts': Palette,
+    'Music': Music,
+    'Geography': Globe,
+    'PD/H/PE': Dumbbell,
+    'Languages': Languages,
+    'Coding Club': Code2,
+    'Information Technology': Code2,
+    'Computing': Code2,
+    'STEM': Brain,
+    'Drama': Mic2,
+    'Drama Club': Mic2,
+    'Debate Club': Users,
+    'Reading Group': BookOpen,
+    'Writing Workshop': PenLine,
+    'Study Hall': BookUser,
+    'Tutorial': BookUser,
+    'Mentoring Session': Users,
+    'Career Guidance': Briefcase,
+    'Counseling': HeartHandshake,
+    'Wellbeing': HeartHandshake,
+    'Pastoral Care': Users,
+    'Library': Library,
+    'History': BookMarked,
+    'English': BookOpen,
+    'French': Languages,
+    'Japanese': Languages,
+    'Latin': Languages,
+    'Sport': Dumbbell,
+    'Rec Sport': Dumbbell,
+    'Roll Call': Users,
+    'Band Practice': Music,
+    'Choir': Music,
+    'Orchestra': Music,
+    'Design & Technology': Palette,
+    'Technology': Palette,
+    'Assembly': Users,
+    'Chapel': Star,
+    'BHOPE': GraduationCap,
+    'Commerce': Briefcase,
+    'Robotics': Bot,
   };
 
   function getSubjectIcon(subjectName: string) {
     const normalized = normalizeSubjectName(subjectName);
-    const iconName = subjectIconNameMap[normalized] || 'Book';
-    return <DynamicLucideIcon iconName={iconName} size={20} className="text-gray-300" />;
+    const IconComponent = subjectIconMap[normalized] || Book;
+    return <IconComponent size={20} className="text-gray-300" />;
   }
 
   const renderMarkbook = () => {
