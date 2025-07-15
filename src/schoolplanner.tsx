@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, Calendar, FileText, Download, Clock, MapPin, Users } from 'lucide-react';
 
-const App = () => { // Renamed from CorporateICSScheduleViewer to App
+const CorporateICSScheduleViewer = () => {
   const [weekData, setWeekData] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -40,13 +40,13 @@ const App = () => { // Renamed from CorporateICSScheduleViewer to App
   const parseICS = (icsContent) => {
     const events = [];
     const lines = icsContent.split('\n');
-
-    console.log('Parsing ICS content, total lines:', lines.length);
-
     let currentEvent = null;
+    
+    console.log('Parsing ICS content, total lines:', lines.length);
+    
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
-
+      
       if (line === 'BEGIN:VEVENT') {
         currentEvent = {};
       } else if (line === 'END:VEVENT' && currentEvent) {
@@ -59,7 +59,7 @@ const App = () => { // Renamed from CorporateICSScheduleViewer to App
         const colonIndex = line.indexOf(':');
         const key = line.substring(0, colonIndex);
         const value = line.substring(colonIndex + 1);
-
+        
         if (key.startsWith('DTSTART')) {
           currentEvent.dtstart = parseDateTime(value);
         } else if (key.startsWith('DTEND')) {
@@ -73,17 +73,17 @@ const App = () => { // Renamed from CorporateICSScheduleViewer to App
         }
       }
     }
-
+    
     console.log('Total events parsed:', events.length);
     return events;
   };
 
   const parseDateTime = (dateStr) => {
     console.log('Parsing datetime:', dateStr);
-
+    
     // Remove any timezone info and clean the string
     const cleanDateStr = dateStr.replace(/;.*$/, '').trim();
-
+    
     if (cleanDateStr.length === 8) {
       // YYYYMMDD format
       const year = parseInt(cleanDateStr.substring(0, 4));
@@ -126,54 +126,54 @@ const App = () => { // Renamed from CorporateICSScheduleViewer to App
     if (events.length === 0) {
       throw new Error('No events found in the calendar file');
     }
-
+    
     events.sort((a, b) => a.dtstart - b.dtstart);
-
+    
     // Find the first Monday that has events in the week
     let firstMonday = null;
     let weekEvents = [];
-
+    
     // Start from the first event and look for the first complete week (Mon-Fri)
     for (const event of events) {
       const eventDate = new Date(event.dtstart);
-
+      
       // Calculate the Monday of this event's week
       const dayOfWeek = eventDate.getDay();
       const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Sunday is 0, so subtract 6
-
+      
       const mondayOfWeek = new Date(eventDate);
       mondayOfWeek.setDate(eventDate.getDate() - daysToSubtract);
       mondayOfWeek.setHours(0, 0, 0, 0);
-
+      
       const fridayOfWeek = new Date(mondayOfWeek);
       fridayOfWeek.setDate(mondayOfWeek.getDate() + 4);
       fridayOfWeek.setHours(23, 59, 59, 999);
-
+      
       // Check if this week has any events
       const eventsInWeek = events.filter(e => {
         const eDate = new Date(e.dtstart);
         return eDate >= mondayOfWeek && eDate <= fridayOfWeek;
       });
-
+      
       if (eventsInWeek.length > 0) {
         firstMonday = mondayOfWeek;
         weekEvents = eventsInWeek;
         break;
       }
     }
-
+    
     if (!firstMonday) {
       throw new Error('No complete week found in the calendar events');
     }
-
+    
     const firstFriday = new Date(firstMonday);
     firstFriday.setDate(firstMonday.getDate() + 4);
     firstFriday.setHours(23, 59, 59, 999);
-
+    
     console.log('First Monday:', firstMonday);
     console.log('First Friday:', firstFriday);
     console.log('Week events:', weekEvents);
-
+    
     return {
       monday: firstMonday,
       friday: firstFriday,
@@ -184,7 +184,7 @@ const App = () => { // Renamed from CorporateICSScheduleViewer to App
   const processFile = (file) => {
     setLoading(true);
     setError('');
-
+    
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
@@ -246,7 +246,7 @@ const App = () => { // Renamed from CorporateICSScheduleViewer to App
 
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
     const dayEvents = [[], [], [], [], []];
-
+    
     weekData.events.forEach(event => {
       const eventDate = new Date(event.dtstart);
       const dayIndex = eventDate.getDay() - 1;
@@ -254,7 +254,7 @@ const App = () => { // Renamed from CorporateICSScheduleViewer to App
         dayEvents[dayIndex].push(event);
       }
     });
-
+    
     dayEvents.forEach(dayEventList => {
       dayEventList.sort((a, b) => a.dtstart - b.dtstart);
     });
@@ -275,14 +275,14 @@ const App = () => { // Renamed from CorporateICSScheduleViewer to App
           {days.map((day, index) => {
             const dayDate = new Date(weekData.monday);
             dayDate.setDate(weekData.monday.getDate() + index);
-
+            
             return (
               <div key={day} className="bg-gray-800 rounded-lg border border-gray-700">
                 <div className="p-4 border-b border-gray-700">
                   <h3 className="font-semibold text-white text-center">{day}</h3>
                   <p className="text-sm text-gray-400 text-center">{dayDate.getDate()} {dayDate.toLocaleDateString('en-US', { month: 'long' })}</p>
                 </div>
-
+                
                 <div className="p-3 space-y-2 min-h-[400px]">
                   {dayEvents[index].length === 0 ? (
                     <div className="text-center text-gray-500 py-8">
@@ -299,7 +299,7 @@ const App = () => { // Renamed from CorporateICSScheduleViewer to App
                         <div className="font-medium mb-1 leading-tight">
                           {event.summary}
                         </div>
-
+                        
                         <div className="flex items-center gap-1 text-xs opacity-90 mb-1">
                           <Clock size={12} />
                           <span>{formatTime(event.dtstart)}</span>
@@ -309,7 +309,7 @@ const App = () => { // Renamed from CorporateICSScheduleViewer to App
                             </>
                           )}
                         </div>
-
+                        
                         {event.location && (
                           <div className="flex items-center gap-1 text-xs opacity-75">
                             <MapPin size={12} />
@@ -331,7 +331,7 @@ const App = () => { // Renamed from CorporateICSScheduleViewer to App
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-
+      
       <div className="container mx-auto px-4 py-8" style={{ fontFamily: 'Lexend, sans-serif' }}>
         <div className="max-w-7xl mx-auto">
           {/* Header */}
@@ -415,4 +415,4 @@ const App = () => { // Renamed from CorporateICSScheduleViewer to App
   );
 };
 
-export default App; // Ensure this matches the component name
+export default CorporateICSScheduleViewer;
