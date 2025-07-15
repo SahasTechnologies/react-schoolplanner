@@ -1,8 +1,9 @@
 // NOTE: This file requires the following dependencies to be present in your package.json for deployment:
 //   react, react-dom, lucide-react, @types/react, @types/react-dom
+// Favicon and title are set in index.html, see instructions below.
 import * as React from 'react';
 import { useState, useRef } from 'react';
-import { Upload, Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Settings, Edit2, User, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Upload, Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Settings, Edit2, User } from 'lucide-react';
 
 interface CalendarEvent {
   dtstart: Date;
@@ -24,7 +25,7 @@ interface Subject {
   colour: string; // Changed to Australian English 'colour'
 }
 
-const CorporateICSScheduleViewer = () => {
+const SchoolPlanner = () => {
   const [weekData, setWeekData] = useState<WeekData | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -147,7 +148,7 @@ const CorporateICSScheduleViewer = () => {
 
   const getEventColour = (title: string): string => { // Changed to 'getEventColour'
     const normalizedTitle = normalizeSubjectName(title);
-    const subject = subjects.find(s => normalizeSubjectName(s.name) === normalizedTitle);
+    const subject = subjects.find((s: Subject) => normalizeSubjectName(s.name) === normalizedTitle);
     return subject ? subject.colour : generateRandomColour(); // Changed to 'subject.colour'
   };
 
@@ -338,56 +339,6 @@ const CorporateICSScheduleViewer = () => {
     return actualWeeks;
   };
 
-  // Identifies the shortest repeating pattern from a list of actual weeks
-  const identifyRepeatingPattern = (allActualWeeks: WeekData[]): { patternSequence: WeekData[], cycleLength: number, firstPatternMonday: Date | null } => {
-    if (allActualWeeks.length === 0) {
-      return { patternSequence: [], cycleLength: 0, firstPatternMonday: null };
-    }
-
-    const relevantWeeks = allActualWeeks;
-    const firstPatternMonday = relevantWeeks[0].monday;
-
-    for (let cycleLen = 1; cycleLen <= relevantWeeks.length; cycleLen++) {
-      const currentPattern = relevantWeeks.slice(0, cycleLen);
-      const currentPatternStrings = currentPattern.map(week => getWeekPatternString(week.events));
-
-      let isRepeating = true;
-      for (let i = cycleLen; i < relevantWeeks.length; i++) {
-        const compareIndex = (i - cycleLen) % cycleLen;
-        if (getWeekPatternString(relevantWeeks[i].events) !== currentPatternStrings[compareIndex]) {
-          isRepeating = false;
-          break;
-        }
-      }
-
-      if (isRepeating) {
-        return {
-          patternSequence: currentPattern,
-          cycleLength: cycleLen,
-          firstPatternMonday: firstPatternMonday
-        };
-      }
-    }
-
-    // Fallback: If no repeating pattern found, treat all actual weeks as unique patterns
-    const uniquePatternsFromAllWeeks: WeekData[] = [];
-    const seenPatternsFallback = new Set<string>();
-    allActualWeeks.forEach(week => {
-        const patternString = getWeekPatternString(week.events);
-        if (!seenPatternsFallback.has(patternString)) {
-            seenPatternsFallback.add(patternString);
-            uniquePatternsFromAllWeeks.push(week);
-        }
-    });
-
-    return {
-        patternSequence: uniquePatternsFromAllWeeks,
-        cycleLength: uniquePatternsFromAllWeeks.length,
-        firstPatternMonday: uniquePatternsFromAllWeeks.length > 0 ? uniquePatternsFromAllWeeks[0].monday : null
-    };
-  };
-
-
   const processFile = (file: File) => {
     setLoading(true);
     setError('');
@@ -506,14 +457,6 @@ const CorporateICSScheduleViewer = () => {
     });
   };
 
-  const formatDate = (date: Date): string => {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long'
-    });
-  };
-
   // Subject editing modal functions
   const startEditingSubject = (subject: Subject) => {
     setSelectedSubjectForEdit(subject);
@@ -526,20 +469,20 @@ const CorporateICSScheduleViewer = () => {
     if (selectedSubjectForEdit) {
       // Check if the new name conflicts with an existing subject (to merge)
       const existingSubjectWithNewName = subjects.find(
-        s => normalizeSubjectName(s.name) === normalizeSubjectName(editName) && s.id !== selectedSubjectForEdit.id
+        (s: Subject) => normalizeSubjectName(s.name) === normalizeSubjectName(editName) && s.id !== selectedSubjectForEdit.id
       );
 
       if (existingSubjectWithNewName) {
         // Merge: Update events to point to the existing subject's ID
         // This is a simplified merge, actual event re-assignment isn't handled here
         // For now, we'll just remove the old subject and keep the existing one.
-        setSubjects(prevSubjects =>
-          prevSubjects.filter(s => s.id !== selectedSubjectForEdit.id)
+        setSubjects((prevSubjects: Subject[]) =>
+          prevSubjects.filter((s: Subject) => s.id !== selectedSubjectForEdit.id)
         );
         // The colour of the existing subject might be updated if desired, but for simplicity, we keep its original colour.
       } else {
         // No conflict, just update the subject
-        setSubjects(prevSubjects =>
+        setSubjects((prevSubjects: Subject[]) =>
           prevSubjects.map((subject: Subject) =>
             subject.id === selectedSubjectForEdit.id
               ? { ...subject, name: editName, colour: editColour } // Changed to 'colour'
@@ -1082,5 +1025,9 @@ const CorporateICSScheduleViewer = () => {
   );
 };
 
-export default CorporateICSScheduleViewer;
+export default SchoolPlanner;
+// To set the favicon and page title:
+// 1. Edit public/index.html
+// 2. Set <title>School Planner</title>
+// 3. For favicon, export the Lucide 'School' icon as SVG and set as <link rel="icon" href="/school.svg"> in index.html.
 
