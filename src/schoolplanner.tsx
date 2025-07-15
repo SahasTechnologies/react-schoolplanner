@@ -263,31 +263,6 @@ const SchoolPlanner = () => {
     return date;
   };
 
-  // Helper to get a canonical string representation of a week's events for comparison
-  const getWeekPatternString = (events: CalendarEvent[]): string => {
-    // Sort events by start time, then summary, then location, then description
-    const sortedEvents = [...events].sort((a, b) => {
-      if (a.dtstart.getTime() !== b.dtstart.getTime()) {
-        return a.dtstart.getTime() - b.dtstart.getTime();
-      }
-      if (a.summary !== b.summary) {
-        return a.summary.localeCompare(b.summary);
-      }
-      if (a.location && b.location && a.location !== b.location) {
-        return a.location.localeCompare(b.location);
-      }
-      if (a.description && b.description && a.description !== b.description) {
-        return a.description.localeCompare(b.description);
-      }
-      return 0;
-    });
-
-    // Create a string representation for comparison
-    return sortedEvents.map(event =>
-      `${event.dtstart.getDay()}-${event.dtstart.getHours()}:${event.dtstart.getMinutes()}|${event.dtend?.getHours() || ''}:${event.dtend?.getMinutes() || ''}|${normalizeSubjectName(event.summary)}|${event.location || ''}`
-    ).join(';');
-  };
-
   // Groups all events into their actual Monday-Friday weeks
   const groupAllEventsIntoActualWeeks = (allEvents: CalendarEvent[]): WeekData[] => {
     const weeksMap = new Map<string, CalendarEvent[]>(); // Key: 'YYYY-MM-DD' (Monday's date)
