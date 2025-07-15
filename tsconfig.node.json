@@ -8,13 +8,13 @@
 
     /* Essential for tsBuildInfoFile */
     "incremental": true, // ADDED: Required for tsBuildInfoFile
+    "composite": true,
 
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     // "verbatimModuleSyntax": true, // Still removed for simplicity
     // "moduleDetection": "force", // Changed to default behavior (implicitly removed "force")
-    "noEmit": true,
 
     /* Linting */
     "strict": true,
