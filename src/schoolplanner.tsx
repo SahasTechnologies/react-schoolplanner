@@ -90,7 +90,6 @@ const SchoolPlanner = () => {
     ['english', 'English'],
     ['science', 'Science'],
     ['rec', 'Rec Sport'],
-    ['pe', 'PD/H/PE'],
     ['pd', 'PD/H/PE'],
     ['japanese', 'Japanese'],
     ['latin', 'Latin'],
@@ -549,7 +548,8 @@ const SchoolPlanner = () => {
                         className="rounded-lg p-3 text-white text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
                         style={{ backgroundColor: getEventColour(event.summary) }}
                       >
-                        <div className="font-medium mb-1 leading-tight">
+                        <div className="font-medium mb-1 leading-tight flex items-center gap-1">
+                          {getSubjectIcon(event.summary)}
                           {event.summary}
                         </div>
                         {/* Teacher name row */}
