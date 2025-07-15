@@ -289,23 +289,24 @@ const SchoolPlanner = () => {
 
     sortedMondayKeys.forEach(mondayKey => {
       const mondayDate = new Date(mondayKey);
-      const fridayDate = new Date(mondayDate);
-      fridayDate.setDate(mondayDate.getDate() + 4);
-      fridayDate.setHours(23, 59, 59, 999);
+      // Use local time for week range
+      const localMonday = new Date(mondayDate.getFullYear(), mondayDate.getMonth(), mondayDate.getDate(), 0, 0, 0, 0);
+      const localFriday = new Date(localMonday);
+      localFriday.setDate(localMonday.getDate() + 4);
+      localFriday.setHours(23, 59, 59, 999);
 
       const eventsInThisWeek = weeksMap.get(mondayKey) || [];
-      
-      // Filter to only include events within the Mon-Fri range for this specific week
+      // Filter to only include events within the Mon-Fri range for this specific week (local time)
       const filteredEvents = eventsInThisWeek.filter(event => {
         const eventDtstart = new Date(event.dtstart);
-        return eventDtstart.getTime() >= mondayDate.getTime() && eventDtstart.getTime() <= fridayDate.getTime();
+        return eventDtstart.getTime() >= localMonday.getTime() && eventDtstart.getTime() <= localFriday.getTime();
       });
 
       // Only add weeks that have at least one event
       if (filteredEvents.length > 0) {
         actualWeeks.push({
-          monday: mondayDate,
-          friday: fridayDate,
+          monday: localMonday,
+          friday: localFriday,
           events: filteredEvents
         });
       }
