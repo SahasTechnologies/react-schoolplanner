@@ -45,12 +45,7 @@ const CorporateICSScheduleViewer = () => {
   // New state for auto-naming toggle
   const [autoNamingEnabled, setAutoNamingEnabled] = useState(true);
 
-  // New state for enhanced biweekly schedule toggle, off by default
-  const [enhancedBiweeklyScheduleEnabled, setEnhancedBiweeklyScheduleEnabled] = useState(false);
-
-  // New states for week navigation
-  const [patternWeekSchedules, setPatternWeekSchedules] = useState<WeekData[]>([]); // Stores the unique repeating pattern
-  const [currentPatternIndex, setCurrentPatternIndex] = useState(0); // Index within the repeating pattern
+  // Remove enhanced biweekly schedule and pattern logic
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const customColourInputRef = useRef<HTMLInputElement>(null); // Ref for hidden colour input
@@ -402,7 +397,6 @@ const CorporateICSScheduleViewer = () => {
       try {
         const icsContent = e.target?.result as string;
         const allRawEvents = parseICS(icsContent);
-        
         const allActualWeeks = groupAllEventsIntoActualWeeks(allRawEvents);
 
         if (allActualWeeks.length === 0) {
@@ -412,62 +406,30 @@ const CorporateICSScheduleViewer = () => {
           return;
         }
 
-        if (enhancedBiweeklyScheduleEnabled) {
-          const { patternSequence, cycleLength, firstPatternMonday } = identifyRepeatingPattern(allActualWeeks);
-          setPatternWeekSchedules(patternSequence);
-
-          if (patternSequence.length === 0 || firstPatternMonday === null) {
-              setError('Could not identify a repeating timetable pattern from the provided file.');
-              setWelcomeStep('upload_ics');
-              setLoading(false);
-              return;
-          }
-
-          const today = new Date();
-          const currentRealMonday = getMonday(today);
-          const millisecondsPerWeek = 7 * 24 * 60 * 60 * 1000;
-          const diffMilliseconds = currentRealMonday.getTime() - firstPatternMonday.getTime();
-          
-          let weeksSinceFirstPatternMonday = 0;
-          if (diffMilliseconds >= 0) {
-              weeksSinceFirstPatternMonday = Math.floor(diffMilliseconds / millisecondsPerWeek);
-          } else {
-              weeksSinceFirstPatternMonday = 0; 
-          }
-
-          const initialPatternIndex = weeksSinceFirstPatternMonday % cycleLength;
-          
-          setCurrentPatternIndex(initialPatternIndex);
-          setWeekData(patternSequence[initialPatternIndex]);
-
-        } else { // Enhanced Biweekly Schedule is OFF
-          // Find the first FULL week (Monday to Friday, all days have at least one event)
-          let firstFullWeek: WeekData | null = null;
-          for (const week of allActualWeeks) {
-            // Check if all days Monday (1) to Friday (5) have at least one event (UTC)
-            const daysWithEvents = [false, false, false, false, false];
-            week.events.forEach(event => {
-              const day = new Date(event.dtstart).getUTCDay();
-              if (day >= 1 && day <= 5) {
-                daysWithEvents[day - 1] = true;
-              }
-            });
-            if (daysWithEvents.every(Boolean)) {
-              firstFullWeek = week;
-              break;
+        // Find the first FULL week (Monday to Friday, all days have at least one event)
+        let firstFullWeek: WeekData | null = null;
+        for (const week of allActualWeeks) {
+          // Check if all days Monday (1) to Friday (5) have at least one event (UTC)
+          const daysWithEvents = [false, false, false, false, false];
+          week.events.forEach(event => {
+            const day = new Date(event.dtstart).getUTCDay();
+            if (day >= 1 && day <= 5) {
+              daysWithEvents[day - 1] = true;
             }
+          });
+          if (daysWithEvents.every(Boolean)) {
+            firstFullWeek = week;
+            break;
           }
+        }
 
-          if (firstFullWeek) {
-              setWeekData(firstFullWeek);
-              setPatternWeekSchedules([firstFullWeek]); // Only one week in the "pattern" for this mode
-              setCurrentPatternIndex(0);
-          } else {
-              setError('No full Monday-Friday week with events found.');
-              setWelcomeStep('upload_ics');
-              setLoading(false);
-              return;
-          }
+        if (firstFullWeek) {
+          setWeekData(firstFullWeek);
+        } else {
+          setError('No full Monday-Friday week with events found.');
+          setWelcomeStep('upload_ics');
+          setLoading(false);
+          return;
         }
 
         setWelcomeStep('completed');
@@ -533,9 +495,7 @@ const CorporateICSScheduleViewer = () => {
     setWelcomeStep('welcome'); // Reset to welcome screen
     setUserName(''); // Clear user name
     setAutoNamingEnabled(true); // Reset auto-naming to default
-    setEnhancedBiweeklyScheduleEnabled(false); // Reset enhanced schedule to default off
-    setPatternWeekSchedules([]); // Clear unique week schedules
-    setCurrentPatternIndex(0); // Reset week index
+    // Remove any now-unused state or props
   };
 
   const formatTime = (date: Date): string => {
@@ -601,21 +561,7 @@ const CorporateICSScheduleViewer = () => {
     setEditColour('');
   };
 
-  const goToPreviousWeek = () => {
-    setCurrentPatternIndex((prevIndex: number) => {
-      const newIndex = (prevIndex > 0 ? prevIndex - 1 : patternWeekSchedules.length - 1);
-      setWeekData(patternWeekSchedules[newIndex]);
-      return newIndex;
-    });
-  };
-
-  const goToNextWeek = () => {
-    setCurrentPatternIndex((prevIndex: number) => {
-      const newIndex = (prevIndex < patternWeekSchedules.length - 1 ? prevIndex + 1 : 0);
-      setWeekData(patternWeekSchedules[newIndex]);
-      return newIndex;
-    });
-  };
+  // Remove week navigation logic
 
 
   const renderWeekView = () => {
@@ -624,121 +570,81 @@ const CorporateICSScheduleViewer = () => {
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
     const dayEvents: CalendarEvent[][] = [[], [], [], [], []];
 
-    weekData.events.forEach((event: CalendarEvent) => {
-      const eventDate = new Date(event.dtstart);
+    // Repeat the first full week forever: always show the same events for each weekday
+    if (weekData) {
+      weekData.events.forEach((event: CalendarEvent) => {
+        const eventDate = new Date(event.dtstart);
+        if (isNaN(eventDate.getTime())) {
+          console.warn('Skipping event with invalid date in render:', event);
+          return;
+        }
+        const dayOfWeek = eventDate.getUTCDay();
+        let dayIndex;
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+          return;
+        } else {
+          dayIndex = dayOfWeek - 1;
+        }
+        if (dayIndex >= 0 && dayIndex < 5) {
+          dayEvents[dayIndex].push(event);
+        }
+      });
+    }
 
-      if (isNaN(eventDate.getTime())) {
-        console.warn('Skipping event with invalid date in render:', event);
-        return;
-      }
-
-      const dayOfWeek = eventDate.getUTCDay();
-      let dayIndex;
-
-      if (dayOfWeek === 0 || dayOfWeek === 6) { // Sunday (0) or Saturday (6) - skip
-        return;
-      } else {
-        dayIndex = dayOfWeek - 1; // Monday (1) -> 0, Friday (5) -> 4
-      }
-
-      if (dayIndex >= 0 && dayIndex < 5) {
-        dayEvents[dayIndex].push(event);
-      }
-    });
-
+    // Sort all events for each day by start time
     dayEvents.forEach((dayEventList: CalendarEvent[]) => {
       dayEventList.sort((a: CalendarEvent, b: CalendarEvent) => a.dtstart.getTime() - b.dtstart.getTime());
     });
 
-    // Only show week navigation if enhancedBiweeklyScheduleEnabled is true and more than one pattern week
-    const showWeekNavigation = enhancedBiweeklyScheduleEnabled && patternWeekSchedules.length > 1;
-
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Calendar className="text-blue-400" size={24} />
-            <h2 className="text-2xl font-semibold text-white">Weekly Schedule</h2>
-          </div>
-          <div className="flex items-center gap-4">
-            {showWeekNavigation && (
-              <>
-                <button
-                  onClick={goToPreviousWeek}
-                  disabled={patternWeekSchedules.length <= 1}
-                  className="p-2 rounded-full bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronLeft size={20} />
-                </button>
-                <div className="text-sm text-gray-400">
-                  {formatDate(weekData.monday)} - {formatDate(weekData.friday)}
-                  <span className="ml-2">({currentPatternIndex + 1} of {patternWeekSchedules.length})</span>
-                </div>
-                <button
-                  onClick={goToNextWeek}
-                  disabled={patternWeekSchedules.length <= 1}
-                  className="p-2 rounded-full bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronRight size={20} />
-                </button>
-              </>
-            )}
-            {!showWeekNavigation && (
-              <div className="text-sm text-gray-400">
-                {formatDate(weekData.monday)} - {formatDate(weekData.friday)}
-              </div>
-            )}
-          </div>
+        <div className="flex items-center gap-3">
+          <Calendar className="text-blue-400" size={24} />
+          <h2 className="text-2xl font-semibold text-white">Weekly Schedule</h2>
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          {days.map((day, index) => {
-            return (
-              <div key={day} className="bg-gray-800 rounded-lg border border-gray-700">
-                <div className="p-4 border-b border-gray-700">
-                  <h3 className="font-semibold text-white text-center">{day}</h3>
-                </div>
-
-                <div className="p-3 space-y-2 min-h-[400px]">
-                  {dayEvents[index].length === 0 ? (
-                    <div className="text-center text-gray-500 py-8">
-                      <Calendar size={32} className="mx-auto mb-2 opacity-50" />
-                      <p>No events</p>
-                    </div>
-                  ) : (
-                    dayEvents[index].map((event: CalendarEvent, eventIndex: number) => (
-                      <div
-                        key={eventIndex}
-                        className="rounded-lg p-3 text-white text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
-                        style={{ backgroundColor: getEventColour(event.summary) }} // Changed to 'getEventColour'
-                      >
-                        <div className="font-medium mb-1 leading-tight">
-                          {event.summary}
-                        </div>
-
-                        <div className="flex items-center gap-1 text-xs opacity-90 mb-1">
-                          <Clock size={12} />
-                          <span>{formatTime(event.dtstart)}</span>
-                          {event.dtend && !isNaN(new Date(event.dtend).getTime()) && (
-                            <>
-                              <span> - {formatTime(event.dtend)}</span>
-                            </>
-                          )}
-                        </div>
-
-                        {event.location && (
-                          <div className="flex items-center gap-1 text-xs opacity-75">
-                            <MapPin size={12} />
-                            <span>{event.location}</span>
-                          </div>
+          {days.map((day, index) => (
+            <div key={day} className="bg-gray-800 rounded-lg border border-gray-700">
+              <div className="p-4 border-b border-gray-700">
+                <h3 className="font-semibold text-white text-center">{day}</h3>
+              </div>
+              <div className="p-3 space-y-2 min-h-[400px]">
+                {dayEvents[index].length === 0 ? (
+                  <div className="text-center text-gray-500 py-8">
+                    <Calendar size={32} className="mx-auto mb-2 opacity-50" />
+                    <p>No events</p>
+                  </div>
+                ) : (
+                  dayEvents[index].map((event: CalendarEvent, eventIndex: number) => (
+                    <div
+                      key={eventIndex}
+                      className="rounded-lg p-3 text-white text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
+                      style={{ backgroundColor: getEventColour(event.summary) }}
+                    >
+                      <div className="font-medium mb-1 leading-tight">
+                        {event.summary}
+                      </div>
+                      <div className="flex items-center gap-1 text-xs opacity-90 mb-1">
+                        <Clock size={12} />
+                        <span>{formatTime(event.dtstart)}</span>
+                        {event.dtend && !isNaN(new Date(event.dtend).getTime()) && (
+                          <>
+                            <span> - {formatTime(event.dtend)}</span>
+                          </>
                         )}
                       </div>
-                    ))
-                  )}
-                </div>
+                      {event.location && (
+                        <div className="flex items-center gap-1 text-xs opacity-75">
+                          <MapPin size={12} />
+                          <span>{event.location}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -892,21 +798,6 @@ const CorporateICSScheduleViewer = () => {
                     type="checkbox"
                     checked={autoNamingEnabled}
                     onChange={() => setAutoNamingEnabled(!autoNamingEnabled)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                </label>
-              </div>
-              <div className="flex items-center justify-between mt-4 border-t border-gray-700 pt-4">
-                <div>
-                  <p className="text-white font-medium">Enhanced Biweekly Schedule</p>
-                  <p className="text-gray-400 text-sm">Detect and display repeating biweekly/multi-week timetables <span className="text-blue-400">(Beta)</span></p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={enhancedBiweeklyScheduleEnabled}
-                    onChange={() => setEnhancedBiweeklyScheduleEnabled(!enhancedBiweeklyScheduleEnabled)}
                     className="sr-only peer"
                   />
                   <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
