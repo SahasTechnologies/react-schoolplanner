@@ -3,7 +3,7 @@
 // Favicon and title are set in index.html, see instructions below.
 import * as React from 'react';
 import { useState, useRef, Suspense } from 'react';
-import { Upload, Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Settings, Edit2, User } from 'lucide-react';
+import { Upload, Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Settings, Edit2, User, Book } from 'lucide-react';
 
 interface CalendarEvent {
   dtstart: Date;
@@ -627,23 +627,40 @@ const SchoolPlanner = () => {
     'Robotics': 'Bot',
   };
 
-  // Dynamic icon loader component
+  // Simple icon component that always falls back to Book
   const DynamicLucideIcon = ({ iconName, ...props }: { iconName: string; size?: number; className?: string }) => {
-    const LucideIcon = React.useMemo(
-      () => React.lazy(() => import('lucide-react').then(mod => {
-        const Icon = mod[iconName];
-        // Only use if it's a function and not a known utility export
-        const isValid = typeof Icon === 'function' && iconName !== 'createLucideIcon' && iconName !== 'default';
-        const BookIcon = mod['Book'];
-        return { default: isValid ? Icon : BookIcon };
-      })),
-      [iconName]
-    );
-    return (
-      <Suspense fallback={<span style={{ display: 'inline-block', width: props.size || 20, height: props.size || 20 }} />}>
-        <LucideIcon {...props} />
-      </Suspense>
-    );
+    const [IconComponent, setIconComponent] = React.useState<React.ComponentType<any> | null>(null);
+    const [isLoading, setIsLoading] = React.useState(true);
+
+    React.useEffect(() => {
+      const loadIcon = async () => {
+        try {
+          const mod = await import('lucide-react');
+          const Icon = mod[iconName as keyof typeof mod];
+          
+          // Simple check: if it's a function and not the default export, use it
+          if (typeof Icon === 'function' && iconName !== 'default') {
+            setIconComponent(() => Icon);
+          } else {
+            setIconComponent(() => Book);
+          }
+        } catch (error) {
+          console.warn(`Failed to load icon ${iconName}:`, error);
+          setIconComponent(() => Book);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      loadIcon();
+    }, [iconName]);
+
+    if (isLoading) {
+      return <span style={{ display: 'inline-block', width: props.size || 20, height: props.size || 20 }} />;
+    }
+
+    const IconToRender = IconComponent || Book;
+    return <IconToRender {...props} />;
   };
 
   function getSubjectIcon(subjectName: string) {
