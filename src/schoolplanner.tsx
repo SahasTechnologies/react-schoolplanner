@@ -2,8 +2,8 @@
 //   react, react-dom, lucide-react, @types/react, @types/react-dom
 // Favicon and title are set in index.html, see instructions below.
 import * as React from 'react';
-import { useState, useRef } from 'react';
-import { Upload, Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Settings, Edit2, User, Book, FlaskConical, Palette, Calculator, Music, Globe, Dumbbell, Languages, Code2, Users, Library, Mic2, Map, Star, Briefcase, HeartHandshake, Brain, Bot, GraduationCap, PenLine, BookOpen, BookCopy, BookMarked, BookUser, BookUp2, BookDown, BookKey, BookOpenCheck, BookOpenText, BookPlus, BookMinus, BookX, BookLock, BookA, BookAudio, BookCheck, BookHeart, BookImage } from 'lucide-react';
+import { useState, useRef, Suspense } from 'react';
+import { Upload, Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Settings, Edit2, User, Book, FlaskConical, Palette, Calculator, Music, Globe, Dumbbell, Languages, Code2, Users, Library, Mic2, Star, Briefcase, HeartHandshake, Brain, Bot, GraduationCap, PenLine, BookOpen, BookMarked, BookUser } from 'lucide-react';
 
 interface CalendarEvent {
   dtstart: Date;
@@ -581,56 +581,69 @@ const SchoolPlanner = () => {
     );
   };
 
-  // Subject icon mapping
-  const subjectIconMap: Record<string, React.FC<{ size?: number; className?: string }>> = {
-    'Mathematics': Calculator,
-    'Science': FlaskConical,
-    'Visual Arts': Palette,
-    'Music': Music,
-    'Geography': Globe,
-    'PD/H/PE': Dumbbell,
-    'Languages': Languages,
-    'Coding Club': Code2,
-    'Information Technology': Code2,
-    'Computing': Code2,
-    'STEM': Brain,
-    'Drama': Mic2,
-    'Drama Club': Mic2,
-    'Debate Club': Users,
-    'Reading Group': BookOpen,
-    'Writing Workshop': PenLine,
-    'Study Hall': BookUser,
-    'Tutorial': BookUser,
-    'Mentoring Session': Users,
-    'Career Guidance': Briefcase,
-    'Counseling': HeartHandshake,
-    'Wellbeing': HeartHandshake,
-    'Pastoral Care': Users,
-    'Library': Library,
-    'History': BookMarked,
-    'English': BookOpen,
-    'French': Languages,
-    'Japanese': Languages,
-    'Latin': Languages,
-    'Sport': Dumbbell,
-    'Rec Sport': Dumbbell,
-    'Roll Call': Users,
-    'Band Practice': Music,
-    'Choir': Music,
-    'Orchestra': Music,
-    'Design & Technology': Palette,
-    'Technology': Palette,
-    'Assembly': Users,
-    'Chapel': Star,
-    'BHOPE': GraduationCap,
-    'Commerce': Briefcase,
-    'Robotics': Bot,
+  // Subject icon name mapping (string names, not components)
+  const subjectIconNameMap: Record<string, string> = {
+    'Mathematics': 'Calculator',
+    'Science': 'FlaskConical',
+    'Visual Arts': 'Palette',
+    'Music': 'Music',
+    'Geography': 'Globe',
+    'PD/H/PE': 'Dumbbell',
+    'Languages': 'Languages',
+    'Coding Club': 'Code2',
+    'Information Technology': 'Code2',
+    'Computing': 'Code2',
+    'STEM': 'Brain',
+    'Drama': 'Mic2',
+    'Drama Club': 'Mic2',
+    'Debate Club': 'Users',
+    'Reading Group': 'BookOpen',
+    'Writing Workshop': 'PenLine',
+    'Study Hall': 'BookUser',
+    'Tutorial': 'BookUser',
+    'Mentoring Session': 'Users',
+    'Career Guidance': 'Briefcase',
+    'Counseling': 'HeartHandshake',
+    'Wellbeing': 'HeartHandshake',
+    'Pastoral Care': 'Users',
+    'Library': 'Library',
+    'History': 'BookMarked',
+    'English': 'BookOpen',
+    'French': 'Languages',
+    'Japanese': 'Languages',
+    'Latin': 'Languages',
+    'Sport': 'Dumbbell',
+    'Rec Sport': 'Dumbbell',
+    'Roll Call': 'Users',
+    'Band Practice': 'Music',
+    'Choir': 'Music',
+    'Orchestra': 'Music',
+    'Design & Technology': 'Palette',
+    'Technology': 'Palette',
+    'Assembly': 'Users',
+    'Chapel': 'Star',
+    'BHOPE': 'GraduationCap',
+    'Commerce': 'Briefcase',
+    'Robotics': 'Bot',
+  };
+
+  // Dynamic icon loader component
+  const DynamicLucideIcon = ({ iconName, ...props }: { iconName: string; size?: number; className?: string }) => {
+    const LucideIcon = React.useMemo(
+      () => React.lazy(() => import('lucide-react').then(mod => ({ default: mod[iconName] || mod['Book'] }))),
+      [iconName]
+    );
+    return (
+      <Suspense fallback={<span style={{ display: 'inline-block', width: props.size || 20, height: props.size || 20 }} />}>
+        <LucideIcon {...props} />
+      </Suspense>
+    );
   };
 
   function getSubjectIcon(subjectName: string) {
     const normalized = normalizeSubjectName(subjectName);
-    const Icon = subjectIconMap[normalized] || Book;
-    return <Icon size={20} className="text-gray-300" />;
+    const iconName = subjectIconNameMap[normalized] || 'Book';
+    return <DynamicLucideIcon iconName={iconName} size={20} className="text-gray-300" />;
   }
 
   const renderMarkbook = () => {
