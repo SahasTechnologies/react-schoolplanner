@@ -3,7 +3,7 @@
 // Favicon and title are set in index.html, see instructions below.
 import * as React from 'react';
 import { useState, useRef } from 'react';
-import { Upload, Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Settings, Edit2, User, Book, FlaskConical, Palette, Calculator, Music, Globe, Dumbbell, Languages, Code2, Users, Library, Mic2, Map, Star, Briefcase, HeartHandshake, Brain, Bot, GraduationCap, PenLine, BookOpen, BookCopy, BookMarked, BookUser, BookUp2, BookDown, BookKey, BookOpenCheck, BookOpenText, BookPlus, BookMinus, BookX, BookLock, BookA, BookAudio, BookCheck, BookHeart, BookImage, BookOpenA, BookOpenB, BookOpenC, BookOpenD, BookOpenE, BookOpenF, BookOpenG, BookOpenH, BookOpenI, BookOpenJ, BookOpenK, BookOpenL, BookOpenM, BookOpenN, BookOpenO, BookOpenP, BookOpenQ, BookOpenR, BookOpenS, BookOpenT, BookOpenU, BookOpenV, BookOpenW, BookOpenX, BookOpenY, BookOpenZ } from 'lucide-react';
+import { Upload, Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Settings, Edit2, User, Book, FlaskConical, Palette, Calculator, Music, Globe, Dumbbell, Languages, Code2, Users, Library, Mic2, Map, Star, Briefcase, HeartHandshake, Brain, Bot, GraduationCap, PenLine, BookOpen, BookCopy, BookMarked, BookUser, BookUp2, BookDown, BookKey, BookOpenCheck, BookOpenText, BookPlus, BookMinus, BookX, BookLock, BookA, BookAudio, BookCheck, BookHeart, BookImage } from 'lucide-react';
 
 interface CalendarEvent {
   dtstart: Date;
@@ -245,32 +245,6 @@ const SchoolPlanner = () => {
     BookCheck,
     BookHeart,
     BookImage,
-    BookOpenA,
-    BookOpenB,
-    BookOpenC,
-    BookOpenD,
-    BookOpenE,
-    BookOpenF,
-    BookOpenG,
-    BookOpenH,
-    BookOpenI,
-    BookOpenJ,
-    BookOpenK,
-    BookOpenL,
-    BookOpenM,
-    BookOpenN,
-    BookOpenO,
-    BookOpenP,
-    BookOpenQ,
-    BookOpenR,
-    BookOpenS,
-    BookOpenT,
-    BookOpenU,
-    BookOpenV,
-    BookOpenW,
-    BookOpenX,
-    BookOpenY,
-    BookOpenZ,
   };
 
   const getEventColour = (title: string): string => { // Changed to 'getEventColour'
@@ -394,7 +368,7 @@ const SchoolPlanner = () => {
   const groupAllEventsIntoActualWeeks = (allEvents: CalendarEvent[]): WeekData[] => {
     const weeksMap = new Map<string, CalendarEvent[]>(); // Key: 'YYYY-MM-DD' (Monday's date)
 
-    allEvents.forEach(event => {
+    allEvents.forEach((event: CalendarEvent) => {
       const eventDate = new Date(event.dtstart);
       if (isNaN(eventDate.getTime())) {
         console.warn('Skipping event with invalid date:', event);
@@ -415,7 +389,8 @@ const SchoolPlanner = () => {
     const sortedMondayKeys = Array.from(weeksMap.keys()).sort();
 
     sortedMondayKeys.forEach(mondayKey => {
-      const mondayDate = new Date(mondayKey);
+      // mondayKey is always a string in 'YYYY-MM-DD' format
+      const mondayDate = new Date(mondayKey as string);
       // Use local time for week range
       const localMonday = new Date(mondayDate.getFullYear(), mondayDate.getMonth(), mondayDate.getDate(), 0, 0, 0, 0);
       // Calculate localFriday as the same week Friday at 23:59:59.999
@@ -425,7 +400,7 @@ const SchoolPlanner = () => {
 
       const eventsInThisWeek = weeksMap.get(mondayKey) || [];
       // Filter to only include events within the Mon-Fri range for this specific week (local time)
-      const filteredEvents = eventsInThisWeek.filter(event => {
+      const filteredEvents = eventsInThisWeek.filter((event: CalendarEvent) => {
         const eventDtstart = new Date(event.dtstart);
         return eventDtstart.getTime() >= localMonday.getTime() && eventDtstart.getTime() <= localFriday.getTime();
       });
