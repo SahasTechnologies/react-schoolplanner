@@ -1,3 +1,6 @@
+// NOTE: This file requires the following dependencies to be present in your package.json for deployment:
+//   react, react-dom, lucide-react, @types/react, @types/react-dom
+import * as React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { Upload, Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Settings, Edit2, User, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -579,7 +582,7 @@ const CorporateICSScheduleViewer = () => {
       } else {
         // No conflict, just update the subject
         setSubjects(prevSubjects =>
-          prevSubjects.map(subject =>
+          prevSubjects.map((subject: Subject) =>
             subject.id === selectedSubjectForEdit.id
               ? { ...subject, name: editName, colour: editColour } // Changed to 'colour'
               : subject
@@ -601,7 +604,7 @@ const CorporateICSScheduleViewer = () => {
   };
 
   const goToPreviousWeek = () => {
-    setCurrentPatternIndex(prevIndex => {
+    setCurrentPatternIndex((prevIndex: number) => {
       const newIndex = (prevIndex > 0 ? prevIndex - 1 : patternWeekSchedules.length - 1);
       setWeekData(patternWeekSchedules[newIndex]);
       return newIndex;
@@ -609,7 +612,7 @@ const CorporateICSScheduleViewer = () => {
   };
 
   const goToNextWeek = () => {
-    setCurrentPatternIndex(prevIndex => {
+    setCurrentPatternIndex((prevIndex: number) => {
       const newIndex = (prevIndex < patternWeekSchedules.length - 1 ? prevIndex + 1 : 0);
       setWeekData(patternWeekSchedules[newIndex]);
       return newIndex;
@@ -759,7 +762,7 @@ const CorporateICSScheduleViewer = () => {
               <p className="text-gray-500 text-sm">Upload a calendar file to see your subjects</p>
             </div>
           ) : (
-            subjects.map((subject) => (
+            subjects.map((subject: Subject) => (
               <div key={subject.id} className="bg-gray-800 rounded-lg border border-gray-700 p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -794,7 +797,7 @@ const CorporateICSScheduleViewer = () => {
                     id="subjectName"
                     type="text"
                     value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditName(e.target.value)}
                     className="w-full bg-gray-700 text-white px-3 py-2 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -823,7 +826,7 @@ const CorporateICSScheduleViewer = () => {
                       ref={customColourInputRef}
                       type="color"
                       value={editColour}
-                      onChange={(e) => setEditColour(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditColour(e.target.value)}
                       className="hidden" // Hide the native input
                     />
                   </div>
@@ -987,7 +990,7 @@ const CorporateICSScheduleViewer = () => {
             <input
               type="text"
               value={userName}
-              onChange={(e) => setUserName(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserName(e.target.value)}
               placeholder="Enter your name"
               className="w-full max-w-sm bg-gray-700 text-white px-4 py-3 rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6 text-lg"
             />
