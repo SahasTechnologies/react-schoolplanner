@@ -257,13 +257,13 @@ const CorporateICSScheduleViewer = () => {
     }
   };
 
-  // Helper to get the Monday of a given date's week
+  // Helper to get the Monday of a given date's week (use UTC)
   const getMonday = (d: Date): Date => {
     const date = new Date(d);
-    const day = date.getDay(); // Sunday - 0, Monday - 1, ..., Saturday - 6
-    const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
-    date.setDate(diff);
-    date.setHours(0, 0, 0, 0);
+    const day = date.getUTCDay(); // Use UTC!
+    const diff = date.getUTCDate() - day + (day === 0 ? -6 : 1);
+    date.setUTCDate(diff);
+    date.setUTCHours(0, 0, 0, 0);
     return date;
   };
 
@@ -304,7 +304,8 @@ const CorporateICSScheduleViewer = () => {
       }
 
       const mondayOfWeek = getMonday(eventDate);
-      const mondayKey = mondayOfWeek.toISOString().split('T')[0]; // Use YYYY-MM-DD as key
+      // Use UTC date for key
+      const mondayKey = mondayOfWeek.getUTCFullYear() + '-' + String(mondayOfWeek.getUTCMonth() + 1).padStart(2, '0') + '-' + String(mondayOfWeek.getUTCDate()).padStart(2, '0');
 
       if (!weeksMap.has(mondayKey)) {
         weeksMap.set(mondayKey, []);
@@ -326,7 +327,7 @@ const CorporateICSScheduleViewer = () => {
       // Filter to only include events within the Mon-Fri range for this specific week
       const filteredEvents = eventsInThisWeek.filter(event => {
         const eventDtstart = new Date(event.dtstart);
-        return eventDtstart >= mondayDate && eventDtstart <= fridayDate;
+        return eventDtstart.getTime() >= mondayDate.getTime() && eventDtstart.getTime() <= fridayDate.getTime();
       });
 
       // Only add weeks that have at least one event
@@ -443,10 +444,10 @@ const CorporateICSScheduleViewer = () => {
           // Find the first FULL week (Monday to Friday, all days have at least one event)
           let firstFullWeek: WeekData | null = null;
           for (const week of allActualWeeks) {
-            // Check if all days Monday (1) to Friday (5) have at least one event
+            // Check if all days Monday (1) to Friday (5) have at least one event (UTC)
             const daysWithEvents = [false, false, false, false, false];
             week.events.forEach(event => {
-              const day = new Date(event.dtstart).getDay();
+              const day = new Date(event.dtstart).getUTCDay();
               if (day >= 1 && day <= 5) {
                 daysWithEvents[day - 1] = true;
               }
@@ -631,7 +632,7 @@ const CorporateICSScheduleViewer = () => {
         return;
       }
 
-      const dayOfWeek = eventDate.getDay();
+      const dayOfWeek = eventDate.getUTCDay();
       let dayIndex;
 
       if (dayOfWeek === 0 || dayOfWeek === 6) { // Sunday (0) or Saturday (6) - skip
