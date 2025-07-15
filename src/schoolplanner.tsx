@@ -275,8 +275,8 @@ const SchoolPlanner = () => {
       }
 
       const mondayOfWeek = getMonday(eventDate);
-      // Use UTC date for key
-      const mondayKey = mondayOfWeek.getUTCFullYear() + '-' + String(mondayOfWeek.getUTCMonth() + 1).padStart(2, '0') + '-' + String(mondayOfWeek.getUTCDate()).padStart(2, '0');
+      // Use local date for key
+      const mondayKey = mondayOfWeek.getFullYear() + '-' + String(mondayOfWeek.getMonth() + 1).padStart(2, '0') + '-' + String(mondayOfWeek.getDate()).padStart(2, '0');
 
       if (!weeksMap.has(mondayKey)) {
         weeksMap.set(mondayKey, []);
