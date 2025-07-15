@@ -23,7 +23,6 @@ interface Subject {
   id: string; // Unique ID for the subject
   name: string; // Display name, can be edited
   colour: string; // Changed to Australian English 'colour'
-  icon: string; // Lucide icon name
 }
 
 const SchoolPlanner = () => {
@@ -39,7 +38,6 @@ const SchoolPlanner = () => {
   const [selectedSubjectForEdit, setSelectedSubjectForEdit] = useState<Subject | null>(null);
   const [editName, setEditName] = useState('');
   const [editColour, setEditColour] = useState(''); // Changed to 'editColour'
-  const [editIcon, setEditIcon] = useState('Book');
 
   // Welcome screen states
   const [welcomeStep, setWelcomeStep] = useState<'welcome' | 'name_input' | 'upload_ics' | 'completed'>('welcome');
@@ -124,54 +122,6 @@ const SchoolPlanner = () => {
     ['counseling', 'Counseling'],
   ]);
 
-  // Map for subject icon assignment
-  const iconMap = new Map<string, string>([
-    ['mathematics', 'Calculator'],
-    ['math', 'Calculator'],
-    ['science', 'FlaskConical'],
-    ['visual arts', 'Palette'],
-    ['art', 'Palette'],
-    ['music', 'Music'],
-    ['english', 'BookOpen'],
-    ['history', 'BookMarked'],
-    ['geography', 'Globe'],
-    ['sport', 'Dumbbell'],
-    ['pe', 'Dumbbell'],
-    ['pd/h/pe', 'Dumbbell'],
-    ['languages', 'Languages'],
-    ['japanese', 'Languages'],
-    ['latin', 'Languages'],
-    ['french', 'Languages'],
-    ['technology', 'Code2'],
-    ['coding club', 'Code2'],
-    ['robotics', 'Bot'],
-    ['library', 'Library'],
-    ['choir', 'Mic2'],
-    ['band', 'Music'],
-    ['orchestra', 'Music'],
-    ['assembly', 'Users'],
-    ['pastoral care', 'HeartHandshake'],
-    ['wellbeing', 'HeartHandshake'],
-    ['career guidance', 'Briefcase'],
-    ['mentoring session', 'Star'],
-    ['study hall', 'GraduationCap'],
-    ['reading group', 'BookOpen'],
-    ['writing workshop', 'PenLine'],
-    ['debate club', 'Users'],
-    ['drama', 'Users'],
-    ['drama club', 'Users'],
-    ['rec sport', 'Dumbbell'],
-    ['design & technology', 'Palette'],
-    ['information technology', 'Code2'],
-    ['computing', 'Code2'],
-    ['stem', 'FlaskConical'],
-    ['tutorial', 'BookUser'],
-    ['counseling', 'HeartHandshake'],
-    ['roll call', 'Users'],
-    ['bhope', 'HeartHandshake'],
-    ['chapel', 'Map'],
-  ]);
-
   // Helper to normalize subject names for grouping and renaming
   const normalizeSubjectName = (summary: string): string => {
     let lowerSummary = summary.toLowerCase();
@@ -194,57 +144,6 @@ const SchoolPlanner = () => {
     }
     
     return summary.trim(); // Fallback to original if auto-naming is off or no specific rename/cleaning yields a useful name
-  };
-
-  // Helper to get icon name for a subject
-  const getSubjectIconName = (subjectName: string): string => {
-    const normalized = normalizeSubjectName(subjectName).toLowerCase();
-    for (const [key, icon] of iconMap.entries()) {
-      if (normalized.includes(key)) return icon;
-    }
-    return 'Book';
-  };
-
-  // Helper to get Lucide icon component by name
-  const lucideIcons: Record<string, React.ElementType> = {
-    Book,
-    FlaskConical,
-    Palette,
-    Calculator,
-    Music,
-    Globe,
-    Dumbbell,
-    Languages,
-    Code2,
-    Users,
-    Library,
-    Mic2,
-    Map,
-    Star,
-    Briefcase,
-    HeartHandshake,
-    Brain,
-    Bot,
-    GraduationCap,
-    PenLine,
-    BookOpen,
-    BookCopy,
-    BookMarked,
-    BookUser,
-    BookUp2,
-    BookDown,
-    BookKey,
-    BookOpenCheck,
-    BookOpenText,
-    BookPlus,
-    BookMinus,
-    BookX,
-    BookLock,
-    BookA,
-    BookAudio,
-    BookCheck,
-    BookHeart,
-    BookImage,
   };
 
   const getEventColour = (title: string): string => { // Changed to 'getEventColour'
@@ -368,7 +267,7 @@ const SchoolPlanner = () => {
   const groupAllEventsIntoActualWeeks = (allEvents: CalendarEvent[]): WeekData[] => {
     const weeksMap = new Map<string, CalendarEvent[]>(); // Key: 'YYYY-MM-DD' (Monday's date)
 
-    allEvents.forEach((event: CalendarEvent) => {
+    allEvents.forEach(event => {
       const eventDate = new Date(event.dtstart);
       if (isNaN(eventDate.getTime())) {
         console.warn('Skipping event with invalid date:', event);
@@ -389,8 +288,7 @@ const SchoolPlanner = () => {
     const sortedMondayKeys = Array.from(weeksMap.keys()).sort();
 
     sortedMondayKeys.forEach(mondayKey => {
-      // mondayKey is always a string in 'YYYY-MM-DD' format
-      const mondayDate = new Date(mondayKey as string);
+      const mondayDate = new Date(mondayKey);
       // Use local time for week range
       const localMonday = new Date(mondayDate.getFullYear(), mondayDate.getMonth(), mondayDate.getDate(), 0, 0, 0, 0);
       // Calculate localFriday as the same week Friday at 23:59:59.999
@@ -400,7 +298,7 @@ const SchoolPlanner = () => {
 
       const eventsInThisWeek = weeksMap.get(mondayKey) || [];
       // Filter to only include events within the Mon-Fri range for this specific week (local time)
-      const filteredEvents = eventsInThisWeek.filter((event: CalendarEvent) => {
+      const filteredEvents = eventsInThisWeek.filter(event => {
         const eventDtstart = new Date(event.dtstart);
         return eventDtstart.getTime() >= localMonday.getTime() && eventDtstart.getTime() <= localFriday.getTime();
       });
@@ -460,15 +358,14 @@ const SchoolPlanner = () => {
         // Extract and combine subjects from ALL events (not just the first week)
         const subjectMap = new Map<string, Subject>();
 
-        allRawEvents.forEach((event: CalendarEvent) => {
+        allRawEvents.forEach(event => {
           const normalizedName = normalizeSubjectName(event.summary);
           if (normalizedName) {
             if (!subjectMap.has(normalizedName)) {
               subjectMap.set(normalizedName, {
                 id: crypto.randomUUID(),
                 name: normalizedName,
-                colour: generateRandomColour(), // Changed to 'colour'
-                icon: getSubjectIconName(normalizedName),
+                colour: generateRandomColour() // Changed to 'colour'
               });
             }
           }
@@ -535,7 +432,6 @@ const SchoolPlanner = () => {
     setSelectedSubjectForEdit(subject);
     setEditName(subject.name);
     setEditColour(subject.colour); // Changed to 'editColour'
-    setEditIcon(subject.icon);
     setShowSubjectEditModal(true);
   };
 
@@ -559,7 +455,7 @@ const SchoolPlanner = () => {
         setSubjects((prevSubjects: Subject[]) =>
           prevSubjects.map((subject: Subject) =>
             subject.id === selectedSubjectForEdit.id
-              ? { ...subject, name: editName, colour: editColour, icon: editIcon } // Changed to 'colour'
+              ? { ...subject, name: editName, colour: editColour } // Changed to 'colour'
               : subject
           )
         );
@@ -569,7 +465,6 @@ const SchoolPlanner = () => {
     setSelectedSubjectForEdit(null);
     setEditName('');
     setEditColour('');
-    setEditIcon('Book'); // Reset icon to default
   };
 
   const cancelSubjectEdit = () => {
@@ -577,7 +472,6 @@ const SchoolPlanner = () => {
     setSelectedSubjectForEdit(null);
     setEditName('');
     setEditColour('');
-    setEditIcon('Book'); // Reset icon to default
   };
 
   // Remove week navigation logic
@@ -687,6 +581,58 @@ const SchoolPlanner = () => {
     );
   };
 
+  // Subject icon mapping
+  const subjectIconMap: Record<string, React.FC<{ size?: number; className?: string }>> = {
+    'Mathematics': Calculator,
+    'Science': FlaskConical,
+    'Visual Arts': Palette,
+    'Music': Music,
+    'Geography': Globe,
+    'PD/H/PE': Dumbbell,
+    'Languages': Languages,
+    'Coding Club': Code2,
+    'Information Technology': Code2,
+    'Computing': Code2,
+    'STEM': Brain,
+    'Drama': Mic2,
+    'Drama Club': Mic2,
+    'Debate Club': Users,
+    'Reading Group': BookOpen,
+    'Writing Workshop': PenLine,
+    'Study Hall': BookUser,
+    'Tutorial': BookUser,
+    'Mentoring Session': Users,
+    'Career Guidance': Briefcase,
+    'Counseling': HeartHandshake,
+    'Wellbeing': HeartHandshake,
+    'Pastoral Care': Users,
+    'Library': Library,
+    'History': BookMarked,
+    'English': BookOpen,
+    'French': Languages,
+    'Japanese': Languages,
+    'Latin': Languages,
+    'Sport': Dumbbell,
+    'Rec Sport': Dumbbell,
+    'Roll Call': Users,
+    'Band Practice': Music,
+    'Choir': Music,
+    'Orchestra': Music,
+    'Design & Technology': Palette,
+    'Technology': Palette,
+    'Assembly': Users,
+    'Chapel': Star,
+    'BHOPE': GraduationCap,
+    'Commerce': Briefcase,
+    'Robotics': Bot,
+  };
+
+  function getSubjectIcon(subjectName: string) {
+    const normalized = normalizeSubjectName(subjectName);
+    const Icon = subjectIconMap[normalized] || Book;
+    return <Icon size={20} className="text-gray-300" />;
+  }
+
   const renderMarkbook = () => {
     return (
       <div className="space-y-6">
@@ -707,8 +653,11 @@ const SchoolPlanner = () => {
               <div key={subject.id} className="bg-gray-800 rounded-lg border border-gray-700 p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: subject.colour }} />
-                    {lucideIcons[subject.icon] ? React.createElement(lucideIcons[subject.icon], { size: 18, className: 'text-gray-300' }) : <Book size={18} className="text-gray-300" />}
+                    {getSubjectIcon(subject.name)}
+                    <div
+                      className="w-4 h-4 rounded-full"
+                      style={{ backgroundColor: subject.colour }}
+                    />
                     <span className="text-white font-medium capitalize">{subject.name}</span>
                   </div>
                   <button
@@ -775,22 +724,6 @@ const SchoolPlanner = () => {
                       Selected: <div className="w-5 h-5 rounded-full border border-gray-600" style={{ backgroundColor: editColour }}></div> {editColour}
                     </div>
                   )}
-                </div>
-                <div>
-                  <label htmlFor="subjectIcon" className="block text-gray-300 text-sm font-medium mb-2">Subject Icon</label>
-                  <div className="grid grid-cols-8 gap-2 mb-4 max-h-32 overflow-y-auto">
-                    {Object.keys(lucideIcons).map((iconName) => (
-                      <button
-                        key={iconName}
-                        className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-200 hover:scale-110 ${editIcon === iconName ? 'border-blue-400 bg-gray-700' : 'border-gray-600'}`}
-                        onClick={() => setEditIcon(iconName)}
-                        title={iconName}
-                        type="button"
-                      >
-                        {React.createElement(lucideIcons[iconName], { size: 18, className: 'text-gray-300' })}
-                      </button>
-                    ))}
-                  </div>
                 </div>
               </div>
               <div className="mt-6 flex justify-end gap-3">
