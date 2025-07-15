@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Upload, Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Settings, Edit2, User } from 'lucide-react';
+import { Upload, Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Settings, Edit2, User, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface CalendarEvent {
   dtstart: Date;
@@ -43,7 +43,15 @@ const CorporateICSScheduleViewer = () => {
   // New state for auto-naming toggle
   const [autoNamingEnabled, setAutoNamingEnabled] = useState(true);
 
+  // New state for enhanced biweekly schedule toggle, off by default
+  const [enhancedBiweeklyScheduleEnabled, setEnhancedBiweeklyScheduleEnabled] = useState(false);
+
+  // New states for week navigation
+  const [patternWeekSchedules, setPatternWeekSchedules] = useState<WeekData[]>([]); // Stores the unique repeating pattern
+  const [currentPatternIndex, setCurrentPatternIndex] = useState(0); // Index within the repeating pattern
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const customColourInputRef = useRef<HTMLInputElement>(null); // Ref for hidden colour input
 
   // Default colours for the palette
   const defaultColours = [
@@ -194,7 +202,7 @@ const CorporateICSScheduleViewer = () => {
   };
 
   const parseDateTime = (dateStr: string): Date => {
-    console.log('Parsing datetime:', dateStr);
+    // console.log('Parsing datetime:', dateStr); // Commented out to reduce console noise
 
     // Handle timezone parameters
     let cleanDateStr = dateStr;
@@ -223,7 +231,7 @@ const CorporateICSScheduleViewer = () => {
       const month = parseInt(cleanDateStr.substring(4, 6)) - 1;
       const day = parseInt(cleanDateStr.substring(6, 8));
       const date = new Date(year, month, day);
-      console.log('Parsed date (YYYYMMDD):', date);
+      // console.log('Parsed date (YYYYMMDD):', date); // Commented out
       return date;
     } else if (cleanDateStr.length >= 15) { // Handle YYYYMMDDTHHMMSS and longer with TZID
       // YYYYMMDDTHHMMSS format
@@ -237,81 +245,150 @@ const CorporateICSScheduleViewer = () => {
       const date = isUTC ?
         new Date(Date.UTC(year, month, day, hour, minute, second)) :
         new Date(year, month, day, hour, minute, second);
-      console.log('Parsed datetime:', date, isUTC ? '(UTC)' : '(local)');
+      // console.log('Parsed datetime:', date, isUTC ? '(UTC)' : '(local)'); // Commented out
       return date;
     } else {
       // Try to parse as-is
       const date = new Date(cleanDateStr);
-      console.log('Parsed datetime (fallback):', date);
+      // console.log('Parsed datetime (fallback):', date); // Commented out
       return date;
     }
   };
 
-  const findFirstMondayWeek = (events: CalendarEvent[]): WeekData => {
-    if (events.length === 0) {
-      throw new Error('No events found in the calendar file');
-    }
+  // Helper to get the Monday of a given date's week
+  const getMonday = (d: Date): Date => {
+    const date = new Date(d);
+    const day = date.getDay(); // Sunday - 0, Monday - 1, ..., Saturday - 6
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+    date.setDate(diff);
+    date.setHours(0, 0, 0, 0);
+    return date;
+  };
 
-    events.sort((a: CalendarEvent, b: CalendarEvent) => a.dtstart.getTime() - b.dtstart.getTime());
+  // Helper to get a canonical string representation of a week's events for comparison
+  const getWeekPatternString = (events: CalendarEvent[]): string => {
+    // Sort events by start time, then summary, then location, then description
+    const sortedEvents = [...events].sort((a, b) => {
+      if (a.dtstart.getTime() !== b.dtstart.getTime()) {
+        return a.dtstart.getTime() - b.dtstart.getTime();
+      }
+      if (a.summary !== b.summary) {
+        return a.summary.localeCompare(b.summary);
+      }
+      if (a.location && b.location && a.location !== b.location) {
+        return a.location.localeCompare(b.location);
+      }
+      if (a.description && b.description && a.description !== b.description) {
+        return a.description.localeCompare(b.description);
+      }
+      return 0;
+    });
 
-    let firstMonday = null;
-    let weekEvents: CalendarEvent[] = [];
+    // Create a string representation for comparison
+    return sortedEvents.map(event =>
+      `${event.dtstart.getDay()}-${event.dtstart.getHours()}:${event.dtstart.getMinutes()}|${event.dtend?.getHours() || ''}:${event.dtend?.getMinutes() || ''}|${normalizeSubjectName(event.summary)}|${event.location || ''}`
+    ).join(';');
+  };
 
-    for (const event of events) {
+  // Groups all events into their actual Monday-Friday weeks
+  const groupAllEventsIntoActualWeeks = (allEvents: CalendarEvent[]): WeekData[] => {
+    const weeksMap = new Map<string, CalendarEvent[]>(); // Key: 'YYYY-MM-DD' (Monday's date)
+
+    allEvents.forEach(event => {
       const eventDate = new Date(event.dtstart);
-
       if (isNaN(eventDate.getTime())) {
-        console.log('Skipping event with invalid date:', event);
-        continue;
+        console.warn('Skipping event with invalid date:', event);
+        return;
       }
 
-      const dayOfWeek = eventDate.getDay();
-      let daysToSubtract;
+      const mondayOfWeek = getMonday(eventDate);
+      const mondayKey = mondayOfWeek.toISOString().split('T')[0]; // Use YYYY-MM-DD as key
 
-      if (dayOfWeek === 0) { // Sunday
-        daysToSubtract = 6;
-      } else { // Monday is 1, Tuesday is 2, etc.
-        daysToSubtract = dayOfWeek - 1;
+      if (!weeksMap.has(mondayKey)) {
+        weeksMap.set(mondayKey, []);
       }
+      weeksMap.get(mondayKey)?.push(event);
+    });
 
-      const mondayOfWeek = new Date(eventDate);
-      mondayOfWeek.setDate(eventDate.getDate() - daysToSubtract);
-      mondayOfWeek.setHours(0, 0, 0, 0);
+    const actualWeeks: WeekData[] = [];
+    const sortedMondayKeys = Array.from(weeksMap.keys()).sort();
 
-      const fridayOfWeek = new Date(mondayOfWeek);
-      fridayOfWeek.setDate(mondayOfWeek.getDate() + 4);
-      fridayOfWeek.setHours(23, 59, 59, 999);
+    sortedMondayKeys.forEach(mondayKey => {
+      const mondayDate = new Date(mondayKey);
+      const fridayDate = new Date(mondayDate);
+      fridayDate.setDate(mondayDate.getDate() + 4);
+      fridayDate.setHours(23, 59, 59, 999);
 
-      const eventsInWeek = events.filter((e: CalendarEvent) => {
-        const eDate = new Date(e.dtstart);
-        return !isNaN(eDate.getTime()) && eDate >= mondayOfWeek && eDate <= fridayOfWeek;
+      const eventsInThisWeek = weeksMap.get(mondayKey) || [];
+      
+      // Filter to only include events within the Mon-Fri range for this specific week
+      const filteredEvents = eventsInThisWeek.filter(event => {
+        const eventDtstart = new Date(event.dtstart);
+        return eventDtstart >= mondayDate && eventDtstart <= fridayDate;
       });
 
-      if (eventsInWeek.length > 0) {
-        firstMonday = mondayOfWeek;
-        weekEvents = eventsInWeek;
-        break;
+      // Only add weeks that have at least one event
+      if (filteredEvents.length > 0) {
+        actualWeeks.push({
+          monday: mondayDate,
+          friday: fridayDate,
+          events: filteredEvents
+        });
+      }
+    });
+
+    return actualWeeks;
+  };
+
+  // Identifies the shortest repeating pattern from a list of actual weeks
+  const identifyRepeatingPattern = (allActualWeeks: WeekData[]): { patternSequence: WeekData[], cycleLength: number, firstPatternMonday: Date | null } => {
+    if (allActualWeeks.length === 0) {
+      return { patternSequence: [], cycleLength: 0, firstPatternMonday: null };
+    }
+
+    const relevantWeeks = allActualWeeks;
+    const firstPatternMonday = relevantWeeks[0].monday;
+
+    for (let cycleLen = 1; cycleLen <= relevantWeeks.length; cycleLen++) {
+      const currentPattern = relevantWeeks.slice(0, cycleLen);
+      const currentPatternStrings = currentPattern.map(week => getWeekPatternString(week.events));
+
+      let isRepeating = true;
+      for (let i = cycleLen; i < relevantWeeks.length; i++) {
+        const compareIndex = (i - cycleLen) % cycleLen;
+        if (getWeekPatternString(relevantWeeks[i].events) !== currentPatternStrings[compareIndex]) {
+          isRepeating = false;
+          break;
+        }
+      }
+
+      if (isRepeating) {
+        return {
+          patternSequence: currentPattern,
+          cycleLength: cycleLen,
+          firstPatternMonday: firstPatternMonday
+        };
       }
     }
 
-    if (!firstMonday) {
-      throw new Error('No complete week found in the calendar events');
-    }
-
-    const firstFriday = new Date(firstMonday);
-    firstFriday.setDate(firstMonday.getDate() + 4);
-    firstFriday.setHours(23, 59, 59, 999);
-
-    console.log('First Monday:', firstMonday);
-    console.log('First Friday:', firstFriday);
-    console.log('Week events:', weekEvents);
+    // Fallback: If no repeating pattern found, treat all actual weeks as unique patterns
+    const uniquePatternsFromAllWeeks: WeekData[] = [];
+    const seenPatternsFallback = new Set<string>();
+    allActualWeeks.forEach(week => {
+        const patternString = getWeekPatternString(week.events);
+        if (!seenPatternsFallback.has(patternString)) {
+            seenPatternsFallback.add(patternString);
+            uniquePatternsFromAllWeeks.push(week);
+        }
+    });
 
     return {
-      monday: firstMonday,
-      friday: firstFriday,
-      events: weekEvents
+        patternSequence: uniquePatternsFromAllWeeks,
+        cycleLength: uniquePatternsFromAllWeeks.length,
+        firstPatternMonday: uniquePatternsFromAllWeeks.length > 0 ? uniquePatternsFromAllWeeks[0].monday : null
     };
   };
+
 
   const processFile = (file: File) => {
     setLoading(true);
@@ -321,22 +398,88 @@ const CorporateICSScheduleViewer = () => {
     reader.onload = (e: ProgressEvent<FileReader>) => {
       try {
         const icsContent = e.target?.result as string;
-        const events = parseICS(icsContent);
-        const firstMondayWeek = findFirstMondayWeek(events);
-        setWeekData(firstMondayWeek);
+        const allRawEvents = parseICS(icsContent);
+        
+        const allActualWeeks = groupAllEventsIntoActualWeeks(allRawEvents);
+
+        if (allActualWeeks.length === 0) {
+          setError('No valid Monday-Friday schedules with events found in the calendar file.');
+          setWelcomeStep('upload_ics');
+          setLoading(false);
+          return;
+        }
+
+        if (enhancedBiweeklyScheduleEnabled) {
+          const { patternSequence, cycleLength, firstPatternMonday } = identifyRepeatingPattern(allActualWeeks);
+          setPatternWeekSchedules(patternSequence);
+
+          if (patternSequence.length === 0 || firstPatternMonday === null) {
+              setError('Could not identify a repeating timetable pattern from the provided file.');
+              setWelcomeStep('upload_ics');
+              setLoading(false);
+              return;
+          }
+
+          const today = new Date();
+          const currentRealMonday = getMonday(today);
+          const millisecondsPerWeek = 7 * 24 * 60 * 60 * 1000;
+          const diffMilliseconds = currentRealMonday.getTime() - firstPatternMonday.getTime();
+          
+          let weeksSinceFirstPatternMonday = 0;
+          if (diffMilliseconds >= 0) {
+              weeksSinceFirstPatternMonday = Math.floor(diffMilliseconds / millisecondsPerWeek);
+          } else {
+              weeksSinceFirstPatternMonday = 0; 
+          }
+
+          const initialPatternIndex = weeksSinceFirstPatternMonday % cycleLength;
+          
+          setCurrentPatternIndex(initialPatternIndex);
+          setWeekData(patternSequence[initialPatternIndex]);
+
+        } else { // Enhanced Biweekly Schedule is OFF
+          // Find the first FULL week (Monday to Friday, all days have at least one event)
+          let firstFullWeek: WeekData | null = null;
+          for (const week of allActualWeeks) {
+            // Check if all days Monday (1) to Friday (5) have at least one event
+            const daysWithEvents = [false, false, false, false, false];
+            week.events.forEach(event => {
+              const day = new Date(event.dtstart).getDay();
+              if (day >= 1 && day <= 5) {
+                daysWithEvents[day - 1] = true;
+              }
+            });
+            if (daysWithEvents.every(Boolean)) {
+              firstFullWeek = week;
+              break;
+            }
+          }
+
+          if (firstFullWeek) {
+              setWeekData(firstFullWeek);
+              setPatternWeekSchedules([firstFullWeek]); // Only one week in the "pattern" for this mode
+              setCurrentPatternIndex(0);
+          } else {
+              setError('No full Monday-Friday week with events found.');
+              setWelcomeStep('upload_ics');
+              setLoading(false);
+              return;
+          }
+        }
+
         setShowUpload(false);
-        setWelcomeStep('completed'); // Transition to main app
+        setWelcomeStep('completed');
 
-        // Extract and combine subjects from events
-        const subjectMap = new Map<string, Subject>(); // normalizedName -> Subject
+        // Extract and combine subjects from ALL events (not just the first week)
+        const subjectMap = new Map<string, Subject>();
 
-        events.forEach(event => {
+        allRawEvents.forEach(event => {
           const normalizedName = normalizeSubjectName(event.summary);
-          if (normalizedName) { // Only add if normalization yields a non-empty string
+          if (normalizedName) {
             if (!subjectMap.has(normalizedName)) {
               subjectMap.set(normalizedName, {
-                id: crypto.randomUUID(), // Unique ID
-                name: normalizedName, // Initial name is normalized summary
+                id: crypto.randomUUID(),
+                name: normalizedName,
                 colour: generateRandomColour() // Changed to 'colour'
               });
             }
@@ -389,6 +532,9 @@ const CorporateICSScheduleViewer = () => {
     setWelcomeStep('welcome'); // Reset to welcome screen
     setUserName(''); // Clear user name
     setAutoNamingEnabled(true); // Reset auto-naming to default
+    setEnhancedBiweeklyScheduleEnabled(false); // Reset enhanced schedule to default off
+    setPatternWeekSchedules([]); // Clear unique week schedules
+    setCurrentPatternIndex(0); // Reset week index
   };
 
   const formatTime = (date: Date): string => {
@@ -454,6 +600,23 @@ const CorporateICSScheduleViewer = () => {
     setEditColour('');
   };
 
+  const goToPreviousWeek = () => {
+    setCurrentPatternIndex(prevIndex => {
+      const newIndex = (prevIndex > 0 ? prevIndex - 1 : patternWeekSchedules.length - 1);
+      setWeekData(patternWeekSchedules[newIndex]);
+      return newIndex;
+    });
+  };
+
+  const goToNextWeek = () => {
+    setCurrentPatternIndex(prevIndex => {
+      const newIndex = (prevIndex < patternWeekSchedules.length - 1 ? prevIndex + 1 : 0);
+      setWeekData(patternWeekSchedules[newIndex]);
+      return newIndex;
+    });
+  };
+
+
   const renderWeekView = () => {
     if (!weekData) return null;
 
@@ -464,7 +627,7 @@ const CorporateICSScheduleViewer = () => {
       const eventDate = new Date(event.dtstart);
 
       if (isNaN(eventDate.getTime())) {
-        console.log('Skipping event with invalid date in render:', event);
+        console.warn('Skipping event with invalid date in render:', event);
         return;
       }
 
@@ -486,6 +649,9 @@ const CorporateICSScheduleViewer = () => {
       dayEventList.sort((a: CalendarEvent, b: CalendarEvent) => a.dtstart.getTime() - b.dtstart.getTime());
     });
 
+    // Only show week navigation if enhancedBiweeklyScheduleEnabled is true and more than one pattern week
+    const showWeekNavigation = enhancedBiweeklyScheduleEnabled && patternWeekSchedules.length > 1;
+
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -494,22 +660,42 @@ const CorporateICSScheduleViewer = () => {
             <h2 className="text-2xl font-semibold text-white">Weekly Schedule</h2>
           </div>
           <div className="flex items-center gap-4">
-            <div className="text-sm text-gray-400">
-              {formatDate(weekData.monday)} - {formatDate(weekData.friday)}
-            </div>
+            {showWeekNavigation && (
+              <>
+                <button
+                  onClick={goToPreviousWeek}
+                  disabled={patternWeekSchedules.length <= 1}
+                  className="p-2 rounded-full bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <div className="text-sm text-gray-400">
+                  {formatDate(weekData.monday)} - {formatDate(weekData.friday)}
+                  <span className="ml-2">({currentPatternIndex + 1} of {patternWeekSchedules.length})</span>
+                </div>
+                <button
+                  onClick={goToNextWeek}
+                  disabled={patternWeekSchedules.length <= 1}
+                  className="p-2 rounded-full bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </>
+            )}
+            {!showWeekNavigation && (
+              <div className="text-sm text-gray-400">
+                {formatDate(weekData.monday)} - {formatDate(weekData.friday)}
+              </div>
+            )}
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           {days.map((day, index) => {
-            const dayDate = new Date(weekData.monday);
-            dayDate.setDate(weekData.monday.getDate() + index);
-
             return (
               <div key={day} className="bg-gray-800 rounded-lg border border-gray-700">
                 <div className="p-4 border-b border-gray-700">
                   <h3 className="font-semibold text-white text-center">{day}</h3>
-                  <p className="text-sm text-gray-400 text-center">{dayDate.getDate()} {dayDate.toLocaleDateString('en-US', { month: 'long' })}</p>
                 </div>
 
                 <div className="p-3 space-y-2 min-h-[400px]">
@@ -624,14 +810,29 @@ const CorporateICSScheduleViewer = () => {
                         title={colour}
                       ></button>
                     ))}
+                    {/* Custom Colour Button */}
+                    <button
+                      className={`w-8 h-8 rounded-full border-2 ${editColour && !defaultColours.includes(editColour) ? 'border-blue-400' : 'border-gray-600'} flex items-center justify-center transition-all duration-200 hover:scale-110`}
+                      style={{ background: 'linear-gradient(to right, #FF0000, #FF7F00, #FFFF00, #00FF00, #0000FF, #4B0082, #9400D3)' }}
+                      onClick={() => customColourInputRef.current?.click()}
+                      title="Choose Custom Colour"
+                    >
+                      <Edit2 size={16} className="text-white" />
+                    </button>
+                    <input
+                      ref={customColourInputRef}
+                      type="color"
+                      value={editColour}
+                      onChange={(e) => setEditColour(e.target.value)}
+                      className="hidden" // Hide the native input
+                    />
                   </div>
-                  <input
-                    id="subjectColour"
-                    type="color"
-                    value={editColour}
-                    onChange={(e) => setEditColour(e.target.value)}
-                    className="w-full h-10 rounded-md border border-gray-600 cursor-pointer"
-                  />
+                  {/* Display currently selected custom colour if it's not in default palette */}
+                  {!defaultColours.includes(editColour) && (
+                    <div className="flex items-center gap-2 text-gray-300 text-sm mt-2">
+                      Selected: <div className="w-5 h-5 rounded-full border border-gray-600" style={{ backgroundColor: editColour }}></div> {editColour}
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="mt-6 flex justify-end gap-3">
@@ -690,6 +891,21 @@ const CorporateICSScheduleViewer = () => {
                     type="checkbox"
                     checked={autoNamingEnabled}
                     onChange={() => setAutoNamingEnabled(!autoNamingEnabled)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+              <div className="flex items-center justify-between mt-4 border-t border-gray-700 pt-4">
+                <div>
+                  <p className="text-white font-medium">Enhanced Biweekly Schedule</p>
+                  <p className="text-gray-400 text-sm">Detect and display repeating biweekly/multi-week timetables <span className="text-blue-400">(Beta)</span></p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={enhancedBiweeklyScheduleEnabled}
+                    onChange={() => setEnhancedBiweeklyScheduleEnabled(!enhancedBiweeklyScheduleEnabled)}
                     className="sr-only peer"
                   />
                   <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
@@ -921,23 +1137,19 @@ const CorporateICSScheduleViewer = () => {
       <div className="flex-1">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-7xl mx-auto">
-            {/* Header - Only show on settings page or if no userName */}
-            {(currentPage === 'settings' || !userName) && (
+            {/* Header - Conditional based on page */}
+            {currentPage === 'home' && (
               <div className="text-center mb-8">
                 <h1 className="text-4xl font-bold mb-2 text-white">
                   {userName ? `${getGreeting()}, ${userName}!` : 'School Planner'}
                 </h1>
-                {currentPage === 'settings' && ( // Only show tagline on settings page
-                  <p className="text-gray-400">Manage your schedule and subjects</p>
-                )}
+                <p className="text-gray-400">Manage your schedule and subjects</p>
               </div>
             )}
-            {/* Conditional greeting for other pages if userName exists */}
-            {userName && currentPage !== 'settings' && (
+            {currentPage === 'settings' && (
               <div className="text-center mb-8">
-                <h1 className="text-4xl font-bold mb-2 text-white">
-                  {getGreeting()}, {userName}!
-                </h1>
+                <h1 className="text-4xl font-bold mb-2 text-white">School Planner</h1>
+                <p className="text-gray-400">Manage your schedule and subjects</p>
               </div>
             )}
 
