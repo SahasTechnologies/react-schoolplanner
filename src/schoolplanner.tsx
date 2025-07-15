@@ -332,27 +332,20 @@ const SchoolPlanner = () => {
           return;
         }
 
-        // Find the first FULL week (Monday to Friday, all days have at least one event)
-        let firstFullWeek: WeekData | null = null;
+        // Find the week with the most events (instead of the first full week)
+        let bestWeek: WeekData | null = null;
+        let maxEvents = 0;
         for (const week of allActualWeeks) {
-          // Check if all days Monday (1) to Friday (5) have at least one event (UTC)
-          const daysWithEvents = [false, false, false, false, false];
-          week.events.forEach(event => {
-            const day = new Date(event.dtstart).getUTCDay();
-            if (day >= 1 && day <= 5) {
-              daysWithEvents[day - 1] = true;
-            }
-          });
-          if (daysWithEvents.every(Boolean)) {
-            firstFullWeek = week;
-            break;
+          if (week.events.length > maxEvents) {
+            bestWeek = week;
+            maxEvents = week.events.length;
           }
         }
 
-        if (firstFullWeek) {
-          setWeekData(firstFullWeek);
+        if (bestWeek) {
+          setWeekData(bestWeek);
         } else {
-          setError('No full Monday-Friday week with events found.');
+          setError('No Monday-Friday week with events found.');
           setWelcomeStep('upload_ics');
           setLoading(false);
           return;
@@ -533,32 +526,49 @@ const SchoolPlanner = () => {
                     <p>No events</p>
                   </div>
                 ) : (
-                  dayEvents[index].map((event: CalendarEvent, eventIndex: number) => (
-                    <div
-                      key={eventIndex}
-                      className="rounded-lg p-3 text-white text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
-                      style={{ backgroundColor: getEventColour(event.summary) }}
-                    >
-                      <div className="font-medium mb-1 leading-tight">
-                        {event.summary}
-                      </div>
-                      <div className="flex items-center gap-1 text-xs opacity-90 mb-1">
-                        <Clock size={12} />
-                        <span>{formatTime(event.dtstart)}</span>
-                        {event.dtend && !isNaN(new Date(event.dtend).getTime()) && (
-                          <>
-                            <span> - {formatTime(event.dtend)}</span>
-                          </>
+                  dayEvents[index].map((event: CalendarEvent, eventIndex: number) => {
+                    // Extract teacher name from description if present
+                    let teacherName = '';
+                    if (event.description) {
+                      const match = event.description.match(/Teacher:\s*([^\n\r]+?)(?:\s*Period:|$)/i);
+                      if (match) {
+                        teacherName = match[1].trim();
+                      }
+                    }
+                    return (
+                      <div
+                        key={eventIndex}
+                        className="rounded-lg p-3 text-white text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
+                        style={{ backgroundColor: getEventColour(event.summary) }}
+                      >
+                        <div className="font-medium mb-1 leading-tight">
+                          {event.summary}
+                        </div>
+                        {/* Teacher name row */}
+                        {teacherName && (
+                          <div className="flex items-center gap-1 text-xs opacity-90 mb-1">
+                            <User size={12} />
+                            <span>{teacherName}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1 text-xs opacity-90 mb-1">
+                          <Clock size={12} />
+                          <span>{formatTime(event.dtstart)}</span>
+                          {event.dtend && !isNaN(new Date(event.dtend).getTime()) && (
+                            <>
+                              <span> - {formatTime(event.dtend)}</span>
+                            </>
+                          )}
+                        </div>
+                        {event.location && (
+                          <div className="flex items-center gap-1 text-xs opacity-75">
+                            <MapPin size={12} />
+                            <span>{event.location}</span>
+                          </div>
                         )}
                       </div>
-                      {event.location && (
-                        <div className="flex items-center gap-1 text-xs opacity-75">
-                          <MapPin size={12} />
-                          <span>{event.location}</span>
-                        </div>
-                      )}
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
