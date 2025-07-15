@@ -1,11 +1,11 @@
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Add any other global styles here, if you had them originally */
 body {
   margin: 0;
-  font-family: 'Lexend', sans-serif; /* Your custom font */
+  font-family: 'Lexend', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

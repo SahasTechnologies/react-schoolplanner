@@ -39,20 +39,26 @@ const CorporateICSScheduleViewer = () => {
 
   const parseICS = (icsContent) => {
     const events = [];
-    const lines = icsContent.split('\n');
+    const lines = icsContent.split(/\r?\n/);
     let currentEvent = null;
     
     console.log('Parsing ICS content, total lines:', lines.length);
     
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
+      let line = lines[i].trim();
+      
+      // Handle line folding (lines that start with space or tab are continuations)
+      while (i + 1 < lines.length && (lines[i + 1].startsWith(' ') || lines[i + 1].startsWith('\t'))) {
+        i++;
+        line += lines[i].substring(1);
+      }
       
       if (line === 'BEGIN:VEVENT') {
         currentEvent = {};
       } else if (line === 'END:VEVENT' && currentEvent) {
-        if (currentEvent.dtstart && currentEvent.summary) {
+        if (currentEvent.dtstart && currentEvent.dtend && currentEvent.summary) {
           events.push(currentEvent);
-          console.log('Added event:', currentEvent.summary, 'at', currentEvent.dtstart);
+          console.log('Added event:', currentEvent.summary, 'from', currentEvent.dtstart, 'to', currentEvent.dtend);
         }
         currentEvent = null;
       } else if (currentEvent && line.includes(':')) {
@@ -65,11 +71,11 @@ const CorporateICSScheduleViewer = () => {
         } else if (key.startsWith('DTEND')) {
           currentEvent.dtend = parseDateTime(value);
         } else if (key === 'SUMMARY') {
-          currentEvent.summary = value;
+          currentEvent.summary = value.replace(/\\n/g, ' ').replace(/\\,/g, ',').replace(/\\\\/g, '\\');
         } else if (key === 'LOCATION') {
-          currentEvent.location = value;
+          currentEvent.location = value.replace(/\\n/g, ' ').replace(/\\,/g, ',').replace(/\\\\/g, '\\');
         } else if (key === 'DESCRIPTION') {
-          currentEvent.description = value;
+          currentEvent.description = value.replace(/\\n/g, ' ').replace(/\\,/g, ',').replace(/\\\\/g, '\\');
         }
       }
     }
@@ -81,8 +87,26 @@ const CorporateICSScheduleViewer = () => {
   const parseDateTime = (dateStr) => {
     console.log('Parsing datetime:', dateStr);
     
-    // Remove any timezone info and clean the string
-    const cleanDateStr = dateStr.replace(/;.*$/, '').trim();
+    // Handle timezone parameters
+    let cleanDateStr = dateStr;
+    let isUTC = false;
+    
+    if (dateStr.includes(';')) {
+      const parts = dateStr.split(';');
+      cleanDateStr = parts[parts.length - 1];
+      // Check for timezone info
+      if (parts.some(part => part.includes('TZID'))) {
+        // Handle timezone - for now we'll treat as local time
+        isUTC = false;
+      }
+    }
+    
+    cleanDateStr = cleanDateStr.trim();
+    
+    if (cleanDateStr.endsWith('Z')) {
+      isUTC = true;
+      cleanDateStr = cleanDateStr.slice(0, -1);
+    }
     
     if (cleanDateStr.length === 8) {
       // YYYYMMDD format
@@ -92,27 +116,32 @@ const CorporateICSScheduleViewer = () => {
       const date = new Date(year, month, day);
       console.log('Parsed date (YYYYMMDD):', date);
       return date;
-    } else if (cleanDateStr.length === 15 && cleanDateStr.endsWith('Z')) {
-      // YYYYMMDDTHHMMSSZ format
-      const year = parseInt(cleanDateStr.substring(0, 4));
-      const month = parseInt(cleanDateStr.substring(4, 6)) - 1;
-      const day = parseInt(cleanDateStr.substring(6, 8));
-      const hour = parseInt(cleanDateStr.substring(9, 11));
-      const minute = parseInt(cleanDateStr.substring(11, 13));
-      const second = parseInt(cleanDateStr.substring(13, 15));
-      const date = new Date(Date.UTC(year, month, day, hour, minute, second));
-      console.log('Parsed datetime (UTC):', date);
-      return date;
     } else if (cleanDateStr.length === 15) {
-      // YYYYMMDDTHHMMSS format (local time)
+      // YYYYMMDDTHHMMSS format
       const year = parseInt(cleanDateStr.substring(0, 4));
       const month = parseInt(cleanDateStr.substring(4, 6)) - 1;
       const day = parseInt(cleanDateStr.substring(6, 8));
       const hour = parseInt(cleanDateStr.substring(9, 11));
       const minute = parseInt(cleanDateStr.substring(11, 13));
       const second = parseInt(cleanDateStr.substring(13, 15));
-      const date = new Date(year, month, day, hour, minute, second);
-      console.log('Parsed datetime (local):', date);
+      
+      const date = isUTC ? 
+        new Date(Date.UTC(year, month, day, hour, minute, second)) :
+        new Date(year, month, day, hour, minute, second);
+      console.log('Parsed datetime:', date, isUTC ? '(UTC)' : '(local)');
+      return date;
+    } else if (cleanDateStr.length === 13) {
+      // YYYYMMDDTHHMMSS format without seconds
+      const year = parseInt(cleanDateStr.substring(0, 4));
+      const month = parseInt(cleanDateStr.substring(4, 6)) - 1;
+      const day = parseInt(cleanDateStr.substring(6, 8));
+      const hour = parseInt(cleanDateStr.substring(9, 11));
+      const minute = parseInt(cleanDateStr.substring(11, 13));
+      
+      const date = isUTC ? 
+        new Date(Date.UTC(year, month, day, hour, minute, 0)) :
+        new Date(year, month, day, hour, minute, 0);
+      console.log('Parsed datetime (no seconds):', date, isUTC ? '(UTC)' : '(local)');
       return date;
     } else {
       // Try to parse as-is
@@ -137,6 +166,12 @@ const CorporateICSScheduleViewer = () => {
     for (const event of events) {
       const eventDate = new Date(event.dtstart);
       
+      // Skip invalid dates
+      if (isNaN(eventDate.getTime())) {
+        console.log('Skipping event with invalid date:', event);
+        continue;
+      }
+      
       // Calculate the Monday of this event's week
       const dayOfWeek = eventDate.getDay();
       const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Sunday is 0, so subtract 6
@@ -152,7 +187,7 @@ const CorporateICSScheduleViewer = () => {
       // Check if this week has any events
       const eventsInWeek = events.filter(e => {
         const eDate = new Date(e.dtstart);
-        return eDate >= mondayOfWeek && eDate <= fridayOfWeek;
+        return !isNaN(eDate.getTime()) && eDate >= mondayOfWeek && eDate <= fridayOfWeek;
       });
       
       if (eventsInWeek.length > 0) {
@@ -249,6 +284,13 @@ const CorporateICSScheduleViewer = () => {
     
     weekData.events.forEach(event => {
       const eventDate = new Date(event.dtstart);
+      
+      // Skip invalid dates
+      if (isNaN(eventDate.getTime())) {
+        console.log('Skipping event with invalid date in render:', event);
+        return;
+      }
+      
       const dayIndex = eventDate.getDay() - 1;
       if (dayIndex >= 0 && dayIndex < 5) {
         dayEvents[dayIndex].push(event);
@@ -303,7 +345,7 @@ const CorporateICSScheduleViewer = () => {
                         <div className="flex items-center gap-1 text-xs opacity-90 mb-1">
                           <Clock size={12} />
                           <span>{formatTime(event.dtstart)}</span>
-                          {event.dtend && (
+                          {event.dtend && !isNaN(new Date(event.dtend).getTime()) && (
                             <>
                               <span> - {formatTime(event.dtend)}</span>
                             </>
@@ -330,9 +372,7 @@ const CorporateICSScheduleViewer = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-      
-      <div className="container mx-auto px-4 py-8" style={{ fontFamily: 'Lexend, sans-serif' }}>
+      <div className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
