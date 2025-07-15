@@ -14,7 +14,7 @@ interface MarkbookProps {
   saveSubjectEdit: () => void;
   cancelSubjectEdit: () => void;
   defaultColours: string[];
-  customColourInputRef: React.RefObject<HTMLInputElement>;
+  customColourInputRef: React.RefObject<HTMLInputElement | null>;
 }
 
 const Markbook: React.FC<MarkbookProps> = ({
