@@ -1583,6 +1583,10 @@ const SchoolPlanner = () => {
     }
   }, [welcomeStep]);
 
+  // Add state for name edit modal
+  const [showNameEditModal, setShowNameEditModal] = useState(false);
+  const [editUserName, setEditUserName] = useState(userName);
+
   // Main content routes
   // Only show welcome screen if not completed
   let mainContent = null;
