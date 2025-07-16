@@ -548,9 +548,11 @@ const SchoolPlanner = () => {
                         className="rounded-lg p-3 text-white text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
                         style={{ backgroundColor: getEventColour(event.summary) }}
                       >
-                        <div className="font-medium mb-1 leading-tight flex items-center justify-between">
-                          <span>{event.summary}</span>
-                          <span style={{ opacity: 0.35 }} className="text-black">
+                        <div className="flex items-center justify-between mb-1" style={{ minHeight: 40 }}>
+                          <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>
+                            {normalizeSubjectName(event.summary)}
+                          </span>
+                          <span style={{ opacity: 0.5 }} className="text-black flex items-center h-full">
                             {getSubjectIcon(event.summary)}
                           </span>
                         </div>
