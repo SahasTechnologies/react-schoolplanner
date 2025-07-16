@@ -578,28 +578,6 @@ const SchoolPlanner = () => {
                   </div>
                 ) : (
                   dayEventsWithBreaks[index].map((event, eventIndex) => {
-                    const enabledFields = infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key]);
-                    if (event.isBreak) {
-                      return (
-                        <div
-                          key={`break-${eventIndex}`}
-                          className="rounded-lg p-3 flex items-center justify-between text-sm font-semibold opacity-80"
-                          style={{ 
-                            backgroundColor: effectiveMode === 'light' ? 'transparent' : 'transparent', 
-                            color: effectiveMode === 'light' ? '#000' : '#fff',
-                            border: '1px dashed #888',
-                            borderWidth: 1,
-                            minHeight: 40
-                          }}
-                        >
-                          <div className="flex-1 text-left flex items-center" style={{justifyContent: 'flex-start'}}>
-                            Break
-                            <span className="text-xs ml-2 opacity-60">{formatTime(event.dtstart)} - {formatTime(event.dtend ?? event.dtstart)}</span>
-                          </div>
-                          <Utensils size={20} className={effectiveMode === 'light' ? 'text-black' : 'text-white'} />
-                        </div>
-                      );
-                    }
                     // Extract teacher and period
                     let teacherName = '';
                     let periodName = '';
@@ -651,7 +629,7 @@ const SchoolPlanner = () => {
                         <div className="flex items-center justify-between" style={{ minHeight: 40, alignItems: 'center' }}>
                           <span className="font-medium leading-tight flex items-center gap-2" style={{ fontSize: '1.1rem' }}>
                             {normalizeSubjectName(event.summary)}
-                            {showFirstInfoBeside && enabledFields.length > 0 && infoFields[enabledFields[0].key] && (
+                            {showFirstInfoBeside && infoFields[enabledFields[0].key] && (
                               <span className="ml-2">{infoFields[enabledFields[0].key]}</span>
                             )}
                           </span>
@@ -1072,7 +1050,6 @@ const SchoolPlanner = () => {
   // In renderHome, insert breaks for the day's events
   const renderHome = () => {
     const { dayLabel, events } = getTodayOrNextEvents();
-    const enabledFields = infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key]);
     // Insert breaks for the day's events
     const eventsWithBreaks = insertBreaksBetweenEvents([...events].sort((a, b) => a.dtstart.getTime() - b.dtstart.getTime()));
     return (
@@ -1095,7 +1072,6 @@ const SchoolPlanner = () => {
             ) : (
               <div className="space-y-3">
                 {eventsWithBreaks.map((event, idx) => {
-                  const enabledFields = infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key]);
                   if (event.isBreak) {
                     return (
                       <div
@@ -1168,7 +1144,7 @@ const SchoolPlanner = () => {
                       <div className="flex items-center justify-between" style={{ minHeight: 40, alignItems: 'center' }}>
                         <span className="font-medium leading-tight flex items-center gap-2" style={{ fontSize: '1.1rem' }}>
                           {normalizeSubjectName(event.summary)}
-                          {showFirstInfoBeside && enabledFields.length > 0 && infoFields[enabledFields[0].key] && (
+                          {showFirstInfoBeside && infoFields[enabledFields[0].key] && (
                             <span className="ml-2">{infoFields[enabledFields[0].key]}</span>
                           )}
                         </span>
