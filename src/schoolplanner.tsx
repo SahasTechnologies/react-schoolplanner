@@ -963,118 +963,205 @@ const SchoolPlanner = () => {
     }
   };
 
-  // Refactored themeColors with both 'extreme' and 'normal' color sets
+  // Define color variables for both normal (muted) and extreme (bright) for each theme
+  const colorVars = {
+    red: {
+      normal: {
+        background: 'bg-red-950',
+        container: 'bg-red-900',
+        border: 'border-red-800',
+        swatch: 'bg-red-900',
+      },
+      extreme: {
+        background: 'bg-red-700',
+        container: 'bg-red-600',
+        border: 'border-red-500',
+        swatch: 'bg-red-500',
+      },
+    },
+    orange: {
+      normal: {
+        background: 'bg-orange-950',
+        container: 'bg-orange-900',
+        border: 'border-orange-800',
+        swatch: 'bg-orange-900',
+      },
+      extreme: {
+        background: 'bg-orange-700',
+        container: 'bg-orange-600',
+        border: 'border-orange-500',
+        swatch: 'bg-orange-400',
+      },
+    },
+    yellow: {
+      normal: {
+        background: 'bg-yellow-950',
+        container: 'bg-yellow-900',
+        border: 'border-yellow-800',
+        swatch: 'bg-yellow-900',
+      },
+      extreme: {
+        background: 'bg-yellow-700',
+        container: 'bg-yellow-600',
+        border: 'border-yellow-500',
+        swatch: 'bg-yellow-400',
+      },
+    },
+    green: {
+      normal: {
+        background: 'bg-green-950',
+        container: 'bg-green-900',
+        border: 'border-green-800',
+        swatch: 'bg-green-900',
+      },
+      extreme: {
+        background: 'bg-green-700',
+        container: 'bg-green-600',
+        border: 'border-green-500',
+        swatch: 'bg-green-400',
+      },
+    },
+    blue: {
+      normal: {
+        background: 'bg-blue-950',
+        container: 'bg-blue-900',
+        border: 'border-blue-800',
+        swatch: 'bg-blue-900',
+      },
+      extreme: {
+        background: 'bg-blue-700',
+        container: 'bg-blue-600',
+        border: 'border-blue-500',
+        swatch: 'bg-blue-400',
+      },
+    },
+    purple: {
+      normal: {
+        background: 'bg-purple-950',
+        container: 'bg-purple-900',
+        border: 'border-purple-800',
+        swatch: 'bg-purple-900',
+      },
+      extreme: {
+        background: 'bg-purple-700',
+        container: 'bg-purple-600',
+        border: 'border-purple-500',
+        swatch: 'bg-purple-400',
+      },
+    },
+    pink: {
+      normal: {
+        background: 'bg-pink-950',
+        container: 'bg-pink-900',
+        border: 'border-pink-800',
+        swatch: 'bg-pink-900',
+      },
+      extreme: {
+        background: 'bg-pink-700',
+        container: 'bg-pink-600',
+        border: 'border-pink-500',
+        swatch: 'bg-pink-400',
+      },
+    },
+  };
+
+  // themeColors now references colorVars for both normal and extreme
   const themeColors = {
     red: {
-      background: 'bg-red-950',
-      container: 'bg-red-900',
-      border: 'border-red-800',
+      ...colorVars.red.normal,
       icon: 'text-white',
       button: 'bg-red-500 hover:bg-red-600',
       accent: 'text-red-400',
       ring: 'focus:ring-red-400',
       borderAccent: 'border-red-400',
       spin: 'border-red-400',
-      settingsContainer: 'bg-red-900',
-      swatch: 'bg-red-900', // normal
-      swatchExtreme: 'bg-red-500', // extreme/accent
+      settingsContainer: colorVars.red.normal.container,
+      swatchExtreme: colorVars.red.extreme.swatch,
       label: 'Red',
     },
     orange: {
-      background: 'bg-orange-950',
-      container: 'bg-orange-900',
-      border: 'border-orange-800',
+      ...colorVars.orange.normal,
       icon: 'text-white',
       button: 'bg-orange-500 hover:bg-orange-600',
       accent: 'text-orange-400',
       ring: 'focus:ring-orange-400',
       borderAccent: 'border-orange-400',
       spin: 'border-orange-400',
-      settingsContainer: 'bg-orange-900',
-      swatch: 'bg-orange-900',
-      swatchExtreme: 'bg-orange-400',
+      settingsContainer: colorVars.orange.normal.container,
+      swatchExtreme: colorVars.orange.extreme.swatch,
       label: 'Orange',
     },
     yellow: {
-      background: 'bg-yellow-950',
-      container: 'bg-yellow-900',
-      border: 'border-yellow-800',
+      ...colorVars.yellow.normal,
       icon: 'text-white',
       button: 'bg-yellow-500 hover:bg-yellow-600',
       accent: 'text-yellow-400',
       ring: 'focus:ring-yellow-400',
       borderAccent: 'border-yellow-400',
       spin: 'border-yellow-400',
-      settingsContainer: 'bg-yellow-900',
-      swatch: 'bg-yellow-900',
-      swatchExtreme: 'bg-yellow-400',
+      settingsContainer: colorVars.yellow.normal.container,
+      swatchExtreme: colorVars.yellow.extreme.swatch,
       label: 'Yellow',
     },
     green: {
-      background: 'bg-[#1b2b15]', // custom muted green background
-      container: 'bg-[#185c37]', // custom muted green container
-      border: 'border-[#1e7a4a]', // custom muted green border
+      ...colorVars.green.normal,
       icon: 'text-white',
-      button: 'bg-[#34d399] hover:bg-[#059669]', // accent green for buttons
+      button: 'bg-green-500 hover:bg-green-600',
       accent: 'text-green-400',
       ring: 'focus:ring-green-400',
       borderAccent: 'border-green-400',
       spin: 'border-green-400',
-      settingsContainer: 'bg-[#185c37]',
-      swatch: 'bg-[#185c37]',
-      swatchExtreme: 'bg-[#34d399]',
+      settingsContainer: colorVars.green.normal.container,
+      swatchExtreme: colorVars.green.extreme.swatch,
       label: 'Green',
     },
     blue: {
-      background: 'bg-[#0f1823]', // custom muted blue background
-      container: 'bg-[#151f2b]', // custom muted blue container
-      border: 'border-[#2c3e50]', // custom muted blue border
+      ...colorVars.blue.normal,
       icon: 'text-white',
-      button: 'bg-[#3b82f6] hover:bg-[#2563eb]', // accent blue for buttons
+      button: 'bg-blue-500 hover:bg-blue-600',
       accent: 'text-blue-400',
       ring: 'focus:ring-blue-400',
       borderAccent: 'border-blue-400',
       spin: 'border-blue-400',
-      settingsContainer: 'bg-[#223042]',
-      swatch: 'bg-[#223042]',
-      swatchExtreme: 'bg-[#3b82f6]',
+      settingsContainer: colorVars.blue.normal.container,
+      swatchExtreme: colorVars.blue.extreme.swatch,
       label: 'Blue',
     },
     purple: {
-      background: 'bg-purple-950',
-      container: 'bg-purple-900',
-      border: 'border-purple-800',
+      ...colorVars.purple.normal,
       icon: 'text-white',
       button: 'bg-purple-500 hover:bg-purple-600',
       accent: 'text-purple-400',
       ring: 'focus:ring-purple-400',
       borderAccent: 'border-purple-400',
       spin: 'border-purple-400',
-      settingsContainer: 'bg-purple-900',
-      swatch: 'bg-purple-900',
-      swatchExtreme: 'bg-purple-400',
+      settingsContainer: colorVars.purple.normal.container,
+      swatchExtreme: colorVars.purple.extreme.swatch,
       label: 'Purple',
     },
     pink: {
-      background: 'bg-pink-950',
-      container: 'bg-pink-900',
-      border: 'border-pink-800',
+      ...colorVars.pink.normal,
       icon: 'text-white',
       button: 'bg-pink-500 hover:bg-pink-600',
       accent: 'text-pink-400',
       ring: 'focus:ring-pink-400',
       borderAccent: 'border-pink-400',
       spin: 'border-pink-400',
-      settingsContainer: 'bg-pink-900',
-      swatch: 'bg-pink-900',
-      swatchExtreme: 'bg-pink-400',
+      settingsContainer: colorVars.pink.normal.container,
+      swatchExtreme: colorVars.pink.extreme.swatch,
       label: 'Pink',
     },
   };
 
-  const [theme, setTheme] = useState<'blue' | 'green' | 'red' | 'orange' | 'yellow' | 'purple' | 'pink'>('blue');
-  const [showThemeModal, setShowThemeModal] = useState(false);
-  const colors = themeColors[theme];
+  // Add a new state to track if the user selected a normal or extreme theme
+  const [themeType, setThemeType] = useState<'normal' | 'extreme'>('normal');
+
+  // When setting theme, also set themeType
+  function handleThemeChange(key: string, type: 'normal' | 'extreme') {
+    setTheme(key as any);
+    setThemeType(type);
+    setShowThemeModal(false);
+  }
 
   // Main content routes
   // Only show welcome screen if not completed
@@ -1147,27 +1234,27 @@ const SchoolPlanner = () => {
             </div>
             <div className="mb-2 text-lg font-semibold text-white">Normal Colour</div>
             <div className="flex flex-row flex-wrap gap-4 mb-6">
-              {Object.entries(themeColors).map(([key, val]) => (
+              {Object.entries(colorVars).map(([key, val]) => (
                 <div key={key} className="flex flex-col items-center">
                   <button
-                    className={`w-10 h-10 rounded-full border-2 ${theme === key ? val.borderAccent : 'border-gray-600'} ${val.swatch}`}
-                    onClick={() => { setTheme(key as any); setShowThemeModal(false); }}
-                    title={val.label}
+                    className={`w-10 h-10 rounded-full border-2 ${(theme === key && themeType === 'normal') ? themeColors[key].borderAccent : 'border-gray-600'} ${val.normal.swatch}`}
+                    onClick={() => handleThemeChange(key, 'normal')}
+                    title={themeColors[key].label}
                   />
-                  <span className="text-sm mt-1">{val.label}</span>
+                  <span className="text-sm mt-1">{themeColors[key].label}</span>
                 </div>
               ))}
             </div>
             <div className="mb-2 text-lg font-semibold text-white">Extreme Colour</div>
             <div className="flex flex-row flex-wrap gap-4">
-              {Object.entries(themeColors).map(([key, val]) => (
+              {Object.entries(colorVars).map(([key, val]) => (
                 <div key={key} className="flex flex-col items-center">
                   <button
-                    className={`w-10 h-10 rounded-full border-2 ${theme === key ? val.borderAccent : 'border-gray-600'} ${val.swatchExtreme}`}
-                    onClick={() => { setTheme(key as any); setShowThemeModal(false); }}
-                    title={val.label + ' (Extreme)'}
+                    className={`w-10 h-10 rounded-full border-2 ${(theme === key && themeType === 'extreme') ? themeColors[key].borderAccent : 'border-gray-600'} ${val.extreme.swatch}`}
+                    onClick={() => handleThemeChange(key, 'extreme')}
+                    title={themeColors[key].label + ' (Extreme)'}
                   />
-                  <span className="text-sm mt-1">{val.label}</span>
+                  <span className="text-sm mt-1">{themeColors[key].label}</span>
                 </div>
               ))}
             </div>
