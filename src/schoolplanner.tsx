@@ -1525,6 +1525,7 @@ const SchoolPlanner = () => {
 
   // --- Welcome screen URL logic ---
   React.useEffect(() => {
+    console.log('[NavEffect] welcomeStep:', welcomeStep, 'location.pathname:', location.pathname);
     if (welcomeStep !== 'completed' && location.pathname !== '/welcome') {
       navigate('/welcome', { replace: true });
     }
@@ -1621,6 +1622,9 @@ const SchoolPlanner = () => {
     const savedWeekData = localStorage.getItem('weekData');
     const savedSubjects = localStorage.getItem('subjects');
     const savedName = localStorage.getItem('userName');
+    console.log('[AtomicCheck] weekData:', savedWeekData);
+    console.log('[AtomicCheck] subjects:', savedSubjects);
+    console.log('[AtomicCheck] userName:', savedName);
     if (savedWeekData && savedSubjects && savedName) {
       try {
         // Parse and set weekData
@@ -1635,9 +1639,13 @@ const SchoolPlanner = () => {
         setUserName(savedName);
         // Skip welcome
         setWelcomeStep('completed');
-      } catch {
+        console.log('[AtomicCheck] All data found, setting welcomeStep to completed');
+      } catch (err) {
+        console.log('[AtomicCheck] Error parsing localStorage data:', err);
         // If any error, do not skip welcome
       }
+    } else {
+      console.log('[AtomicCheck] Not all data found, staying on welcome');
     }
   }, []);
 
