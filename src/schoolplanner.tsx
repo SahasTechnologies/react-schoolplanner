@@ -35,6 +35,14 @@ interface Subject {
 
 type ThemeKey = 'red' | 'orange' | 'yellow' | 'green' | 'blue' | 'purple' | 'pink' | 'grey';
 
+// Helper to convert hex color to rgba with alpha
+function hexToRgba(hex: string, alpha: number) {
+  let c = hex.replace('#', '');
+  if (c.length === 3) c = c[0]+c[0]+c[1]+c[1]+c[2]+c[2];
+  const num = parseInt(c, 16);
+  return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`;
+}
+
 const SchoolPlanner = () => {
   const [weekData, setWeekData] = useState<WeekData | null>(null);
   const [error, setError] = useState('');
@@ -673,7 +681,7 @@ const SchoolPlanner = () => {
                     {getSubjectIcon(subject.name, 20, effectiveMode)}
                     <div
                       className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: subject.colour }}
+                      style={{ backgroundColor: hexToRgba(subject.colour, 0.95) }}
                     />
                     <span className={`font-medium capitalize ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{subject.name}</span>
                   </div>
@@ -694,7 +702,7 @@ const SchoolPlanner = () => {
           <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
             <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
               <h3 className={`text-xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Edit Subject</h3>
-              <p className={`text-gray-400 text-sm mb-4 ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Original Name: <span className="font-medium text-white">{selectedSubjectForEdit.name}</span></p> {/* Added original name */}
+              <p className={`text-gray-400 text-sm mb-4 ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Original Name: <span className="font-medium text-white">{selectedSubjectForEdit.originalName || selectedSubjectForEdit.name}</span></p> {/* Changed original name */}
               <div className="space-y-4">
                 <div>
                   <label htmlFor="subjectName" className={`block ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-300'} text-sm font-medium mb-1`}>Subject Name</label>
@@ -846,7 +854,7 @@ const SchoolPlanner = () => {
               {weekData ? 'View your weekly schedule' : 'Upload your ICS calendar file to get started'}
             </p>
             <button
-              onClick={() => navigate('/home')}
+              onClick={() => navigate('/calendar')}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
             >
               {weekData ? 'View Schedule' : 'Upload Calendar'}
@@ -862,7 +870,7 @@ const SchoolPlanner = () => {
               {subjects.length > 0 ? `Manage your ${subjects.length} subjects` : 'No subjects available yet'}
             </p>
             <button
-              onClick={() => navigate('/home')}
+              onClick={() => navigate('/markbook')}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
             >
               Open Markbook
@@ -1487,8 +1495,8 @@ const SchoolPlanner = () => {
             <Calendar size={20} className={colors.icon} />
           </button>
           <button
-            onClick={() => navigate('/home')}
-            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${location.pathname === '/home' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 hover:bg-gray-700`}`}
+            onClick={() => navigate('/markbook')}
+            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${location.pathname === '/markbook' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 hover:bg-gray-700`}`}
             title="Markbook"
           >
             <BarChart3 size={20} className={colors.icon} />
