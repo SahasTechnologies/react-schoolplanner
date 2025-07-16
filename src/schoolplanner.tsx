@@ -760,11 +760,11 @@ const SchoolPlanner = () => {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <Settings className="text-blue-400" size={24} />
+          <Settings className={colors.icon} size={24} />
           <h2 className="text-2xl font-semibold text-white">Settings</h2>
         </div>
-
         <div className="space-y-4">
+          {/* Timetable Settings */}
           <div className={`${colors.settingsContainer} rounded-lg ${colors.border} border p-6`}>
             <h3 className="text-lg font-medium text-white mb-4">Timetable Settings</h3>
             <div className="space-y-4">
@@ -796,7 +796,23 @@ const SchoolPlanner = () => {
                   <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                 </label>
               </div>
-              {/* Theme Switcher removed for modal implementation */}
+            </div>
+          </div>
+          {/* Customise Section */}
+          <div className={`${colors.settingsContainer} rounded-lg ${colors.border} border p-6`}>
+            <h3 className="text-lg font-medium text-white mb-4">Customise</h3>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-white font-medium">Theme</p>
+                <p className="text-gray-400 text-sm">Change the color theme of the app</p>
+              </div>
+              <button
+                onClick={() => setShowThemeModal(true)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${colors.button} text-white`}
+              >
+                <Palette size={18} />
+                Change Theme
+              </button>
             </div>
           </div>
         </div>
