@@ -598,58 +598,69 @@ const SchoolPlanner = () => {
                     }
                     // ... existing code for normal event ...
                     let teacherName = '';
-                    let periodValue = '';
+                    let periodInfo = '';
                     if (event.description) {
-                      const match = event.description.match(/Teacher:\s*([^\n\r]+?)(?:\s*Period:|$)/i);
-                      if (match) {
-                        teacherName = match[1].trim();
+                      const teacherMatch = event.description.match(/Teacher:\s*([^\n\r]+?)(?:\s*Period:|$)/i);
+                      if (teacherMatch) {
+                        teacherName = teacherMatch[1].trim();
                       }
-                      const periodMatch = event.description.match(/Period:\s*([^\n\r]+)/i);
+                      const periodMatch = event.description.match(/Period:\s*([^\n\r]+?)(?:\s*$|\s*Teacher:|$)/i);
                       if (periodMatch) {
-                        periodValue = periodMatch[1].trim();
+                        periodInfo = periodMatch[1].trim();
                       }
                     }
+                    const infoFields: Record<string, React.ReactNode> = {
+                      time: (
+                        <div key="time" className="flex items-center gap-1 text-xs opacity-80 mb-1">
+                          <Clock size={12} />
+                          <span>{formatTime(event.dtstart)}{event.dtend && !isNaN(new Date(event.dtend).getTime()) ? ` - ${formatTime(event.dtend ?? event.dtstart)}` : ''}</span>
+                        </div>
+                      ),
+                      location: event.location ? (
+                        <div key="location" className="flex items-center gap-1 text-xs opacity-80 mb-1">
+                          <MapPin size={12} />
+                          <span>{event.location}</span>
+                        </div>
+                      ) : null,
+                      teacher: teacherName ? (
+                        <div key="teacher" className="flex items-center gap-1 text-xs opacity-80 mb-1">
+                          <User size={12} />
+                          <span>{teacherName}</span>
+                        </div>
+                      ) : null,
+                      period: periodInfo ? (
+                        <div key="period" className="flex items-center gap-1 text-xs opacity-80 mb-1">
+                          <span>Period: {periodInfo}</span>
+                        </div>
+                      ) : null,
+                    };
+                    const getFirstEnabledField = () => {
+                      if (!showFirstInfoBeside) return null;
+                      const firstField = infoOrder.find(item => infoShown[item.key]);
+                      if (!firstField) return null;
+                      return infoFields[firstField.key];
+                    };
                     return (
                       <div
                         key={eventIndex}
                         className="rounded-lg p-3 text-white text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
                         style={{ backgroundColor: getEventColour(event.summary) }}
+                        onMouseEnter={() => setHoveredEventIdx(eventIndex)}
+                        onMouseLeave={() => setHoveredEventIdx(null)}
                       >
                         <div className="flex items-center justify-between" style={{ minHeight: 40, alignItems: 'center' }}>
-                          <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>
-                            {normalizeSubjectName(event.summary)}
-                          </span>
+                          <div className="flex items-center">
+                            <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>
+                              {normalizeSubjectName(event.summary)}
+                            </span>
+                            {getFirstEnabledField()}
+                          </div>
                           <span style={{ opacity: 0.35, display: 'flex', alignItems: 'center' }} className="text-black">
                             {getSubjectIcon(event.summary, 24, effectiveMode)}
                           </span>
                         </div>
-                        {teacherName && (
-                          <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
-                            <User size={12} />
-                            <span>{teacherName}</span>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
-                          <Clock size={12} />
-                          <span>{formatTime(event.dtstart)}</span>
-                          {event.dtend && !isNaN(new Date(event.dtend).getTime()) && (
-                            <>
-                              <span> - {formatTime(event.dtend ?? event.dtstart)}</span>
-                            </>
-                          )}
-                        </div>
-                        {event.location && (
-                          <div className="flex items-center gap-1 text-xs text-white opacity-80">
-                            <MapPin size={12} />
-                            <span>{event.location}</span>
-                          </div>
-                        )}
-                        {periodValue && (
-                          <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
-                            <BookOpen size={12} />
-                            <span>{periodValue}</span>
-                          </div>
-                        )}
+                        {/* Info fields, only show enabled by default, all on hover */}
+                        {(hoveredEventIdx === eventIndex ? infoOrder : enabledFields).map((item: { key: string }) => infoFields[item.key]).filter(Boolean)}
                       </div>
                     );
                   })
@@ -1058,6 +1069,7 @@ const SchoolPlanner = () => {
   // In renderHome, insert breaks for the day's events
   const renderHome = () => {
     const { dayLabel, events } = getTodayOrNextEvents();
+    const enabledFields = infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key]);
     // Insert breaks for the day's events
     const eventsWithBreaks = insertBreaksBetweenEvents([...events].sort((a, b) => a.dtstart.getTime() - b.dtstart.getTime()));
     return (
@@ -1103,58 +1115,69 @@ const SchoolPlanner = () => {
                   }
                   // ... existing code for normal event ...
                   let teacherName = '';
-                  let periodValue = '';
+                  let periodInfo = '';
                   if (event.description) {
-                    const match = event.description.match(/Teacher:\s*([^\n\r]+?)(?:\s*Period:|$)/i);
-                    if (match) {
-                      teacherName = match[1].trim();
+                    const teacherMatch = event.description.match(/Teacher:\s*([^\n\r]+?)(?:\s*Period:|$)/i);
+                    if (teacherMatch) {
+                      teacherName = teacherMatch[1].trim();
                     }
-                    const periodMatch = event.description.match(/Period:\s*([^\n\r]+)/i);
+                    const periodMatch = event.description.match(/Period:\s*([^\n\r]+?)(?:\s*$|\s*Teacher:|$)/i);
                     if (periodMatch) {
-                      periodValue = periodMatch[1].trim();
+                      periodInfo = periodMatch[1].trim();
                     }
                   }
+                  const infoFields: Record<string, React.ReactNode> = {
+                    time: (
+                      <div key="time" className="flex items-center gap-1 text-xs opacity-80 mb-1">
+                        <Clock size={12} />
+                        <span>{formatTime(event.dtstart)}{event.dtend && !isNaN(new Date(event.dtend).getTime()) ? ` - ${formatTime(event.dtend ?? event.dtstart)}` : ''}</span>
+                      </div>
+                    ),
+                    location: event.location ? (
+                      <div key="location" className="flex items-center gap-1 text-xs opacity-80 mb-1">
+                        <MapPin size={12} />
+                        <span>{event.location}</span>
+                      </div>
+                    ) : null,
+                    teacher: teacherName ? (
+                      <div key="teacher" className="flex items-center gap-1 text-xs opacity-80 mb-1">
+                        <User size={12} />
+                        <span>{teacherName}</span>
+                      </div>
+                    ) : null,
+                    period: periodInfo ? (
+                      <div key="period" className="flex items-center gap-1 text-xs opacity-80 mb-1">
+                        <span>Period: {periodInfo}</span>
+                      </div>
+                    ) : null,
+                  };
+                  const getFirstEnabledField = () => {
+                    if (!showFirstInfoBeside) return null;
+                    const firstField = infoOrder.find(item => infoShown[item.key]);
+                    if (!firstField) return null;
+                    return infoFields[firstField.key];
+                  };
                   return (
                     <div
                       key={idx}
                       className="rounded-lg p-3 text-white text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
                       style={{ backgroundColor: getEventColour(event.summary) }}
+                      onMouseEnter={() => setHoveredEventIdx(idx)}
+                      onMouseLeave={() => setHoveredEventIdx(null)}
                     >
                       <div className="flex items-center justify-between" style={{ minHeight: 40, alignItems: 'center' }}>
-                        <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>
-                          {normalizeSubjectName(event.summary)}
-                        </span>
+                        <div className="flex items-center">
+                          <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>
+                            {normalizeSubjectName(event.summary)}
+                          </span>
+                          {getFirstEnabledField()}
+                        </div>
                         <span style={{ opacity: 0.35, display: 'flex', alignItems: 'center' }} className="text-black">
                           {getSubjectIcon(event.summary, 24, effectiveMode)}
                         </span>
                       </div>
-                      {teacherName && (
-                        <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
-                          <User size={12} />
-                          <span>{teacherName}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
-                        <Clock size={12} />
-                        <span>{formatTime(event.dtstart)}</span>
-                        {event.dtend && !isNaN(new Date(event.dtend).getTime()) && (
-                          <>
-                            <span> - {formatTime(event.dtend ?? event.dtstart)}</span>
-                          </>
-                        )}
-                      </div>
-                      {event.location && (
-                        <div className="flex items-center gap-1 text-xs text-white opacity-80">
-                          <MapPin size={12} />
-                          <span>{event.location}</span>
-                        </div>
-                      )}
-                      {periodValue && (
-                        <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
-                          <BookOpen size={12} />
-                          <span>{periodValue}</span>
-                        </div>
-                      )}
+                      {/* Info fields, only show enabled by default, all on hover */}
+                      {(hoveredEventIdx === idx ? infoOrder : enabledFields).map((item: { key: string }) => infoFields[item.key]).filter(Boolean)}
                     </div>
                   );
                 })}
@@ -1845,9 +1868,7 @@ const SchoolPlanner = () => {
   });
   const [infoShown, setInfoShown] = useState(() => {
     const saved = localStorage.getItem('eventInfoShown');
-    // Add period default to false if not present
-    const base = { time: false, location: false, teacher: false, period: false };
-    return saved ? { ...base, ...JSON.parse(saved) } : base;
+    return saved ? JSON.parse(saved) : { time: false, location: false, teacher: false };
   });
   const [showInfoPopup, setShowInfoPopup] = useState(false);
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
@@ -1876,8 +1897,8 @@ const SchoolPlanner = () => {
   const handleToggleInfoShown = (key: string) => {
     setInfoShown((prev: Record<string, boolean>) => {
       const newShown = { ...prev, [key]: !prev[key] };
+      // Move to top if toggled on
       if (newShown[key]) {
-        // Move to top if toggled on
         setInfoOrder((prevOrder: { key: string; label: string }[]) => {
           const idx = prevOrder.findIndex(i => i.key === key);
           if (idx > 0) {
