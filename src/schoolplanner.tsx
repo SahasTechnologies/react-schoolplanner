@@ -552,8 +552,8 @@ const SchoolPlanner = () => {
                           <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>
                             {normalizeSubjectName(event.summary)}
                           </span>
-                          <span style={{ opacity: 0.5 }} className="text-black flex items-center h-full">
-                            {getSubjectIcon(event.summary)}
+                          <span style={{ opacity: 0.6 }} className="text-black flex items-center h-full">
+                            {getSubjectIcon(event.summary, 32)}
                           </span>
                         </div>
                         {/* Teacher name row */}
@@ -636,10 +636,10 @@ const SchoolPlanner = () => {
     'Robotics': Bot,
   };
 
-  function getSubjectIcon(subjectName: string) {
+  function getSubjectIcon(subjectName: string, size: number = 20) {
     const normalized = normalizeSubjectName(subjectName);
     const IconComponent = subjectIconMap[normalized] || Book;
-    return <IconComponent size={20} className="text-gray-300" />;
+    return <IconComponent size={size} className="text-black" />;
   }
 
   const renderMarkbook = () => {
