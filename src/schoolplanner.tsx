@@ -1121,7 +1121,6 @@ const SchoolPlanner = () => {
                     ) : null,
                   };
                   // Show all info on hover/expand, otherwise only enabled fields
-                  const [isHovered, setIsHovered] = React.useState(false);
                   return (
                     <div
                       key={idx}
@@ -1139,7 +1138,7 @@ const SchoolPlanner = () => {
                         </span>
                       </div>
                       {/* Info fields, only show enabled by default, all on hover */}
-                      {(hoveredEventIdx === idx ? infoOrder : enabledFields).map(({ key }) => infoFields[key]).filter(Boolean)}
+                      {(hoveredEventIdx === idx ? infoOrder : enabledFields).map((item: { key: string }) => infoFields[item.key]).filter(Boolean)}
                     </div>
                   );
                 })}
