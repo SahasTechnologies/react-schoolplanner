@@ -16,8 +16,6 @@ import {
   WeekData, 
   hexToRgba, 
   parseICS, 
-  parseDateTime, 
-  getMonday, 
   groupAllEventsIntoActualWeeks, 
   insertBreaksBetweenEvents, 
   formatTime, 
