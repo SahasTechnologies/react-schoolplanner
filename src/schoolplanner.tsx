@@ -935,6 +935,107 @@ const SchoolPlanner = () => {
     );
   };
 
+  // Restore the renderWelcomeScreen function for onboarding and file upload
+  const renderWelcomeScreen = () => {
+    switch (welcomeStep) {
+      case 'welcome':
+        return (
+          <div className="flex flex-col items-center justify-center h-full text-center p-8">
+            <h1 className="text-5xl font-bold text-white mb-4 animate-fade-in-down">Welcome!</h1>
+            <p className="text-xl text-gray-300 mb-8 animate-fade-in-up">Your personal school planner.</p>
+            <button
+              onClick={() => setWelcomeStep('name_input')}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              Get Started
+            </button>
+          </div>
+        );
+      case 'name_input':
+        return (
+          <div className="flex flex-col items-center justify-center h-full text-center p-8">
+            <User size={64} className="text-blue-400 mb-6 animate-bounce-in" />
+            <h2 className="text-3xl font-bold text-white mb-4">What's your name? (Optional)</h2>
+            <p className="text-gray-300 mb-6">We'll use this to greet you!</p>
+            <input
+              type="text"
+              value={userName}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserName(e.target.value)}
+              placeholder="Enter your name"
+              className="w-full max-w-sm bg-gray-700 text-white px-4 py-3 rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[theme.secondary] mb-6 text-lg"
+            />
+            <button
+              onClick={() => setWelcomeStep('upload_ics')}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              Next
+            </button>
+          </div>
+        );
+      case 'upload_ics':
+        return (
+          <div className="flex flex-col items-center justify-center h-full text-center p-8">
+            <h2 className="text-3xl font-bold text-white mb-6">Upload Your Timetable</h2>
+            <div
+              className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 w-full max-w-lg ${
+                dragOver
+                  ? 'border-blue-400 bg-blue-400/10'
+                  : 'border-gray-600 hover:border-gray-500'
+              }`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              <div className="flex flex-col items-center gap-4">
+                <Upload size={48} className="text-gray-400" />
+                <div>
+                  <p className="text-lg font-medium mb-2">Upload ICS Calendar File</p>
+                  <p className="text-gray-400 text-sm mb-4">
+                    Drag and drop your .ics file here or click to browse
+                  </p>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 mx-auto"
+                  >
+                    <FileText size={20} />
+                    Choose File
+                  </button>
+                </div>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".ics"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+            </div>
+            {loading && (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
+                <p className="text-gray-400">Processing your calendar...</p>
+              </div>
+            )}
+            {error && (
+              <div className="bg-red-900/20 border border-red-500 rounded-lg p-4 mt-6 w-full max-w-lg">
+                <div className="flex items-center gap-2 text-red-400">
+                  <FileText size={20} />
+                  <span className="font-medium">{error}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      default:
+        return null; // Should not happen if logic is correct
+    }
+  };
+
+  // In the return statement, show the welcome screen if not completed
+  if (welcomeStep !== 'completed') {
+    return renderWelcomeScreen();
+  }
+
   return (
     <div className={`min-h-screen ${theme.bg} text-white flex font-inter`}>
       {/* Sidebar */}
