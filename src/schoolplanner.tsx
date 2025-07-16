@@ -1615,6 +1615,32 @@ const SchoolPlanner = () => {
     }
   }, [welcomeStep]);
 
+  // --- Atomic localStorage check on first mount ---
+  React.useEffect(() => {
+    // Only run on first mount
+    const savedWeekData = localStorage.getItem('weekData');
+    const savedSubjects = localStorage.getItem('subjects');
+    const savedName = localStorage.getItem('userName');
+    if (savedWeekData && savedSubjects && savedName) {
+      try {
+        // Parse and set weekData
+        const parsedWeek = JSON.parse(savedWeekData);
+        parsedWeek.monday = new Date(parsedWeek.monday);
+        parsedWeek.friday = new Date(parsedWeek.friday);
+        parsedWeek.events = parsedWeek.events.map((e: any) => ({ ...e, dtstart: new Date(e.dtstart), dtend: e.dtend ? new Date(e.dtend) : undefined }));
+        setWeekData(parsedWeek);
+        // Parse and set subjects
+        setSubjects(JSON.parse(savedSubjects));
+        // Set userName
+        setUserName(savedName);
+        // Skip welcome
+        setWelcomeStep('completed');
+      } catch {
+        // If any error, do not skip welcome
+      }
+    }
+  }, []);
+
   // Main content routes
   // Only show welcome screen if not completed
   let mainContent = null;
