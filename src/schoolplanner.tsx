@@ -1011,33 +1011,33 @@ const SchoolPlanner = () => {
       label: 'Yellow',
     },
     green: {
-      background: 'bg-green-950',
-      container: 'bg-green-900',
-      border: 'border-green-800',
+      background: 'bg-[#133c27]', // custom muted green background
+      container: 'bg-[#185c37]', // custom muted green container
+      border: 'border-[#1e7a4a]', // custom muted green border
       icon: 'text-white',
-      button: 'bg-green-500 hover:bg-green-600',
+      button: 'bg-[#34d399] hover:bg-[#059669]', // accent green for buttons
       accent: 'text-green-400',
       ring: 'focus:ring-green-400',
       borderAccent: 'border-green-400',
       spin: 'border-green-400',
-      settingsContainer: 'bg-green-900',
-      swatch: 'bg-green-900',
-      swatchExtreme: 'bg-green-400',
+      settingsContainer: 'bg-[#185c37]',
+      swatch: 'bg-[#185c37]',
+      swatchExtreme: 'bg-[#34d399]',
       label: 'Green',
     },
     blue: {
-      background: 'bg-blue-950',
-      container: 'bg-blue-900',
-      border: 'border-blue-800',
+      background: 'bg-[#16202a]', // custom muted blue background
+      container: 'bg-[#223042]', // custom muted blue container
+      border: 'border-[#2c3e50]', // custom muted blue border
       icon: 'text-white',
-      button: 'bg-blue-500 hover:bg-blue-600',
+      button: 'bg-[#3b82f6] hover:bg-[#2563eb]', // accent blue for buttons
       accent: 'text-blue-400',
       ring: 'focus:ring-blue-400',
       borderAccent: 'border-blue-400',
       spin: 'border-blue-400',
-      settingsContainer: 'bg-blue-900',
-      swatch: 'bg-blue-900',
-      swatchExtreme: 'bg-blue-400',
+      settingsContainer: 'bg-[#223042]',
+      swatch: 'bg-[#223042]',
+      swatchExtreme: 'bg-[#3b82f6]',
       label: 'Blue',
     },
     purple: {
@@ -1150,11 +1150,10 @@ const SchoolPlanner = () => {
               {Object.entries(themeColors).map(([key, val]) => (
                 <div key={key} className="flex flex-col items-center">
                   <button
-                    className={`w-10 h-10 rounded-full border-2 ${theme === key ? val.borderAccent : 'border-gray-600'} ${val.button.split(' ')[0]}`}
+                    className={`w-10 h-10 rounded-full border-2 ${theme === key ? val.borderAccent : 'border-gray-600'} ${val.swatch}`}
                     onClick={() => { setTheme(key as any); setShowThemeModal(false); }}
                     title={val.label}
                   />
-                  <div className={val.swatch + ' w-10 h-10 rounded-full mt-1'}></div>
                   <span className="text-sm mt-1">{val.label}</span>
                 </div>
               ))}
