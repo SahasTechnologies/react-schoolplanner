@@ -697,7 +697,7 @@ const SchoolPlanner = () => {
                     type="text"
                     value={editName}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditName(e.target.value)}
-                    className="w-full bg-gray-700 text-white px-3 py-2 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-gray-700 text-white px-3 py-2 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[theme.secondary]"
                   />
                 </div>
                 <div>
@@ -706,7 +706,7 @@ const SchoolPlanner = () => {
                     {defaultColours.map((colour, index) => (
                       <button
                         key={index}
-                        className={`w-8 h-8 rounded-full border-2 ${editColour === colour ? 'border-blue-400' : 'border-gray-600'} transition-all duration-200 hover:scale-110`}
+                        className={`w-8 h-8 rounded-full border-2 ${editColour === colour ? 'border-[theme.secondary]' : 'border-gray-600'} transition-all duration-200 hover:scale-110`}
                         style={{ backgroundColor: colour }}
                         onClick={() => setEditColour(colour)}
                         title={colour}
@@ -714,7 +714,7 @@ const SchoolPlanner = () => {
                     ))}
                     {/* Custom Colour Button */}
                     <button
-                      className={`w-8 h-8 rounded-full border-2 ${editColour && !defaultColours.includes(editColour) ? 'border-blue-400' : 'border-gray-600'} flex items-center justify-center transition-all duration-200 hover:scale-110`}
+                      className={`w-8 h-8 rounded-full border-2 ${editColour && !defaultColours.includes(editColour) ? 'border-[theme.secondary]' : 'border-gray-600'} flex items-center justify-center transition-all duration-200 hover:scale-110`}
                       style={{ background: 'linear-gradient(to right, #FF0000, #FF7F00, #FFFF00, #00FF00, #0000FF, #4B0082, #9400D3)' }}
                       onClick={() => customColourInputRef.current?.click()}
                       title="Choose Custom Colour"
@@ -758,16 +758,28 @@ const SchoolPlanner = () => {
     );
   };
 
+  // Expand themeOptions to include extreme versions and display as a vertical list
   const themeOptions = [
-    { name: 'Red', value: 'red', color: '#dc2626' },
-    { name: 'Orange', value: 'orange', color: '#f97316' },
-    { name: 'Yellow', value: 'yellow', color: '#eab308' },
-    { name: 'Green', value: 'green', color: '#059669' },
-    { name: 'Blue', value: 'blue', color: '#2563eb' },
-    { name: 'Purple', value: 'purple', color: '#7c3aed' },
-    { name: 'Pink', value: 'pink', color: '#db2777' },
-    { name: 'Grey', value: 'grey', color: '#64748b' },
+    { name: 'Blue Extreme (Default)', value: 'blue-extreme', color: '#2563eb' },
+    { name: 'Blue', value: 'blue', color: '#23272b' },
+    { name: 'Red Extreme', value: 'red-extreme', color: '#dc2626' },
+    { name: 'Red', value: 'red', color: '#1e2329' },
+    { name: 'Orange Extreme', value: 'orange-extreme', color: '#f97316' },
+    { name: 'Orange', value: 'orange', color: '#23211e' },
+    { name: 'Yellow Extreme', value: 'yellow-extreme', color: '#eab308' },
+    { name: 'Yellow', value: 'yellow', color: '#23231e' },
+    { name: 'Green Extreme', value: 'green-extreme', color: '#059669' },
+    { name: 'Green', value: 'green', color: '#1e2923' },
+    { name: 'Purple Extreme', value: 'purple-extreme', color: '#a78bfa' },
+    { name: 'Purple', value: 'purple', color: '#231e29' },
+    { name: 'Pink Extreme', value: 'pink-extreme', color: '#db2777' },
+    { name: 'Pink', value: 'pink', color: '#231e23' },
+    { name: 'Grey Extreme', value: 'grey-extreme', color: '#64748b' },
+    { name: 'Grey', value: 'grey', color: '#23272b' },
   ];
+
+  // Set 'blue-extreme' as the default
+  const theme = themeColorMap[themeColor] || themeColorMap['blue-extreme'];
 
   const renderSettings = () => {
     return (
@@ -778,7 +790,7 @@ const SchoolPlanner = () => {
         </div>
 
         <div className="space-y-4">
-          <div className={`bg-gray-800 rounded-lg border ${theme.border} p-6`}>
+          <div className={`${theme.sidebar} rounded-lg border ${theme.border} p-6`}>
             <h3 className="text-lg font-medium text-white mb-4">Timetable Settings</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -806,7 +818,7 @@ const SchoolPlanner = () => {
                     onChange={() => setAutoNamingEnabled(!autoNamingEnabled)}
                     className="sr-only peer"
                   />
-                  <div className={`w-11 h-6 ${theme.sidebar} peer-focus:outline-none peer-focus:ring-4 ${theme.accent} rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:${theme.secondary}`}></div>
+                  <div className={`w-11 h-6 ${theme.accent} peer-focus:outline-none peer-focus:ring-4 ${theme.accent} rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:${theme.secondary}`}></div>
                 </label>
               </div>
               {/* Theme Button */}
@@ -830,23 +842,23 @@ const SchoolPlanner = () => {
           <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
             <div className="bg-gray-800 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md">
               <h3 className="text-xl font-semibold text-white mb-4">Select Theme</h3>
-              <div className="grid grid-cols-4 gap-4 mb-6">
+              <div className="flex flex-col gap-2 mb-6">
                 {themeOptions.map(option => (
                   <button
                     key={option.value}
-                    className={`w-16 h-16 rounded-lg flex flex-col items-center justify-center border-2 transition-all duration-200 ${themeColor === option.value ? 'border-blue-400 scale-110' : 'border-gray-600'}`}
+                    className={`w-full h-14 rounded-lg flex items-center justify-between border-2 transition-all duration-200 px-4 ${themeColor === option.value ? `${theme.accent} scale-105` : 'border-gray-600'}`}
                     style={{ backgroundColor: option.color }}
                     onClick={() => setThemeColor(option.value)}
                   >
-                    <span className="w-6 h-6 rounded-full border border-white mb-2" style={{ backgroundColor: option.color }}></span>
-                    <span className="text-white text-xs font-medium capitalize">{option.name}</span>
+                    <span className="text-white text-sm font-medium capitalize">{option.name}</span>
+                    <span className="w-6 h-6 rounded-full border border-white" style={{ backgroundColor: option.color }}></span>
                   </button>
                 ))}
               </div>
               <div className="flex justify-end gap-3">
                 <button
                   onClick={() => setShowThemeModal(false)}
-                  className={`${theme.sidebar} hover:${theme.secondary} text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
+                  className={`${theme.secondary} hover:${theme.accent} text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
                 >
                   Close
                 </button>
@@ -929,7 +941,7 @@ const SchoolPlanner = () => {
               value={userName}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserName(e.target.value)}
               placeholder="Enter your name"
-              className="w-full max-w-sm bg-gray-700 text-white px-4 py-3 rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6 text-lg"
+              className="w-full max-w-sm bg-gray-700 text-white px-4 py-3 rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[theme.secondary] mb-6 text-lg"
             />
             <button
               onClick={() => setWelcomeStep('upload_ics')}
@@ -998,27 +1010,25 @@ const SchoolPlanner = () => {
     }
   };
 
-  // Theme color mapping for backgrounds, sidebar, and accent
+  // Expand themeColorMap to include standard and 'Extreme' versions
   const themeColorMap: Record<string, { bg: string; sidebar: string; border: string; secondary: string; accent: string; text: string }> = {
     red:    { bg: 'bg-[#1a181b]', sidebar: 'bg-[#1e2329]', border: 'border-[#2d2323]', secondary: 'bg-[#b91c1c]', accent: 'bg-[#dc2626]', text: 'text-[#dc2626]' },
+    'red-extreme':    { bg: 'bg-[#1a181b]', sidebar: 'bg-[#dc2626]', border: 'border-[#b91c1c]', secondary: 'bg-[#dc2626]', accent: 'bg-[#f87171]', text: 'text-[#dc2626]' },
     orange: { bg: 'bg-[#1a1916]', sidebar: 'bg-[#23211e]', border: 'border-[#2d241b]', secondary: 'bg-[#ea580c]', accent: 'bg-[#f97316]', text: 'text-[#f97316]' },
+    'orange-extreme': { bg: 'bg-[#1a1916]', sidebar: 'bg-[#f97316]', border: 'border-[#ea580c]', secondary: 'bg-[#f97316]', accent: 'bg-[#fdba74]', text: 'text-[#f97316]' },
     yellow: { bg: 'bg-[#1a1a16]', sidebar: 'bg-[#23231e]', border: 'border-[#2d2d1b]', secondary: 'bg-[#ca8a04]', accent: 'bg-[#eab308]', text: 'text-[#eab308]' },
+    'yellow-extreme': { bg: 'bg-[#1a1a16]', sidebar: 'bg-[#eab308]', border: 'border-[#ca8a04]', secondary: 'bg-[#eab308]', accent: 'bg-[#fde047]', text: 'text-[#eab308]' },
     green:  { bg: 'bg-[#16241a]', sidebar: 'bg-[#1e2923]', border: 'border-[#1b2d23]', secondary: 'bg-[#047857]', accent: 'bg-[#059669]', text: 'text-[#059669]' },
+    'green-extreme':  { bg: 'bg-[#16241a]', sidebar: 'bg-[#059669]', border: 'border-[#047857]', secondary: 'bg-[#059669]', accent: 'bg-[#6ee7b7]', text: 'text-[#059669]' },
     blue:   { bg: 'bg-[#181b1f]', sidebar: 'bg-[#23272b]', border: 'border-[#1e293b]', secondary: 'bg-[#2563eb]', accent: 'bg-[#3b82f6]', text: 'text-[#2563eb]' },
+    'blue-extreme':   { bg: 'bg-[#181b1f]', sidebar: 'bg-[#2563eb]', border: 'border-[#1e293b]', secondary: 'bg-[#2563eb]', accent: 'bg-[#60a5fa]', text: 'text-[#2563eb]' },
     purple: { bg: 'bg-[#1b1820]', sidebar: 'bg-[#231e29]', border: 'border-[#2d1b2d]', secondary: 'bg-[#7c3aed]', accent: 'bg-[#a78bfa]', text: 'text-[#7c3aed]' },
+    'purple-extreme': { bg: 'bg-[#1b1820]', sidebar: 'bg-[#a78bfa]', border: 'border-[#7c3aed]', secondary: 'bg-[#a78bfa]', accent: 'bg-[#c4b5fd]', text: 'text-[#7c3aed]' },
     pink:   { bg: 'bg-[#1b181a]', sidebar: 'bg-[#231e23]', border: 'border-[#2d1b23]', secondary: 'bg-[#db2777]', accent: 'bg-[#f472b6]', text: 'text-[#db2777]' },
+    'pink-extreme':   { bg: 'bg-[#1b181a]', sidebar: 'bg-[#db2777]', border: 'border-[#db2777]', secondary: 'bg-[#db2777]', accent: 'bg-[#f9a8d4]', text: 'text-[#db2777]' },
     grey:   { bg: 'bg-[#181b1f]', sidebar: 'bg-[#23272b]', border: 'border-[#374151]', secondary: 'bg-[#64748b]', accent: 'bg-[#94a3b8]', text: 'text-[#64748b]' },
+    'grey-extreme':   { bg: 'bg-[#181b1f]', sidebar: 'bg-[#64748b]', border: 'border-[#374151]', secondary: 'bg-[#64748b]', accent: 'bg-[#cbd5e1]', text: 'text-[#64748b]' },
   };
-  const theme = themeColorMap[themeColor] || themeColorMap.blue;
-
-  // Main render logic based on welcomeStep
-  if (welcomeStep !== 'completed') {
-    return (
-      <div className={`min-h-screen ${theme.bg} text-white flex items-center justify-center font-inter`}>
-        {renderWelcomeScreen()}
-      </div>
-    );
-  }
 
   return (
     <div className={`min-h-screen ${theme.bg} text-white flex font-inter`}>
