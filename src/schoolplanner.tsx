@@ -598,10 +598,15 @@ const SchoolPlanner = () => {
                     }
                     // ... existing code for normal event ...
                     let teacherName = '';
+                    let periodName = '';
                     if (event.description) {
-                      const match = event.description.match(/Teacher:\s*([^\n\r]+?)(?:\s*Period:|$)/i);
-                      if (match) {
-                        teacherName = match[1].trim();
+                      const teacherMatch = event.description.match(/Teacher:\s*([^\n\r]+?)(?:\s*Period:|$)/i);
+                      if (teacherMatch) {
+                        teacherName = teacherMatch[1].trim();
+                      }
+                      const periodMatch = event.description.match(/Period:\s*([^\n\r]+)/i);
+                      if (periodMatch) {
+                        periodName = periodMatch[1].trim();
                       }
                     }
                     return (
@@ -611,34 +616,21 @@ const SchoolPlanner = () => {
                         style={{ backgroundColor: getEventColour(event.summary) }}
                       >
                         <div className="flex items-center justify-between" style={{ minHeight: 40, alignItems: 'center' }}>
-                          <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>
+                          <span className="font-medium leading-tight flex items-center gap-2" style={{ fontSize: '1.1rem' }}>
                             {normalizeSubjectName(event.summary)}
+                            {showFirstInfoBeside && enabledFields.length > 0 && infoFields[enabledFields[0].key] && (
+                              <span className="ml-2">{infoFields[enabledFields[0].key]}</span>
+                            )}
                           </span>
                           <span style={{ opacity: 0.35, display: 'flex', alignItems: 'center' }} className="text-black">
                             {getSubjectIcon(event.summary, 24, effectiveMode)}
                           </span>
                         </div>
-                        {teacherName && (
-                          <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
-                            <User size={12} />
-                            <span>{teacherName}</span>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
-                          <Clock size={12} />
-                          <span>{formatTime(event.dtstart)}</span>
-                          {event.dtend && !isNaN(new Date(event.dtend).getTime()) && (
-                            <>
-                              <span> - {formatTime(event.dtend ?? event.dtstart)}</span>
-                            </>
-                          )}
-                        </div>
-                        {event.location && (
-                          <div className="flex items-center gap-1 text-xs text-white opacity-80">
-                            <MapPin size={12} />
-                            <span>{event.location}</span>
-                          </div>
-                        )}
+                        {/* Info fields, only show enabled by default, all on hover */}
+                        {(hoveredEventIdx === idx ? infoOrder : enabledFields)
+                          .filter((item, i) => !(showFirstInfoBeside && enabledFields.length > 0 && item.key === enabledFields[0].key))
+                          .map((item: { key: string }) => infoFields[item.key])
+                          .filter(Boolean)}
                       </div>
                     );
                   })
@@ -1093,10 +1085,15 @@ const SchoolPlanner = () => {
                   }
                   // ... existing code for normal event ...
                   let teacherName = '';
+                  let periodName = '';
                   if (event.description) {
-                    const match = event.description.match(/Teacher:\s*([^\n\r]+?)(?:\s*Period:|$)/i);
-                    if (match) {
-                      teacherName = match[1].trim();
+                    const teacherMatch = event.description.match(/Teacher:\s*([^\n\r]+?)(?:\s*Period:|$)/i);
+                    if (teacherMatch) {
+                      teacherName = teacherMatch[1].trim();
+                    }
+                    const periodMatch = event.description.match(/Period:\s*([^\n\r]+)/i);
+                    if (periodMatch) {
+                      periodName = periodMatch[1].trim();
                     }
                   }
                   // Info fields
@@ -1119,6 +1116,12 @@ const SchoolPlanner = () => {
                         <span>{teacherName}</span>
                       </div>
                     ) : null,
+                    period: periodName ? (
+                      <div key="period" className="flex items-center gap-1 text-xs opacity-80 mb-1">
+                        <BookOpen size={12} />
+                        <span>{periodName}</span>
+                      </div>
+                    ) : null,
                   };
                   // Show all info on hover/expand, otherwise only enabled fields
                   return (
@@ -1130,15 +1133,21 @@ const SchoolPlanner = () => {
                       onMouseLeave={() => setHoveredEventIdx(null)}
                     >
                       <div className="flex items-center justify-between" style={{ minHeight: 40, alignItems: 'center' }}>
-                        <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>
+                        <span className="font-medium leading-tight flex items-center gap-2" style={{ fontSize: '1.1rem' }}>
                           {normalizeSubjectName(event.summary)}
+                          {showFirstInfoBeside && enabledFields.length > 0 && infoFields[enabledFields[0].key] && (
+                            <span className="ml-2">{infoFields[enabledFields[0].key]}</span>
+                          )}
                         </span>
                         <span style={{ opacity: 0.35, display: 'flex', alignItems: 'center' }} className="text-black">
                           {getSubjectIcon(event.summary, 24, effectiveMode)}
                         </span>
                       </div>
                       {/* Info fields, only show enabled by default, all on hover */}
-                      {(hoveredEventIdx === idx ? infoOrder : enabledFields).map((item: { key: string }) => infoFields[item.key]).filter(Boolean)}
+                      {(hoveredEventIdx === idx ? infoOrder : enabledFields)
+                        .filter((item, i) => !(showFirstInfoBeside && enabledFields.length > 0 && item.key === enabledFields[0].key))
+                        .map((item: { key: string }) => infoFields[item.key])
+                        .filter(Boolean)}
                     </div>
                   );
                 })}
@@ -1821,6 +1830,7 @@ const SchoolPlanner = () => {
     { key: 'time', label: 'Time' },
     { key: 'location', label: 'Location' },
     { key: 'teacher', label: 'Teacher' },
+    { key: 'period', label: 'Period' },
   ];
   const [infoOrder, setInfoOrder] = useState(() => {
     const saved = localStorage.getItem('eventInfoOrder');
@@ -1828,7 +1838,7 @@ const SchoolPlanner = () => {
   });
   const [infoShown, setInfoShown] = useState(() => {
     const saved = localStorage.getItem('eventInfoShown');
-    return saved ? JSON.parse(saved) : { time: false, location: false, teacher: false };
+    return saved ? JSON.parse(saved) : { time: false, location: false, teacher: false, period: false };
   });
   const [showInfoPopup, setShowInfoPopup] = useState(false);
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
