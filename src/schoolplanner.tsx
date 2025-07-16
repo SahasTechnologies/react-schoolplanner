@@ -702,7 +702,7 @@ const SchoolPlanner = () => {
           <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
             <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
               <h3 className={`text-xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Edit Subject</h3>
-              <p className={`text-gray-400 text-sm mb-4 ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Original Name: <span className="font-medium text-white">{selectedSubjectForEdit.originalName || selectedSubjectForEdit.name}</span></p> {/* Changed original name */}
+              <p className={`text-gray-400 text-sm mb-4 ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Original Name: <span className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{selectedSubjectForEdit.originalName || selectedSubjectForEdit.name}</span></p> {/* Changed original name */}
               <div className="space-y-4">
                 <div>
                   <label htmlFor="subjectName" className={`block ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-300'} text-sm font-medium mb-1`}>Subject Name</label>
@@ -786,7 +786,7 @@ const SchoolPlanner = () => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className={`text-white font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Clear Timetable Data</p>
+                  <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Clear Timetable Data</p>
                   <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>This will remove all uploaded calendar data and subjects</p>
                 </div>
                 <button
@@ -799,7 +799,7 @@ const SchoolPlanner = () => {
               </div>
               <div className="flex items-center justify-between mt-4 border-t border-gray-700 pt-4">
                 <div>
-                  <p className={`text-white font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Enable Auto-Naming</p>
+                  <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Enable Auto-Naming</p>
                   <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Automatically rename subjects based on keywords</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -819,7 +819,7 @@ const SchoolPlanner = () => {
             <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Customise</h3>
             <div className="flex items-center justify-between">
               <div>
-                <p className={`text-white font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Theme</p>
+                <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Theme</p>
                 <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Change the color theme of the app</p>
               </div>
               <button
@@ -836,46 +836,120 @@ const SchoolPlanner = () => {
     );
   };
 
+  // Helper to get events for today or tomorrow (if today's are over)
+  function getTodayOrNextEvents(): { dayLabel: string, events: CalendarEvent[] } {
+    if (!weekData) return { dayLabel: '', events: [] };
+    const now = new Date();
+    // Get local day index (0=Sunday, 1=Monday, ..., 6=Saturday)
+    let dayIdx = now.getDay();
+    // Only consider Mon-Fri (1-5)
+    const isWeekday = (d: number) => d >= 1 && d <= 5;
+    // Build a map: dayIdx (1-5) -> events[]
+    const dayEvents: CalendarEvent[][] = [[], [], [], [], []];
+    weekData.events.forEach((event: CalendarEvent) => {
+      const eventDate = new Date(event.dtstart);
+      const eventDay = eventDate.getDay();
+      if (eventDay >= 1 && eventDay <= 5) {
+        dayEvents[eventDay - 1].push(event);
+      }
+    });
+    // Sort events for each day
+    dayEvents.forEach(list => list.sort((a, b) => a.dtstart.getTime() - b.dtstart.getTime()));
+    // Try today first
+    if (isWeekday(dayIdx)) {
+      const todayEvents = dayEvents[dayIdx - 1];
+      if (todayEvents.length > 0) {
+        // If any event is still upcoming or ongoing, show today
+        const lastEventEnd = todayEvents[todayEvents.length - 1].dtend || todayEvents[todayEvents.length - 1].dtstart;
+        if (now <= lastEventEnd) {
+          return { dayLabel: 'Today', events: todayEvents };
+        }
+      }
+    }
+    // Otherwise, show the next weekday with events (usually tomorrow)
+    for (let offset = 1; offset <= 5; ++offset) {
+      let nextIdx = ((dayIdx - 1 + offset) % 5);
+      if (dayEvents[nextIdx].length > 0) {
+        const label = offset === 1 ? 'Tomorrow' : ['Monday','Tuesday','Wednesday','Thursday','Friday'][nextIdx];
+        return { dayLabel: label, events: dayEvents[nextIdx] };
+      }
+    }
+    // Fallback: no events
+    return { dayLabel: '', events: [] };
+  }
+
   const renderHome = () => {
+    const { dayLabel, events } = getTodayOrNextEvents();
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
           <Home className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
           <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Home</h2>
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
+          <div className={`${colors.container} rounded-lg ${colors.border} border p-6 col-span-1`}>
             <div className="flex items-center gap-3 mb-4">
               <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
-              <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Schedule</h3>
+              <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{dayLabel ? `${dayLabel}'s Schedule` : 'No Schedule'}</h3>
             </div>
-            <p className={`text-gray-400 mb-4 ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>
-              {weekData ? 'View your weekly schedule' : 'Upload your ICS calendar file to get started'}
-            </p>
-            <button
-              onClick={() => navigate('/calendar')}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
-            >
-              {weekData ? 'View Schedule' : 'Upload Calendar'}
-            </button>
+            {events.length === 0 ? (
+              <div className="text-center text-gray-500 py-8">
+                <Calendar size={32} className="mx-auto mb-2 opacity-50" />
+                <p>No events</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {events.map((event, idx) => {
+                  // Extract teacher name from description if present
+                  let teacherName = '';
+                  if (event.description) {
+                    const match = event.description.match(/Teacher:\s*([^\n\r]+?)(?:\s*Period:|$)/i);
+                    if (match) {
+                      teacherName = match[1].trim();
+                    }
+                  }
+                  return (
+                    <div
+                      key={idx}
+                      className="rounded-lg p-3 text-white text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
+                      style={{ backgroundColor: getEventColour(event.summary) }}
+                    >
+                      <div className="flex items-center justify-between" style={{ minHeight: 40, alignItems: 'center' }}>
+                        <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>
+                          {normalizeSubjectName(event.summary)}
+                        </span>
+                        <span style={{ opacity: 0.35, display: 'flex', alignItems: 'center' }} className="text-black">
+                          {getSubjectIcon(event.summary, 24, effectiveMode)}
+                        </span>
+                      </div>
+                      {teacherName && (
+                        <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
+                          <User size={12} />
+                          <span>{teacherName}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
+                        <Clock size={12} />
+                        <span>{formatTime(event.dtstart)}</span>
+                        {event.dtend && !isNaN(new Date(event.dtend).getTime()) && (
+                          <>
+                            <span> - {formatTime(event.dtend)}</span>
+                          </>
+                        )}
+                      </div>
+                      {event.location && (
+                        <div className="flex items-center gap-1 text-xs text-white opacity-80">
+                          <MapPin size={12} />
+                          <span>{event.location}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
-
-          <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
-            <div className="flex items-center gap-3 mb-4">
-              <BarChart3 className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
-              <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Markbook</h3>
-            </div>
-            <p className={`text-gray-400 mb-4 ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>
-              {subjects.length > 0 ? `Manage your ${subjects.length} subjects` : 'No subjects available yet'}
-            </p>
-            <button
-              onClick={() => navigate('/markbook')}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
-            >
-              Open Markbook
-            </button>
-          </div>
+          {/* Right half intentionally left empty for now, or you can add a placeholder */}
         </div>
       </div>
     );
