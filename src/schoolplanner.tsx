@@ -778,6 +778,26 @@ const SchoolPlanner = () => {
     { name: 'Grey', value: 'grey', color: '#23272b' },
   ];
 
+  // Expand themeColorMap to include standard and 'Extreme' versions
+  const themeColorMap: Record<string, { bg: string; sidebar: string; border: string; secondary: string; accent: string; text: string }> = {
+    red:    { bg: 'bg-[#1a181b]', sidebar: 'bg-[#1e2329]', border: 'border-[#2d2323]', secondary: 'bg-[#b91c1c]', accent: 'bg-[#dc2626]', text: 'text-[#dc2626]' },
+    'red-extreme':    { bg: 'bg-[#1a181b]', sidebar: 'bg-[#dc2626]', border: 'border-[#b91c1c]', secondary: 'bg-[#dc2626]', accent: 'bg-[#f87171]', text: 'text-[#dc2626]' },
+    orange: { bg: 'bg-[#1a1916]', sidebar: 'bg-[#23211e]', border: 'border-[#2d241b]', secondary: 'bg-[#ea580c]', accent: 'bg-[#f97316]', text: 'text-[#f97316]' },
+    'orange-extreme': { bg: 'bg-[#1a1916]', sidebar: 'bg-[#f97316]', border: 'border-[#ea580c]', secondary: 'bg-[#f97316]', accent: 'bg-[#fdba74]', text: 'text-[#f97316]' },
+    yellow: { bg: 'bg-[#1a1a16]', sidebar: 'bg-[#23231e]', border: 'border-[#2d2d1b]', secondary: 'bg-[#ca8a04]', accent: 'bg-[#eab308]', text: 'text-[#eab308]' },
+    'yellow-extreme': { bg: 'bg-[#1a1a16]', sidebar: 'bg-[#eab308]', border: 'border-[#ca8a04]', secondary: 'bg-[#eab308]', accent: 'bg-[#fde047]', text: 'text-[#eab308]' },
+    green:  { bg: 'bg-[#16241a]', sidebar: 'bg-[#1e2923]', border: 'border-[#1b2d23]', secondary: 'bg-[#047857]', accent: 'bg-[#059669]', text: 'text-[#059669]' },
+    'green-extreme':  { bg: 'bg-[#16241a]', sidebar: 'bg-[#059669]', border: 'border-[#047857]', secondary: 'bg-[#059669]', accent: 'bg-[#6ee7b7]', text: 'text-[#059669]' },
+    blue:   { bg: 'bg-[#181b1f]', sidebar: 'bg-[#23272b]', border: 'border-[#1e293b]', secondary: 'bg-[#2563eb]', accent: 'bg-[#3b82f6]', text: 'text-[#2563eb]' },
+    'blue-extreme':   { bg: 'bg-[#181b1f]', sidebar: 'bg-[#2563eb]', border: 'border-[#1e293b]', secondary: 'bg-[#2563eb]', accent: 'bg-[#60a5fa]', text: 'text-[#2563eb]' },
+    purple: { bg: 'bg-[#1b1820]', sidebar: 'bg-[#231e29]', border: 'border-[#2d1b2d]', secondary: 'bg-[#7c3aed]', accent: 'bg-[#a78bfa]', text: 'text-[#7c3aed]' },
+    'purple-extreme': { bg: 'bg-[#1b1820]', sidebar: 'bg-[#a78bfa]', border: 'border-[#7c3aed]', secondary: 'bg-[#a78bfa]', accent: 'bg-[#c4b5fd]', text: 'text-[#7c3aed]' },
+    pink:   { bg: 'bg-[#1b181a]', sidebar: 'bg-[#231e23]', border: 'border-[#2d1b23]', secondary: 'bg-[#db2777]', accent: 'bg-[#f472b6]', text: 'text-[#db2777]' },
+    'pink-extreme':   { bg: 'bg-[#1b181a]', sidebar: 'bg-[#db2777]', border: 'border-[#db2777]', secondary: 'bg-[#db2777]', accent: 'bg-[#f9a8d4]', text: 'text-[#db2777]' },
+    grey:   { bg: 'bg-[#181b1f]', sidebar: 'bg-[#23272b]', border: 'border-[#374151]', secondary: 'bg-[#64748b]', accent: 'bg-[#94a3b8]', text: 'text-[#64748b]' },
+    'grey-extreme':   { bg: 'bg-[#181b1f]', sidebar: 'bg-[#64748b]', border: 'border-[#374151]', secondary: 'bg-[#64748b]', accent: 'bg-[#cbd5e1]', text: 'text-[#64748b]' },
+  };
+
   // Set 'blue-extreme' as the default
   const theme = themeColorMap[themeColor] || themeColorMap['blue-extreme'];
 
@@ -1010,26 +1030,6 @@ const SchoolPlanner = () => {
     }
   };
 
-  // Expand themeColorMap to include standard and 'Extreme' versions
-  const themeColorMap: Record<string, { bg: string; sidebar: string; border: string; secondary: string; accent: string; text: string }> = {
-    red:    { bg: 'bg-[#1a181b]', sidebar: 'bg-[#1e2329]', border: 'border-[#2d2323]', secondary: 'bg-[#b91c1c]', accent: 'bg-[#dc2626]', text: 'text-[#dc2626]' },
-    'red-extreme':    { bg: 'bg-[#1a181b]', sidebar: 'bg-[#dc2626]', border: 'border-[#b91c1c]', secondary: 'bg-[#dc2626]', accent: 'bg-[#f87171]', text: 'text-[#dc2626]' },
-    orange: { bg: 'bg-[#1a1916]', sidebar: 'bg-[#23211e]', border: 'border-[#2d241b]', secondary: 'bg-[#ea580c]', accent: 'bg-[#f97316]', text: 'text-[#f97316]' },
-    'orange-extreme': { bg: 'bg-[#1a1916]', sidebar: 'bg-[#f97316]', border: 'border-[#ea580c]', secondary: 'bg-[#f97316]', accent: 'bg-[#fdba74]', text: 'text-[#f97316]' },
-    yellow: { bg: 'bg-[#1a1a16]', sidebar: 'bg-[#23231e]', border: 'border-[#2d2d1b]', secondary: 'bg-[#ca8a04]', accent: 'bg-[#eab308]', text: 'text-[#eab308]' },
-    'yellow-extreme': { bg: 'bg-[#1a1a16]', sidebar: 'bg-[#eab308]', border: 'border-[#ca8a04]', secondary: 'bg-[#eab308]', accent: 'bg-[#fde047]', text: 'text-[#eab308]' },
-    green:  { bg: 'bg-[#16241a]', sidebar: 'bg-[#1e2923]', border: 'border-[#1b2d23]', secondary: 'bg-[#047857]', accent: 'bg-[#059669]', text: 'text-[#059669]' },
-    'green-extreme':  { bg: 'bg-[#16241a]', sidebar: 'bg-[#059669]', border: 'border-[#047857]', secondary: 'bg-[#059669]', accent: 'bg-[#6ee7b7]', text: 'text-[#059669]' },
-    blue:   { bg: 'bg-[#181b1f]', sidebar: 'bg-[#23272b]', border: 'border-[#1e293b]', secondary: 'bg-[#2563eb]', accent: 'bg-[#3b82f6]', text: 'text-[#2563eb]' },
-    'blue-extreme':   { bg: 'bg-[#181b1f]', sidebar: 'bg-[#2563eb]', border: 'border-[#1e293b]', secondary: 'bg-[#2563eb]', accent: 'bg-[#60a5fa]', text: 'text-[#2563eb]' },
-    purple: { bg: 'bg-[#1b1820]', sidebar: 'bg-[#231e29]', border: 'border-[#2d1b2d]', secondary: 'bg-[#7c3aed]', accent: 'bg-[#a78bfa]', text: 'text-[#7c3aed]' },
-    'purple-extreme': { bg: 'bg-[#1b1820]', sidebar: 'bg-[#a78bfa]', border: 'border-[#7c3aed]', secondary: 'bg-[#a78bfa]', accent: 'bg-[#c4b5fd]', text: 'text-[#7c3aed]' },
-    pink:   { bg: 'bg-[#1b181a]', sidebar: 'bg-[#231e23]', border: 'border-[#2d1b23]', secondary: 'bg-[#db2777]', accent: 'bg-[#f472b6]', text: 'text-[#db2777]' },
-    'pink-extreme':   { bg: 'bg-[#1b181a]', sidebar: 'bg-[#db2777]', border: 'border-[#db2777]', secondary: 'bg-[#db2777]', accent: 'bg-[#f9a8d4]', text: 'text-[#db2777]' },
-    grey:   { bg: 'bg-[#181b1f]', sidebar: 'bg-[#23272b]', border: 'border-[#374151]', secondary: 'bg-[#64748b]', accent: 'bg-[#94a3b8]', text: 'text-[#64748b]' },
-    'grey-extreme':   { bg: 'bg-[#181b1f]', sidebar: 'bg-[#64748b]', border: 'border-[#374151]', secondary: 'bg-[#64748b]', accent: 'bg-[#cbd5e1]', text: 'text-[#64748b]' },
-  };
-
   return (
     <div className={`min-h-screen ${theme.bg} text-white flex font-inter`}>
       {/* Sidebar */}
@@ -1100,7 +1100,6 @@ const SchoolPlanner = () => {
                 <p className="text-gray-400">Manage your schedule and subjects</p>
               </div>
             )}
-
 
             {/* Loading State (only for main app after welcome) */}
             {loading && welcomeStep === 'completed' && (
