@@ -1011,7 +1011,7 @@ const SchoolPlanner = () => {
       label: 'Yellow',
     },
     green: {
-      background: 'bg-[#133c27]', // custom muted green background
+      background: 'bg-[#1b2b15]', // custom muted green background
       container: 'bg-[#185c37]', // custom muted green container
       border: 'border-[#1e7a4a]', // custom muted green border
       icon: 'text-white',
@@ -1026,8 +1026,8 @@ const SchoolPlanner = () => {
       label: 'Green',
     },
     blue: {
-      background: 'bg-[#16202a]', // custom muted blue background
-      container: 'bg-[#223042]', // custom muted blue container
+      background: 'bg-[#0f1823]', // custom muted blue background
+      container: 'bg-[#151f2b]', // custom muted blue container
       border: 'border-[#2c3e50]', // custom muted blue border
       icon: 'text-white',
       button: 'bg-[#3b82f6] hover:bg-[#2563eb]', // accent blue for buttons
@@ -1162,7 +1162,11 @@ const SchoolPlanner = () => {
             <div className="flex flex-row flex-wrap gap-4">
               {Object.entries(themeColors).map(([key, val]) => (
                 <div key={key} className="flex flex-col items-center">
-                  <div className={val.swatchExtreme + ' w-6 h-6 rounded-full'}></div>
+                  <button
+                    className={`w-10 h-10 rounded-full border-2 ${theme === key ? val.borderAccent : 'border-gray-600'} ${val.swatchExtreme}`}
+                    onClick={() => { setTheme(key as any); setShowThemeModal(false); }}
+                    title={val.label + ' (Extreme)'}
+                  />
                   <span className="text-sm mt-1">{val.label}</span>
                 </div>
               ))}
