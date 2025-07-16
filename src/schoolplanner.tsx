@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { 
-  Upload, Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Settings, Edit2, User,
+  Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Settings, Edit2, User,
   Sun, Moon, Monitor, GripVertical, Palette,
   Utensils // <-- Add Utensils icon
 } from 'lucide-react';
