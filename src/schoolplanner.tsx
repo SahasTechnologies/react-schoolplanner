@@ -429,7 +429,9 @@ const SchoolPlanner = () => {
     }
   };
 
+  // Clear all localStorage and reset state
   const clearData = () => {
+    localStorage.clear(); // Clear everything including theme
     setWeekData(null);
     setError('');
     setSubjects([]);
@@ -974,8 +976,8 @@ const SchoolPlanner = () => {
       case 'welcome':
         return (
           <div className="flex flex-col items-center justify-center h-full text-center p-8">
-            <h1 className="text-5xl font-bold text-white mb-4 animate-fade-in-down">Welcome!</h1>
-            <p className="text-xl text-gray-300 mb-8 animate-fade-in-up">Your personal school planner.</p>
+            <h1 className={`text-5xl font-bold mb-4 animate-fade-in-down ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Welcome!</h1>
+            <p className={`text-xl mb-8 animate-fade-in-up ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>Your personal school planner.</p>
             <button
               onClick={() => setWelcomeStep('name_input')}
               className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
@@ -988,14 +990,14 @@ const SchoolPlanner = () => {
         return (
           <div className="flex flex-col items-center justify-center h-full text-center p-8">
             <User size={64} className="text-blue-400 mb-6 animate-bounce-in" />
-            <h2 className="text-3xl font-bold text-white mb-4">What's your name? (Optional)</h2>
-            <p className="text-gray-300 mb-6">We'll use this to greet you!</p>
+            <h2 className={`text-3xl font-bold mb-4 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>What's your name? (Optional)</h2>
+            <p className={`${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-300'} mb-6`}>We'll use this to greet you!</p>
             <input
               type="text"
               value={userName}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserName(e.target.value)}
               placeholder="Enter your name"
-              className="w-full max-w-sm bg-gray-700 text-white px-4 py-3 rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6 text-lg"
+              className={`w-full max-w-sm px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6 text-lg ${effectiveMode === 'light' ? 'bg-gray-100 text-black border-gray-300' : 'bg-gray-700 text-white border-gray-600'}`}
             />
             <button
               onClick={() => setWelcomeStep('upload_ics')}
@@ -1008,22 +1010,24 @@ const SchoolPlanner = () => {
       case 'upload_ics':
         return (
           <div className="flex flex-col items-center justify-center h-full text-center p-8">
-            <h2 className="text-3xl font-bold text-white mb-6">Upload Your Timetable</h2>
+            <h2 className={`text-3xl font-bold mb-6 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Upload Your Timetable</h2>
             <div
               className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 w-full max-w-lg ${
                 dragOver
                   ? 'border-blue-400 bg-blue-400/10'
-                  : 'border-gray-600 hover:border-gray-500'
+                  : effectiveMode === 'light'
+                    ? 'border-gray-300 hover:border-gray-400 bg-white'
+                    : 'border-gray-600 hover:border-gray-500'
               }`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
             >
               <div className="flex flex-col items-center gap-4">
-                <Upload size={48} className="text-gray-400" />
+                <Upload size={48} className={effectiveMode === 'light' ? 'text-gray-400' : 'text-gray-400'} />
                 <div>
-                  <p className="text-lg font-medium mb-2">Upload ICS Calendar File</p>
-                  <p className="text-gray-400 text-sm mb-4">
+                  <p className={`text-lg font-medium mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Upload ICS Calendar File</p>
+                  <p className={`text-sm mb-4 ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>
                     Drag and drop your .ics file here or click to browse
                   </p>
                   <button
@@ -1046,12 +1050,12 @@ const SchoolPlanner = () => {
             {loading && (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
-                <p className="text-gray-400">Processing your calendar...</p>
+                <p className={effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}>Processing your calendar...</p>
               </div>
             )}
             {error && (
-              <div className="bg-red-900/20 border border-red-500 rounded-lg p-4 mt-6 w-full max-w-lg">
-                <div className="flex items-center gap-2 text-red-400">
+              <div className={`border rounded-lg p-4 mt-6 w-full max-w-lg ${effectiveMode === 'light' ? 'bg-red-100 border-red-400' : 'bg-red-900/20 border-red-500'}`}>
+                <div className={`flex items-center gap-2 ${effectiveMode === 'light' ? 'text-red-600' : 'text-red-400'}`}>
                   <FileText size={20} />
                   <span className="font-medium">{error}</span>
                 </div>
@@ -1491,13 +1495,18 @@ const SchoolPlanner = () => {
 
   // --- Save weekData to localStorage ---
   React.useEffect(() => {
-    if (weekData && welcomeStep === 'completed') {
+    // Save weekData and subjects to localStorage on any change
+    if (weekData) {
       localStorage.setItem('weekData', JSON.stringify(weekData));
+    } else {
+      localStorage.removeItem('weekData');
     }
-    if (subjects && welcomeStep === 'completed') {
+    if (subjects) {
       localStorage.setItem('subjects', JSON.stringify(subjects));
+    } else {
+      localStorage.removeItem('subjects');
     }
-  }, [weekData, subjects, welcomeStep]);
+  }, [weekData, subjects]);
 
   // --- Load weekData from localStorage on mount ---
   React.useEffect(() => {
