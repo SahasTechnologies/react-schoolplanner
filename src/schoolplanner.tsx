@@ -1536,19 +1536,23 @@ const SchoolPlanner = () => {
 
   // --- Save weekData to localStorage ---
   React.useEffect(() => {
-    console.log('[SaveEffect] Saving weekData:', weekData);
-    console.log('[SaveEffect] Saving subjects:', subjects);
-    if (weekData) {
-      localStorage.setItem('weekData', JSON.stringify(weekData));
+    if (welcomeStep === 'completed') {
+      console.log('[SaveEffect] Saving weekData:', weekData);
+      console.log('[SaveEffect] Saving subjects:', subjects);
+      if (weekData) {
+        localStorage.setItem('weekData', JSON.stringify(weekData));
+      } else {
+        localStorage.removeItem('weekData');
+      }
+      if (subjects) {
+        localStorage.setItem('subjects', JSON.stringify(subjects));
+      } else {
+        localStorage.removeItem('subjects');
+      }
     } else {
-      localStorage.removeItem('weekData');
+      console.log('[SaveEffect] Not saving weekData/subjects because welcomeStep is', welcomeStep);
     }
-    if (subjects) {
-      localStorage.setItem('subjects', JSON.stringify(subjects));
-    } else {
-      localStorage.removeItem('subjects');
-    }
-  }, [weekData, subjects]);
+  }, [weekData, subjects, welcomeStep]);
 
   // --- Load weekData from localStorage on mount ---
   React.useEffect(() => {
@@ -1591,11 +1595,15 @@ const SchoolPlanner = () => {
 
   // --- Persist userName to localStorage on change ---
   React.useEffect(() => {
-    console.log('[SaveEffect] Saving userName:', userName);
-    if (userName !== undefined) {
-      localStorage.setItem('userName', userName);
+    if (welcomeStep === 'completed') {
+      console.log('[SaveEffect] Saving userName:', userName);
+      if (userName !== undefined) {
+        localStorage.setItem('userName', userName);
+      }
+    } else {
+      console.log('[SaveEffect] Not saving userName because welcomeStep is', welcomeStep);
     }
-  }, [userName]);
+  }, [userName, welcomeStep]);
 
   // --- Load userName from localStorage on mount ---
   React.useEffect(() => {
