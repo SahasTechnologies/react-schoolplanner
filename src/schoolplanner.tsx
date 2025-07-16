@@ -1248,7 +1248,7 @@ const SchoolPlanner = () => {
             </div>
             <div className="mb-2 text-lg font-semibold text-white">Normal Colour</div>
             <div className="flex flex-row flex-wrap gap-4 mb-6">
-              {Object.entries(colorVars).map(([key, val]) => (
+              {(Object.entries(colorVars) as [ThemeKey, typeof colorVars[ThemeKey]][]).map(([key, val]) => (
                 <div key={key} className="flex flex-col items-center">
                   <button
                     className={`w-10 h-10 rounded-full border-2 ${(theme === key && themeType === 'normal') ? themeColors[key].borderAccent : 'border-gray-600'} ${val.normal.swatch}`}
@@ -1261,7 +1261,7 @@ const SchoolPlanner = () => {
             </div>
             <div className="mb-2 text-lg font-semibold text-white">Extreme Colour</div>
             <div className="flex flex-row flex-wrap gap-4">
-              {Object.entries(colorVars).map(([key, val]) => (
+              {(Object.entries(colorVars) as [ThemeKey, typeof colorVars[ThemeKey]][]).map(([key, val]) => (
                 <div key={key} className="flex flex-col items-center">
                   <button
                     className={`w-10 h-10 rounded-full border-2 ${(theme === key && themeType === 'extreme') ? themeColors[key].borderAccent : 'border-gray-600'} ${val.extreme.swatch}`}
