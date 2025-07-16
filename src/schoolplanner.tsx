@@ -895,11 +895,11 @@ const SchoolPlanner = () => {
           <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
             <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
               <h3 className={`text-xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Info Shown at Start</h3>
-              <div className="space-y-3">
+              <div className="space-y-5">
                 {infoOrder.map((item: { key: string; label: string }, idx: number) => (
                   <div
                     key={item.key}
-                    className={`flex items-center gap-3 p-2 rounded transition-all duration-300 ${draggedIdx === idx ? 'bg-blue-100/20' : ''}`}
+                    className={`flex items-center justify-between gap-4 py-2 px-1 rounded transition-all duration-300 ${draggedIdx === idx ? 'bg-blue-100/20' : ''}`}
                     draggable
                     onDragStart={() => handleDragStart(idx)}
                     onDragOver={e => { e.preventDefault(); handleInfoDragOver(idx); }}
@@ -910,21 +910,38 @@ const SchoolPlanner = () => {
                       zIndex: draggedIdx === idx ? 10 : 1,
                     }}
                   >
-                    <GripVertical className="text-gray-400 cursor-grab" size={20} />
-                    <span className="flex-1 font-medium">{item.label}</span>
-                    <label className="relative inline-flex items-center cursor-pointer">
+                    <div className="flex items-center gap-2 min-w-[32px]">
+                      <GripVertical className="text-gray-400 cursor-grab" size={20} />
+                    </div>
+                    <span className="flex-1 font-medium text-lg">{item.label}</span>
+                    <label className="relative inline-flex items-center cursor-pointer select-none">
                       <input
                         type="checkbox"
                         checked={infoShown[item.key]}
                         onChange={() => handleToggleInfoShown(item.key)}
                         className="sr-only peer"
                       />
-                      <div className="w-10 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-blue-600 transition-colors duration-200">
-                        <div className="absolute left-0.5 top-0.5 bg-white border border-gray-300 rounded-full h-4 w-4 transition-transform duration-200 peer-checked:translate-x-5"></div>
+                      <div className="w-12 h-7 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-blue-600 transition-colors duration-200 shadow-inner">
+                        <div className="absolute left-0.5 top-0.5 bg-white border border-gray-300 rounded-full h-6 w-6 transition-transform duration-200 peer-checked:translate-x-5 shadow-md"></div>
                       </div>
                     </label>
                   </div>
                 ))}
+              </div>
+              {/* Toggle for first info beside subject name */}
+              <div className="flex items-center justify-between gap-4 py-4 mt-4 border-t border-gray-700">
+                <span className="font-medium text-lg">Show first info beside subject name</span>
+                <label className="relative inline-flex items-center cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={showFirstInfoBeside}
+                    onChange={() => setShowFirstInfoBeside(v => !v)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-12 h-7 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-blue-600 transition-colors duration-200 shadow-inner">
+                    <div className="absolute left-0.5 top-0.5 bg-white border border-gray-300 rounded-full h-6 w-6 transition-transform duration-200 peer-checked:translate-x-5 shadow-md"></div>
+                  </div>
+                </label>
               </div>
               <div className="flex justify-end gap-3 mt-6">
                 <button
@@ -987,15 +1004,11 @@ const SchoolPlanner = () => {
   const renderHome = () => {
     const { dayLabel, events } = getTodayOrNextEvents();
     const enabledFields = infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key]);
-    // Determine layout: if all subject names + first enabled info fit in a row, use row layout for all, else stack all info below for all
-    // We'll use a heuristic: if all subject names are short (<18 chars) and first enabled info is present, use row layout
-    let useRowLayout = false;
-    if (enabledFields.length > 0 && events.length > 0) {
-      useRowLayout = events.every(event => {
-        const name = normalizeSubjectName(event.summary);
-        return name.length <= 18;
-      });
-    }
+    // Use showFirstInfoBeside to control layout
+    let useRowLayout = showFirstInfoBeside && enabledFields.length > 0 && events.length > 0 && events.every(event => {
+      const name = normalizeSubjectName(event.summary);
+      return name.length <= 18;
+    });
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
@@ -1070,12 +1083,12 @@ const SchoolPlanner = () => {
                     besideInfo = shownFields[0];
                     belowInfo = shownFields.slice(1);
                   }
-                  const cardClass = `rounded-lg p-3 text-white text-sm transition-all duration-300 hover:shadow-lg hover:scale-[1.02] cursor-pointer overflow-hidden`;
+                  const cardClass = `rounded-lg p-3 text-white text-sm transition-all duration-300 hover:shadow-lg cursor-pointer overflow-hidden transform-gpu`;
                   return (
                     <div
                       key={idx}
-                      className={cardClass}
-                      style={{ backgroundColor: getEventColour(event.summary) }}
+                      className={cardClass + ' ' + (isHovered ? 'scale-103' : 'scale-100')}
+                      style={{ backgroundColor: getEventColour(event.summary), transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1)' }}
                       onMouseEnter={() => setHoveredEventIdx(idx)}
                       onMouseLeave={() => setHoveredEventIdx(null)}
                     >
@@ -1837,6 +1850,16 @@ const SchoolPlanner = () => {
       return newShown;
     });
   };
+
+  // Add state for showFirstInfoBeside
+  const [showFirstInfoBeside, setShowFirstInfoBeside] = useState(() => {
+    const saved = localStorage.getItem('showFirstInfoBeside');
+    return saved === null ? true : saved === 'true';
+  });
+  // Persist showFirstInfoBeside
+  useEffect(() => {
+    localStorage.setItem('showFirstInfoBeside', showFirstInfoBeside ? 'true' : 'false');
+  }, [showFirstInfoBeside]);
 
   // Main content routes
   // Only show welcome screen if not completed
