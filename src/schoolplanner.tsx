@@ -1105,7 +1105,7 @@ const SchoolPlanner = () => {
                   }
                   return (
                     <div
-                      key={eventIndex}
+                      key={idx}
                       className="rounded-lg p-3 text-white text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
                       style={{ backgroundColor: getEventColour(event.summary) }}
                     >
