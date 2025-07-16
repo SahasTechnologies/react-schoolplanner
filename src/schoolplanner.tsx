@@ -998,7 +998,7 @@ const SchoolPlanner = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {events.map((event, idx) => {
+                {events.map((event: CalendarEvent, idx: number) => {
                   // Extract teacher name from description if present
                   let teacherName = '';
                   if (event.description) {
@@ -1043,8 +1043,8 @@ const SchoolPlanner = () => {
                   ];
                   // Order and filter info fields
                   const shownFields = (isExpanded
-                    ? infoOrder.map(o => infoFields.find(f => f.key === o.key)).filter(Boolean)
-                    : infoOrder.filter(o => infoShown[o.key]).map(o => infoFields.find(f => f.key === o.key)).filter(Boolean)
+                    ? infoOrder.map((o: { key: string; label: string }) => infoFields.find((f: { key: string; node: React.ReactNode }) => f.key === o.key)).filter(Boolean)
+                    : infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key]).map((o: { key: string; label: string }) => infoFields.find((f: { key: string; node: React.ReactNode }) => f.key === o.key)).filter(Boolean)
                   );
                   return (
                     <div
