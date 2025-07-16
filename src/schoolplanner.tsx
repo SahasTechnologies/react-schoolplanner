@@ -29,6 +29,7 @@ interface WeekData {
 interface Subject {
   id: string; // Unique ID for the subject
   name: string; // Display name, can be edited
+  originalName?: string; // Original name from ICS file
   colour: string; // Changed to Australian English 'colour'
 }
 
@@ -375,6 +376,7 @@ const SchoolPlanner = () => {
               subjectMap.set(normalizedName, {
                 id: crypto.randomUUID(),
                 name: normalizedName,
+                originalName: event.summary,
                 colour: generateRandomColour() // Changed to 'colour'
               });
             }
@@ -844,7 +846,7 @@ const SchoolPlanner = () => {
               {weekData ? 'View your weekly schedule' : 'Upload your ICS calendar file to get started'}
             </p>
             <button
-              onClick={() => navigate('/calendar')}
+              onClick={() => navigate('/home')}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
             >
               {weekData ? 'View Schedule' : 'Upload Calendar'}
@@ -860,7 +862,7 @@ const SchoolPlanner = () => {
               {subjects.length > 0 ? `Manage your ${subjects.length} subjects` : 'No subjects available yet'}
             </p>
             <button
-              onClick={() => navigate('/markbook')}
+              onClick={() => navigate('/home')}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
             >
               Open Markbook
@@ -1401,7 +1403,7 @@ const SchoolPlanner = () => {
       navigate('/welcome', { replace: true });
     }
     if (welcomeStep === 'completed' && location.pathname === '/welcome') {
-      // If setup is complete but user is on /welcome, show a message (handled in renderWelcomeScreen)
+      navigate('/home', { replace: true });
     }
   }, [welcomeStep, location.pathname, navigate]);
 
@@ -1410,7 +1412,10 @@ const SchoolPlanner = () => {
     if (weekData && welcomeStep === 'completed') {
       localStorage.setItem('weekData', JSON.stringify(weekData));
     }
-  }, [weekData, welcomeStep]);
+    if (subjects && welcomeStep === 'completed') {
+      localStorage.setItem('subjects', JSON.stringify(subjects));
+    }
+  }, [weekData, subjects, welcomeStep]);
 
   // --- Load weekData from localStorage on mount ---
   React.useEffect(() => {
@@ -1419,7 +1424,6 @@ const SchoolPlanner = () => {
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          // Convert date strings back to Date objects
           parsed.monday = new Date(parsed.monday);
           parsed.friday = new Date(parsed.friday);
           parsed.events = parsed.events.map((e: any) => ({ ...e, dtstart: new Date(e.dtstart), dtend: e.dtend ? new Date(e.dtend) : undefined }));
@@ -1427,7 +1431,15 @@ const SchoolPlanner = () => {
         } catch {}
       }
     }
-  }, [weekData, welcomeStep]);
+    if ((!subjects || subjects.length === 0) && welcomeStep === 'completed') {
+      const savedSubjects = localStorage.getItem('subjects');
+      if (savedSubjects) {
+        try {
+          setSubjects(JSON.parse(savedSubjects));
+        } catch {}
+      }
+    }
+  }, [weekData, subjects, welcomeStep]);
 
   // Main content routes
   // Only show welcome screen if not completed
@@ -1437,7 +1449,7 @@ const SchoolPlanner = () => {
   } else {
     mainContent = (
       <Routes>
-        <Route path="/" element={renderHome()} />
+        <Route path="/home" element={renderHome()} />
         <Route path="/calendar" element={renderWeekView()} />
         <Route path="/markbook" element={renderMarkbook()} />
         <Route path="/settings" element={renderSettings()} />
@@ -1461,8 +1473,8 @@ const SchoolPlanner = () => {
         <div className="space-y-4 w-full flex-1"> {/* Added w-full here for centering */}
           {/* Sidebar buttons here */}
           <button
-            onClick={() => navigate('/')}
-            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${location.pathname === '/' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 hover:bg-gray-700`}`}
+            onClick={() => navigate('/home')}
+            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${location.pathname === '/home' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 hover:bg-gray-700`}`}
             title="Home"
           >
             <Home size={20} className={colors.icon} />
@@ -1475,8 +1487,8 @@ const SchoolPlanner = () => {
             <Calendar size={20} className={colors.icon} />
           </button>
           <button
-            onClick={() => navigate('/markbook')}
-            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${location.pathname === '/markbook' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 hover:bg-gray-700`}`}
+            onClick={() => navigate('/home')}
+            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${location.pathname === '/home' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 hover:bg-gray-700`}`}
             title="Markbook"
           >
             <BarChart3 size={20} className={colors.icon} />
@@ -1572,7 +1584,7 @@ const SchoolPlanner = () => {
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-7xl mx-auto">
             {/* Header - Conditional based on route */}
-            {location.pathname === '/' && (
+            {location.pathname === '/home' && (
               <div className="mb-8 flex items-center">
                 <h1 className={`text-4xl font-bold mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}
                   style={{textAlign: 'left', width: '100%'}}>
