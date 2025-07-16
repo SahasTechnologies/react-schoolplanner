@@ -7,7 +7,7 @@ import {
   Upload, Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Settings, Edit2, User, Book,
   Calculator, FlaskConical, Palette, Music, Globe, Dumbbell, Languages, Code2, Brain, Mic2, 
   Users, BookOpen, PenLine, BookUser, Briefcase, HeartHandshake, Library, BookMarked, Star, 
-  GraduationCap, Bot,
+  GraduationCap, Bot, Utensils, // <-- Add Utensils icon
   Sun, Moon, Monitor, GripVertical
 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
@@ -528,8 +528,10 @@ const SchoolPlanner = () => {
     }
 
     // Sort all events for each day by start time
-    dayEvents.forEach((dayEventList: CalendarEvent[]) => {
+    dayEvents.forEach((dayEventList: CalendarEvent[], dayIdx: number) => {
       dayEventList.sort((a: CalendarEvent, b: CalendarEvent) => a.dtstart.getTime() - b.dtstart.getTime());
+      // Insert breaks if enabled
+      dayEvents[dayIdx] = insertBreaks(dayEventList, showBreaks, effectiveMode) as CalendarEvent[];
     });
 
     return (
@@ -551,7 +553,22 @@ const SchoolPlanner = () => {
                     <p>No events</p>
                   </div>
                 ) : (
-                  dayEvents[index].map((event: CalendarEvent, eventIndex: number) => {
+                  dayEvents[index].map((event: CalendarEvent | { isBreak: true, start: Date, end: Date }, eventIndex: number) => {
+                    if ('isBreak' in event && event.isBreak) {
+                      // Render break card
+                      return (
+                        <div
+                          key={"break-" + eventIndex}
+                          className="rounded-lg p-3 text-center text-black text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-default"
+                          style={{ backgroundColor: effectiveMode === 'light' ? '#fff' : '#222', border: '1px solid #e5e7eb', margin: 0 }}
+                        >
+                          <div className="flex items-center justify-center gap-2" style={{ minHeight: 40 }}>
+                            <Utensils size={24} className={effectiveMode === 'light' ? 'text-black' : 'text-white'} />
+                            <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>Break</span>
+                          </div>
+                        </div>
+                      );
+                    }
                     // Extract teacher name from description if present
                     let teacherName = '';
                     if (event.description) {
@@ -855,6 +872,22 @@ const SchoolPlanner = () => {
                 <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
               </label>
             </div>
+            {/* Show Breaks Toggle */}
+            <div className="flex items-center justify-between mt-4">
+              <div>
+                <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Show Breaks</p>
+                <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Display breaks between subjects in your timetable</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showBreaks}
+                  onChange={() => setShowBreaks(v => !v)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
           </div>
         </div>
         {/* Customise Section */}
@@ -1009,6 +1042,8 @@ const SchoolPlanner = () => {
       const name = normalizeSubjectName(event.summary);
       return name.length <= 18;
     });
+    // In renderHome, after getting events, insert breaks if enabled
+    const eventsWithBreaks = insertBreaks(events, showBreaks, effectiveMode);
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
@@ -1021,14 +1056,30 @@ const SchoolPlanner = () => {
               <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
               <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{dayLabel ? `${dayLabel}'s Schedule` : 'No Schedule'}</h3>
             </div>
-            {events.length === 0 ? (
+            {eventsWithBreaks.length === 0 ? (
               <div className="text-center text-gray-500 py-8">
                 <Calendar size={32} className="mx-auto mb-2 opacity-50" />
                 <p>No events</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {events.map((event: CalendarEvent, idx: number) => {
+                {eventsWithBreaks.map((event: CalendarEvent | { isBreak: true, start: Date, end: Date }, idx: number) => {
+                  if ('isBreak' in event && event.isBreak) {
+                    // Render break card
+                    return (
+                      <div
+                        key={"break-" + idx}
+                        className={`rounded-lg p-3 text-center text-black text-sm transition-all duration-300 hover:shadow-lg cursor-default overflow-hidden transform-gpu ${effectiveMode === 'light' ? 'bg-white' : 'bg-[#222]'}`}
+                        style={{ border: '1px solid #e5e7eb', margin: 0 }}
+                      >
+                        <div className="flex items-center justify-center gap-2" style={{ minHeight: 40 }}>
+                          <Utensils size={24} className={effectiveMode === 'light' ? 'text-black' : 'text-white'} />
+                          <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>Break</span>
+                        </div>
+                      </div>
+                    );
+                  }
+                  // Extract teacher name from description if present
                   let teacherName = '';
                   if (event.description) {
                     const match = event.description.match(/Teacher:\s*([^\n\r]+?)(?:\s*Period:|$)/i);
@@ -1036,84 +1087,40 @@ const SchoolPlanner = () => {
                       teacherName = match[1].trim();
                     }
                   }
-                  const infoFields = [
-                    {
-                      key: 'time',
-                      node: (
-                        <div className="flex items-center gap-1 text-xs text-white opacity-80" key="time">
-                          <Clock size={12} />
-                          <span>{formatTime(event.dtstart)}</span>
-                          {event.dtend && !isNaN(new Date(event.dtend).getTime()) && (
-                            <span> - {formatTime(event.dtend)}</span>
-                          )}
-                        </div>
-                      )
-                    },
-                    {
-                      key: 'location',
-                      node: event.location ? (
-                        <div className="flex items-center gap-1 text-xs text-white opacity-80" key="location">
-                          <MapPin size={12} />
-                          <span>{event.location}</span>
-                        </div>
-                      ) : null
-                    },
-                    {
-                      key: 'teacher',
-                      node: teacherName ? (
-                        <div className="flex items-center gap-1 text-xs text-white opacity-80" key="teacher">
-                          <User size={12} />
-                          <span>{teacherName}</span>
-                        </div>
-                      ) : null
-                    }
-                  ];
-                  // Always show enabled fields, on hover show all fields
-                  const isHovered = hoveredEventIdx === idx;
-                  let shownFields;
-                  if (isHovered) {
-                    shownFields = infoOrder.map((o: { key: string; label: string }) => infoFields.find((f: { key: string; node: React.ReactNode }) => f.key === o.key)).filter(Boolean);
-                  } else {
-                    shownFields = enabledFields.map((o: { key: string; label: string }) => infoFields.find((f: { key: string; node: React.ReactNode }) => f.key === o.key)).filter(Boolean);
-                  }
-                  // Row layout: subject name + first info beside, rest below; else all info below
-                  let besideInfo = null;
-                  let belowInfo = shownFields;
-                  if (useRowLayout && shownFields.length > 0) {
-                    besideInfo = shownFields[0];
-                    belowInfo = shownFields.slice(1);
-                  }
-                  const cardClass = `rounded-lg p-3 text-white text-sm transition-all duration-300 hover:shadow-lg cursor-pointer overflow-hidden transform-gpu`;
                   return (
                     <div
                       key={idx}
-                      className={cardClass + ' ' + (isHovered ? 'scale-103' : 'scale-100')}
-                      style={{ backgroundColor: getEventColour(event.summary), transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1)' }}
-                      onMouseEnter={() => setHoveredEventIdx(idx)}
-                      onMouseLeave={() => setHoveredEventIdx(null)}
+                      className="rounded-lg p-3 text-white text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
+                      style={{ backgroundColor: getEventColour(event.summary) }}
                     >
-                      <div className={`flex items-center justify-between min-h-[40px]`}>
-                        <span className="font-medium leading-tight flex items-center gap-2" style={{ fontSize: '1.1rem' }}>
+                      <div className="flex items-center justify-between" style={{ minHeight: 40, alignItems: 'center' }}>
+                        <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>
                           {normalizeSubjectName(event.summary)}
-                          {useRowLayout && besideInfo && (
-                            <span className="ml-2 flex items-center gap-1 text-xs text-white opacity-80">{besideInfo.node}</span>
-                          )}
                         </span>
                         <span style={{ opacity: 0.35, display: 'flex', alignItems: 'center' }} className="text-black">
                           {getSubjectIcon(event.summary, 24, effectiveMode)}
                         </span>
                       </div>
-                      {/* Info below (if any) */}
-                      {belowInfo.length > 0 && (
-                        <div
-                          className="transition-all duration-500 flex flex-col gap-1 mt-1"
-                          style={{
-                            maxHeight: 200,
-                            opacity: 1,
-                            overflow: 'hidden',
-                          }}
-                        >
-                          {belowInfo.map((f: { key: string; node: React.ReactNode }) => f.node)}
+                      {/* Teacher name row */}
+                      {teacherName && (
+                        <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
+                          <User size={12} />
+                          <span>{teacherName}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
+                        <Clock size={12} />
+                        <span>{formatTime(event.dtstart)}</span>
+                        {event.dtend && !isNaN(new Date(event.dtend).getTime()) && (
+                          <>
+                            <span> - {formatTime(event.dtend)}</span>
+                          </>
+                        )}
+                      </div>
+                      {event.location && (
+                        <div className="flex items-center gap-1 text-xs text-white opacity-80">
+                          <MapPin size={12} />
+                          <span>{event.location}</span>
                         </div>
                       )}
                     </div>
@@ -1861,6 +1868,15 @@ const SchoolPlanner = () => {
     localStorage.setItem('showFirstInfoBeside', showFirstInfoBeside ? 'true' : 'false');
   }, [showFirstInfoBeside]);
 
+  // Add state for showBreaks (persisted)
+  const [showBreaks, setShowBreaks] = useState(() => {
+    const saved = localStorage.getItem('showBreaks');
+    return saved === null ? true : saved === 'true';
+  });
+  useEffect(() => {
+    localStorage.setItem('showBreaks', showBreaks ? 'true' : 'false');
+  }, [showBreaks]);
+
   // Main content routes
   // Only show welcome screen if not completed
   let mainContent = null;
@@ -2071,3 +2087,21 @@ export default SchoolPlanner;
 // 1. Edit public/index.html
 // 2. Set <title>School Planner</title>
 // 3. For favicon, export the Lucide 'School' icon as SVG and set as <link rel="icon" href="/school.svg"> in index.html.
+
+// Helper to insert breaks between events if needed
+function insertBreaks(events: CalendarEvent[], showBreaks: boolean, effectiveMode: 'light' | 'dark'): (CalendarEvent | { isBreak: true, start: Date, end: Date })[] {
+  if (!showBreaks) return events;
+  if (!events || events.length === 0) return events;
+  const result: (CalendarEvent | { isBreak: true, start: Date, end: Date })[] = [];
+  for (let i = 0; i < events.length; ++i) {
+    result.push(events[i]);
+    if (i < events.length - 1) {
+      const currEnd = events[i].dtend ? new Date(events[i].dtend) : new Date(events[i].dtstart);
+      const nextStart = new Date(events[i + 1].dtstart);
+      if ((nextStart.getTime() - currEnd.getTime()) > 60 * 1000) {
+        result.push({ isBreak: true, start: currEnd, end: nextStart });
+      }
+    }
+  }
+  return result;
+}
