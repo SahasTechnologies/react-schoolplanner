@@ -651,9 +651,9 @@ const SchoolPlanner = () => {
                       >
                         <div className="flex items-center justify-between" style={{ minHeight: 40, alignItems: 'center' }}>
                           <div className="flex items-center">
-                            <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>
-                              {normalizeSubjectName(event.summary)}
-                            </span>
+                          <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>
+                            {normalizeSubjectName(event.summary)}
+                          </span>
                             {getFirstEnabledField()}
                           </div>
                           <span style={{ opacity: 0.35, display: 'flex', alignItems: 'center' }} className="text-black">
@@ -1070,9 +1070,6 @@ const SchoolPlanner = () => {
   // In renderHome, insert breaks for the day's events
   const renderHome = () => {
     const { dayLabel, events } = getTodayOrNextEvents();
-    const enabledFields = infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key]);
-    // Insert breaks for the day's events
-    const eventsWithBreaks = insertBreaksBetweenEvents([...events].sort((a, b) => a.dtstart.getTime() - b.dtstart.getTime()));
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
@@ -1085,14 +1082,14 @@ const SchoolPlanner = () => {
               <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
               <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{dayLabel ? `${dayLabel}'s Schedule` : 'No Schedule'}</h3>
             </div>
-            {eventsWithBreaks.length === 0 ? (
+            {events.length === 0 ? (
               <div className="text-center text-gray-500 py-8">
                 <Calendar size={32} className="mx-auto mb-2 opacity-50" />
                 <p>No events</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {eventsWithBreaks.map((event, idx) => {
+                {events.map((event, idx) => {
                   if (event.isBreak) {
                     return (
                       <div
@@ -1152,7 +1149,6 @@ const SchoolPlanner = () => {
                       </div>
                     ) : null,
                   };
-                  const enabledFields = infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key]);
                   const getFirstEnabledField = () => {
                     if (!showFirstInfoBeside) return null;
                     const firstField = infoOrder.find((item: { key: string; label: string }) => infoShown[item.key]);
@@ -1169,9 +1165,9 @@ const SchoolPlanner = () => {
                     >
                       <div className="flex items-center justify-between" style={{ minHeight: 40, alignItems: 'center' }}>
                         <div className="flex items-center">
-                          <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>
-                            {normalizeSubjectName(event.summary)}
-                          </span>
+                        <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>
+                          {normalizeSubjectName(event.summary)}
+                        </span>
                           {getFirstEnabledField()}
                         </div>
                         <span style={{ opacity: 0.35, display: 'flex', alignItems: 'center' }} className="text-black">
@@ -1179,7 +1175,7 @@ const SchoolPlanner = () => {
                         </span>
                       </div>
                       {/* Info fields, only show enabled by default, all on hover */}
-                      {(hoveredEventIdx === idx ? infoOrder : enabledFields).map((item: { key: string; label: string }) => infoFields[item.key]).filter(Boolean)}
+                      {(hoveredEventIdx === idx ? infoOrder : infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key])).map((item: { key: string; label: string }) => infoFields[item.key]).filter(Boolean)}
                     </div>
                   );
                 })}
@@ -1899,7 +1895,7 @@ const SchoolPlanner = () => {
   const handleToggleInfoShown = (key: string) => {
     setInfoShown((prev: Record<string, boolean>) => {
       const newShown = { ...prev, [key]: !prev[key] };
-      // Move to top if toggled on
+        // Move to top if toggled on
       if (newShown[key]) {
         setInfoOrder((prevOrder: { key: string; label: string }[]) => {
           const idx = prevOrder.findIndex(i => i.key === key);
