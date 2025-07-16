@@ -1165,9 +1165,9 @@ const SchoolPlanner = () => {
     ...themeColors[theme],
     background: colorVars[theme].extreme.background,
     container: colorVars[theme].extreme.container,
-    border: colorVars.extreme.border,
-    swatch: colorVars.extreme.swatch,
-    settingsContainer: colorVars.extreme.container,
+    border: colorVars[theme].extreme.border,
+    swatch: colorVars[theme].extreme.swatch,
+    settingsContainer: colorVars[theme].extreme.container,
   };
 
   // When setting theme, also set themeType
