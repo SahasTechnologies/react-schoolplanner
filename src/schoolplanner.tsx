@@ -911,7 +911,7 @@ const SchoolPlanner = () => {
                       <input
                         type="checkbox"
                         checked={infoShown[item.key]}
-                        onChange={() => setInfoShown((s: Record<string, boolean>) => ({ ...s, [item.key]: !s[item.key] }))}
+                        onChange={() => handleToggleInfoShown(item.key)}
                         className="sr-only peer"
                       />
                       <div className="w-10 h-5 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:bg-blue-600 transition-colors"></div>
@@ -979,6 +979,7 @@ const SchoolPlanner = () => {
 
   const renderHome = () => {
     const { dayLabel, events } = getTodayOrNextEvents();
+    const allFieldsShown = infoOrder.every((o: { key: string; label: string }) => infoShown[o.key]);
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
@@ -1046,13 +1047,18 @@ const SchoolPlanner = () => {
                     ? infoOrder.map((o: { key: string; label: string }) => infoFields.find((f: { key: string; node: React.ReactNode }) => f.key === o.key)).filter(Boolean)
                     : infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key]).map((o: { key: string; label: string }) => infoFields.find((f: { key: string; node: React.ReactNode }) => f.key === o.key)).filter(Boolean)
                   );
+                  // Card class and handlers
+                  const cardClass = `rounded-lg p-3 text-white text-sm ${!allFieldsShown ? 'transition-all duration-300 hover:shadow-lg hover:scale-[1.02] cursor-pointer overflow-hidden ' + (isExpanded ? 'max-h-60' : 'max-h-14') : ''}`;
+                  const infoClass = `transition-all duration-300 ${shownFields.length > 0 && (isExpanded || allFieldsShown) ? 'opacity-100 mt-2' : !isExpanded && shownFields.length > 0 ? 'opacity-100 mt-2' : 'opacity-0 h-0 pointer-events-none'}`;
                   return (
                     <div
                       key={idx}
-                      className={`rounded-lg p-3 text-white text-sm transition-all duration-300 hover:shadow-lg hover:scale-[1.02] cursor-pointer overflow-hidden ${isExpanded ? 'max-h-60' : 'max-h-14'}`}
+                      className={cardClass}
                       style={{ backgroundColor: getEventColour(event.summary) }}
-                      onMouseEnter={() => setHoveredEventIdx(idx)}
-                      onMouseLeave={() => setHoveredEventIdx(null)}
+                      {...(!allFieldsShown ? {
+                        onMouseEnter: () => setHoveredEventIdx(idx),
+                        onMouseLeave: () => setHoveredEventIdx(null)
+                      } : {})}
                     >
                       <div className="flex items-center justify-between" style={{ minHeight: 40, alignItems: 'center' }}>
                         <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>
@@ -1062,7 +1068,7 @@ const SchoolPlanner = () => {
                           {getSubjectIcon(event.summary, 24, effectiveMode)}
                         </span>
                       </div>
-                      <div className={`transition-all duration-300 ${shownFields.length > 0 && isExpanded ? 'opacity-100 mt-2' : !isExpanded && shownFields.length > 0 ? 'opacity-100 mt-2' : 'opacity-0 h-0 pointer-events-none'}`} style={{overflow: 'hidden'}}>
+                      <div className={infoClass} style={{overflow: 'hidden'}}>
                         {shownFields.map((f: { key: string; node: React.ReactNode }) => f.node)}
                       </div>
                     </div>
@@ -1754,7 +1760,7 @@ const SchoolPlanner = () => {
   });
   const [infoShown, setInfoShown] = useState(() => {
     const saved = localStorage.getItem('eventInfoShown');
-    return saved ? JSON.parse(saved) : { time: true, location: true, teacher: true };
+    return saved ? JSON.parse(saved) : { time: false, location: false, teacher: false };
   });
   const [showInfoPopup, setShowInfoPopup] = useState(false);
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
@@ -1778,6 +1784,27 @@ const SchoolPlanner = () => {
     setDraggedIdx(idx);
   };
   const handleDragEnd = () => setDraggedIdx(null);
+
+  // When a field is toggled on, move it to the top of infoOrder
+  const handleToggleInfoShown = (key: string) => {
+    setInfoShown((prev: Record<string, boolean>) => {
+      const newShown = { ...prev, [key]: !prev[key] };
+      if (newShown[key]) {
+        // Move to top if toggled on
+        setInfoOrder((prevOrder: { key: string; label: string }[]) => {
+          const idx = prevOrder.findIndex(i => i.key === key);
+          if (idx > 0) {
+            const newOrder = [...prevOrder];
+            const [item] = newOrder.splice(idx, 1);
+            newOrder.unshift(item);
+            return newOrder;
+          }
+          return prevOrder;
+        });
+      }
+      return newShown;
+    });
+  };
 
   // Main content routes
   // Only show welcome screen if not completed
