@@ -2,13 +2,13 @@
 //   react, react-dom, lucide-react, @types/react, @types/react-dom
 // Favicon and title are set in index.html, see instructions below.
 import * as React from 'react';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { 
   Upload, Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Settings, Edit2, User, Book,
   Calculator, FlaskConical, Palette, Music, Globe, Dumbbell, Languages, Code2, Brain, Mic2, 
   Users, BookOpen, PenLine, BookUser, Briefcase, HeartHandshake, Library, BookMarked, Star, 
   GraduationCap, Bot,
-  Sun, Moon, Monitor
+  Sun, Moon, Monitor, GripVertical
 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 
@@ -874,6 +874,60 @@ const SchoolPlanner = () => {
             </button>
           </div>
         </div>
+        {/* Info Shown at Start Section */}
+        <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
+          <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Home</h3>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Info Shown at Start</p>
+              <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Choose which info is visible before hover in Today's Schedule</p>
+            </div>
+            <button
+              onClick={() => setShowInfoPopup(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+            >
+              Edit
+            </button>
+          </div>
+        </div>
+        {/* Info Shown at Start Popup */}
+        {showInfoPopup && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+            <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
+              <h3 className={`text-xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Info Shown at Start</h3>
+              <div className="space-y-3">
+                {infoOrder.map((item, idx) => (
+                  <div
+                    key={item.key}
+                    className={`flex items-center gap-3 p-2 rounded ${draggedIdx === idx ? 'bg-blue-100/20' : ''}`}
+                    draggable
+                    onDragStart={() => handleDragStart(idx)}
+                    onDragOver={e => { e.preventDefault(); handleInfoDragOver(idx); }}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <GripVertical className="text-gray-400 cursor-grab" size={20} />
+                    <span className="flex-1 font-medium">{item.label}</span>
+                    <label className="inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={infoShown[item.key]}
+                        onChange={() => setInfoShown(s => ({ ...s, [item.key]: !s[item.key] }))}
+                        className="sr-only peer"
+                      />
+                      <div className="w-10 h-5 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:bg-blue-600 transition-colors"></div>
+                    </label>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setShowInfoPopup(false)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+                >Done</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -920,6 +974,9 @@ const SchoolPlanner = () => {
     return { dayLabel: '', events: [] };
   }
 
+  // Add state to track which event is hovered for expand/collapse
+  const [hoveredEventIdx, setHoveredEventIdx] = useState<number | null>(null);
+
   const renderHome = () => {
     const { dayLabel, events } = getTodayOrNextEvents();
     return (
@@ -950,11 +1007,52 @@ const SchoolPlanner = () => {
                       teacherName = match[1].trim();
                     }
                   }
+                  const isExpanded = hoveredEventIdx === idx;
+                  // Helper to render info fields
+                  const infoFields = [
+                    {
+                      key: 'time',
+                      node: (
+                        <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1" key="time">
+                          <Clock size={12} />
+                          <span>{formatTime(event.dtstart)}</span>
+                          {event.dtend && !isNaN(new Date(event.dtend).getTime()) && (
+                            <span> - {formatTime(event.dtend)}</span>
+                          )}
+                        </div>
+                      )
+                    },
+                    {
+                      key: 'location',
+                      node: event.location ? (
+                        <div className="flex items-center gap-1 text-xs text-white opacity-80" key="location">
+                          <MapPin size={12} />
+                          <span>{event.location}</span>
+                        </div>
+                      ) : null
+                    },
+                    {
+                      key: 'teacher',
+                      node: teacherName ? (
+                        <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1" key="teacher">
+                          <User size={12} />
+                          <span>{teacherName}</span>
+                        </div>
+                      ) : null
+                    }
+                  ];
+                  // Order and filter info fields
+                  const shownFields = (isExpanded
+                    ? infoOrder.map(o => infoFields.find(f => f.key === o.key)).filter(Boolean)
+                    : infoOrder.filter(o => infoShown[o.key]).map(o => infoFields.find(f => f.key === o.key)).filter(Boolean)
+                  );
                   return (
                     <div
                       key={idx}
-                      className="rounded-lg p-3 text-white text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
+                      className={`rounded-lg p-3 text-white text-sm transition-all duration-300 hover:shadow-lg hover:scale-[1.02] cursor-pointer overflow-hidden ${isExpanded ? 'max-h-60' : 'max-h-14'}`}
                       style={{ backgroundColor: getEventColour(event.summary) }}
+                      onMouseEnter={() => setHoveredEventIdx(idx)}
+                      onMouseLeave={() => setHoveredEventIdx(null)}
                     >
                       <div className="flex items-center justify-between" style={{ minHeight: 40, alignItems: 'center' }}>
                         <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>
@@ -964,27 +1062,9 @@ const SchoolPlanner = () => {
                           {getSubjectIcon(event.summary, 24, effectiveMode)}
                         </span>
                       </div>
-                      {teacherName && (
-                        <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
-                          <User size={12} />
-                          <span>{teacherName}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
-                        <Clock size={12} />
-                        <span>{formatTime(event.dtstart)}</span>
-                        {event.dtend && !isNaN(new Date(event.dtend).getTime()) && (
-                          <>
-                            <span> - {formatTime(event.dtend)}</span>
-                          </>
-                        )}
+                      <div className={`transition-all duration-300 ${shownFields.length > 0 && isExpanded ? 'opacity-100 mt-2' : !isExpanded && shownFields.length > 0 ? 'opacity-100 mt-2' : 'opacity-0 h-0 pointer-events-none'}`} style={{overflow: 'hidden'}}>
+                        {shownFields.map(f => f.node)}
                       </div>
-                      {event.location && (
-                        <div className="flex items-center gap-1 text-xs text-white opacity-80">
-                          <MapPin size={12} />
-                          <span>{event.location}</span>
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -1523,8 +1603,81 @@ const SchoolPlanner = () => {
     }
   }, []);
 
+  // Add state for name edit modal
+  const [showNameEditModal, setShowNameEditModal] = useState(false);
+  const [editUserName, setEditUserName] = useState(userName);
+
+  // --- Persist userName to localStorage on change ---
+  React.useEffect(() => {
+    if (welcomeStep === 'completed') {
+      console.log('[SaveEffect] Saving userName:', userName);
+      if (userName !== undefined) {
+        localStorage.setItem('userName', userName);
+      }
+    } else {
+      console.log('[SaveEffect] Not saving userName because welcomeStep is', welcomeStep);
+    }
+  }, [userName, welcomeStep]);
+
+  // --- Load userName from localStorage on mount ---
+  React.useEffect(() => {
+    const savedName = localStorage.getItem('userName');
+    if (savedName && !userName) {
+      setUserName(savedName);
+    }
+  }, []);
+
+  // --- On mount, if userName, weekData, and subjects exist in localStorage, skip welcome screen ---
+  React.useEffect(() => {
+    if (welcomeStep === 'welcome') {
+      const savedWeekData = localStorage.getItem('weekData');
+      const savedSubjects = localStorage.getItem('subjects');
+      const savedName = localStorage.getItem('userName');
+      if (savedWeekData && savedSubjects && savedName) {
+        setUserName(savedName);
+        setWelcomeStep('completed');
+      }
+    }
+  }, [welcomeStep]);
+
+  // --- Atomic localStorage check on first mount ---
+  const [isInitializing, setIsInitializing] = useState(true);
+  React.useEffect(() => {
+    // Only run on first mount
+    const savedWeekData = localStorage.getItem('weekData');
+    const savedSubjects = localStorage.getItem('subjects');
+    const savedName = localStorage.getItem('userName');
+    console.log('[AtomicCheck] weekData:', savedWeekData);
+    console.log('[AtomicCheck] subjects:', savedSubjects);
+    console.log('[AtomicCheck] userName:', savedName);
+    if (savedWeekData && savedSubjects && savedName) {
+      try {
+        // Parse and set weekData
+        const parsedWeek = JSON.parse(savedWeekData);
+        parsedWeek.monday = new Date(parsedWeek.monday);
+        parsedWeek.friday = new Date(parsedWeek.friday);
+        parsedWeek.events = parsedWeek.events.map((e: any) => ({ ...e, dtstart: new Date(e.dtstart), dtend: e.dtend ? new Date(e.dtend) : undefined }));
+        setWeekData(parsedWeek);
+        // Parse and set subjects
+        setSubjects(JSON.parse(savedSubjects));
+        // Set userName
+        setUserName(savedName);
+        // Skip welcome
+        setWelcomeStep('completed');
+        console.log('[AtomicCheck] All data found, setting welcomeStep to completed');
+      } catch (err) {
+        console.log('[AtomicCheck] Error parsing localStorage data:', err);
+        // If any error, do not skip welcome
+      }
+    } else {
+      console.log('[AtomicCheck] Not all data found, staying on welcome');
+    }
+    setIsInitializing(false);
+  }, []);
+
   // --- Welcome screen URL logic ---
   React.useEffect(() => {
+    if (isInitializing) return;
     console.log('[NavEffect] welcomeStep:', welcomeStep, 'location.pathname:', location.pathname);
     if (welcomeStep !== 'completed' && location.pathname !== '/welcome') {
       navigate('/welcome', { replace: true });
@@ -1532,7 +1685,7 @@ const SchoolPlanner = () => {
     if (welcomeStep === 'completed' && location.pathname === '/welcome') {
       navigate('/home', { replace: true });
     }
-  }, [welcomeStep, location.pathname, navigate]);
+  }, [welcomeStep, location.pathname, navigate, isInitializing]);
 
   // --- Save weekData to localStorage ---
   React.useEffect(() => {
@@ -1589,75 +1742,42 @@ const SchoolPlanner = () => {
     }
   }, [welcomeStep]);
 
-  // Add state for name edit modal
-  const [showNameEditModal, setShowNameEditModal] = useState(false);
-  const [editUserName, setEditUserName] = useState(userName);
+  // Add state for info shown at start and popup/modal
+  const defaultInfoOrder = [
+    { key: 'time', label: 'Time' },
+    { key: 'location', label: 'Location' },
+    { key: 'teacher', label: 'Teacher' },
+  ];
+  const [infoOrder, setInfoOrder] = useState(() => {
+    const saved = localStorage.getItem('eventInfoOrder');
+    return saved ? JSON.parse(saved) : defaultInfoOrder;
+  });
+  const [infoShown, setInfoShown] = useState(() => {
+    const saved = localStorage.getItem('eventInfoShown');
+    return saved ? JSON.parse(saved) : { time: true, location: true, teacher: true };
+  });
+  const [showInfoPopup, setShowInfoPopup] = useState(false);
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
 
-  // --- Persist userName to localStorage on change ---
-  React.useEffect(() => {
-    if (welcomeStep === 'completed') {
-      console.log('[SaveEffect] Saving userName:', userName);
-      if (userName !== undefined) {
-        localStorage.setItem('userName', userName);
-      }
-    } else {
-      console.log('[SaveEffect] Not saving userName because welcomeStep is', welcomeStep);
-    }
-  }, [userName, welcomeStep]);
+  // Save infoOrder and infoShown to localStorage
+  useEffect(() => {
+    localStorage.setItem('eventInfoOrder', JSON.stringify(infoOrder));
+  }, [infoOrder]);
+  useEffect(() => {
+    localStorage.setItem('eventInfoShown', JSON.stringify(infoShown));
+  }, [infoShown]);
 
-  // --- Load userName from localStorage on mount ---
-  React.useEffect(() => {
-    const savedName = localStorage.getItem('userName');
-    if (savedName && !userName) {
-      setUserName(savedName);
-    }
-  }, []);
-
-  // --- On mount, if userName, weekData, and subjects exist in localStorage, skip welcome screen ---
-  React.useEffect(() => {
-    if (welcomeStep === 'welcome') {
-      const savedWeekData = localStorage.getItem('weekData');
-      const savedSubjects = localStorage.getItem('subjects');
-      const savedName = localStorage.getItem('userName');
-      if (savedWeekData && savedSubjects && savedName) {
-        setUserName(savedName);
-        setWelcomeStep('completed');
-      }
-    }
-  }, [welcomeStep]);
-
-  // --- Atomic localStorage check on first mount ---
-  React.useEffect(() => {
-    // Only run on first mount
-    const savedWeekData = localStorage.getItem('weekData');
-    const savedSubjects = localStorage.getItem('subjects');
-    const savedName = localStorage.getItem('userName');
-    console.log('[AtomicCheck] weekData:', savedWeekData);
-    console.log('[AtomicCheck] subjects:', savedSubjects);
-    console.log('[AtomicCheck] userName:', savedName);
-    if (savedWeekData && savedSubjects && savedName) {
-      try {
-        // Parse and set weekData
-        const parsedWeek = JSON.parse(savedWeekData);
-        parsedWeek.monday = new Date(parsedWeek.monday);
-        parsedWeek.friday = new Date(parsedWeek.friday);
-        parsedWeek.events = parsedWeek.events.map((e: any) => ({ ...e, dtstart: new Date(e.dtstart), dtend: e.dtend ? new Date(e.dtend) : undefined }));
-        setWeekData(parsedWeek);
-        // Parse and set subjects
-        setSubjects(JSON.parse(savedSubjects));
-        // Set userName
-        setUserName(savedName);
-        // Skip welcome
-        setWelcomeStep('completed');
-        console.log('[AtomicCheck] All data found, setting welcomeStep to completed');
-      } catch (err) {
-        console.log('[AtomicCheck] Error parsing localStorage data:', err);
-        // If any error, do not skip welcome
-      }
-    } else {
-      console.log('[AtomicCheck] Not all data found, staying on welcome');
-    }
-  }, []);
+  // Drag and drop handlers
+  const handleDragStart = (idx: number) => setDraggedIdx(idx);
+  const handleInfoDragOver = (idx: number) => {
+    if (draggedIdx === null || draggedIdx === idx) return;
+    const newOrder = [...infoOrder];
+    const [removed] = newOrder.splice(draggedIdx, 1);
+    newOrder.splice(idx, 0, removed);
+    setInfoOrder(newOrder);
+    setDraggedIdx(idx);
+  };
+  const handleDragEnd = () => setDraggedIdx(null);
 
   // Main content routes
   // Only show welcome screen if not completed
@@ -1682,6 +1802,9 @@ const SchoolPlanner = () => {
   }
 
   // Main render logic
+  if (isInitializing) {
+    return null; // Or a spinner if you want
+  }
   if (welcomeStep !== 'completed') {
     return (
       <div className={`min-h-screen ${colors.background} text-white flex items-center justify-center font-inter`}>
