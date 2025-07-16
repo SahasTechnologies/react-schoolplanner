@@ -549,6 +549,9 @@ const SchoolPlanner = () => {
       });
     }
 
+    // Sort events for each day
+    dayEvents.forEach(list => list.sort((a, b) => a.dtstart.getTime() - b.dtstart.getTime()));
+
     // Sort and insert breaks
     const dayEventsWithBreaks = dayEvents.map(dayList => {
       const sorted = [...dayList].sort((a, b) => a.dtstart.getTime() - b.dtstart.getTime());
@@ -575,6 +578,7 @@ const SchoolPlanner = () => {
                   </div>
                 ) : (
                   dayEventsWithBreaks[index].map((event, eventIndex) => {
+                    const enabledFields = infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key]);
                     if (event.isBreak) {
                       return (
                         <div
@@ -1091,6 +1095,7 @@ const SchoolPlanner = () => {
             ) : (
               <div className="space-y-3">
                 {eventsWithBreaks.map((event, idx) => {
+                  const enabledFields = infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key]);
                   if (event.isBreak) {
                     return (
                       <div
