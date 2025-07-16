@@ -657,7 +657,7 @@ const SchoolPlanner = () => {
                         </div>
                         {/* Info fields, only show enabled by default, all on hover */}
                         {(hoveredEventIdx === eventIndex ? infoOrder : enabledFields)
-                          .filter((item: { key: string }, i: number) => !(showFirstInfoBeside && enabledFields.length > 0 && item.key === enabledFields[0].key))
+                          .filter((item: { key: string }) => !(showFirstInfoBeside && enabledFields.length > 0 && item.key === enabledFields[0].key))
                           .map((item: { key: string }) => infoFields[item.key])
                           .filter(Boolean)}
                       </div>
@@ -1173,7 +1173,7 @@ const SchoolPlanner = () => {
                       </div>
                       {/* Info fields, only show enabled by default, all on hover */}
                       {(hoveredEventIdx === idx ? infoOrder : enabledFields)
-                        .filter((item: { key: string }, i: number) => !(showFirstInfoBeside && enabledFields.length > 0 && item.key === enabledFields[0].key))
+                        .filter((item: { key: string }) => !(showFirstInfoBeside && enabledFields.length > 0 && item.key === enabledFields[0].key))
                         .map((item: { key: string }) => infoFields[item.key])
                         .filter(Boolean)}
                     </div>
