@@ -1536,7 +1536,8 @@ const SchoolPlanner = () => {
 
   // --- Save weekData to localStorage ---
   React.useEffect(() => {
-    // Save weekData and subjects to localStorage on any change
+    console.log('[SaveEffect] Saving weekData:', weekData);
+    console.log('[SaveEffect] Saving subjects:', subjects);
     if (weekData) {
       localStorage.setItem('weekData', JSON.stringify(weekData));
     } else {
@@ -1590,6 +1591,7 @@ const SchoolPlanner = () => {
 
   // --- Persist userName to localStorage on change ---
   React.useEffect(() => {
+    console.log('[SaveEffect] Saving userName:', userName);
     if (userName !== undefined) {
       localStorage.setItem('userName', userName);
     }
