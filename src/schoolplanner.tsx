@@ -525,8 +525,8 @@ const SchoolPlanner = () => {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           {days.map((day, index) => (
-            <div key={day} className={`${themeColors.blue.container} rounded-lg ${themeColors.blue.border} border`}>
-              <div className={`p-4 border-b ${themeColors.blue.border}`}>
+            <div key={day} className={`${colors.container} rounded-lg ${colors.border} border`}>
+              <div className={`p-4 border-b ${colors.border}`}>
                 <h3 className="font-semibold text-white text-center">{day}</h3>
               </div>
               <div className="p-3 space-y-2 min-h-[400px]">
@@ -662,7 +662,7 @@ const SchoolPlanner = () => {
             </div>
           ) : (
             subjects.map((subject: Subject) => (
-              <div key={subject.id} className={`${themeColors.blue.container} rounded-lg ${themeColors.blue.border} border p-4`}>
+              <div key={subject.id} className={`${colors.container} rounded-lg ${colors.border} border p-4`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     {getSubjectIcon(subject.name)}
@@ -687,7 +687,7 @@ const SchoolPlanner = () => {
         {/* Subject Edit Modal */}
         {showSubjectEditModal && selectedSubjectForEdit && (
           <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-            <div className={`${themeColors.blue.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
+            <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
               <h3 className="text-xl font-semibold text-white mb-4">Edit Subject</h3>
               <p className="text-gray-400 text-sm mb-4">Original Name: <span className="font-medium text-white">{selectedSubjectForEdit.name}</span></p> {/* Added original name */}
               <div className="space-y-4">
@@ -768,7 +768,7 @@ const SchoolPlanner = () => {
         </div>
         <div className="space-y-4">
           {/* Timetable Settings */}
-          <div className={`${themeColors.blue.settingsContainer} rounded-lg ${themeColors.blue.border} border p-6`}>
+          <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
             <h3 className="text-lg font-medium text-white mb-4">Timetable Settings</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -802,7 +802,7 @@ const SchoolPlanner = () => {
             </div>
           </div>
           {/* Customise Section */}
-          <div className={`${themeColors.blue.settingsContainer} rounded-lg ${themeColors.blue.border} border p-6`}>
+          <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
             <h3 className="text-lg font-medium text-white mb-4">Customise</h3>
             <div className="flex items-center justify-between">
               <div>
@@ -811,7 +811,7 @@ const SchoolPlanner = () => {
               </div>
               <button
                 onClick={() => setShowThemeModal(true)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${themeColors.blue.button} text-white`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${colors.button} text-white`}
               >
                 <Palette size={18} />
                 Change Theme
@@ -832,7 +832,7 @@ const SchoolPlanner = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className={`${themeColors.blue.container} rounded-lg ${themeColors.blue.border} border p-6`}>
+          <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
             <div className="flex items-center gap-3 mb-4">
               <Calendar className="text-white" size={20} />
               <h3 className="text-lg font-medium text-white">Schedule</h3>
@@ -848,7 +848,7 @@ const SchoolPlanner = () => {
             </button>
           </div>
 
-          <div className={`${themeColors.blue.container} rounded-lg ${themeColors.blue.border} border p-6`}>
+          <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
             <div className="flex items-center gap-3 mb-4">
               <BarChart3 className="text-white" size={20} />
               <h3 className="text-lg font-medium text-white">Markbook</h3>
@@ -1136,14 +1136,6 @@ const SchoolPlanner = () => {
             <Settings size={20} className={colors.icon} />
           </button>
         </div>
-        {/* Theme button at bottom */}
-        <button
-          onClick={() => setShowThemeModal(true)}
-          className="p-3 rounded-lg transition-colors duration-200 mx-auto block text-white opacity-70 hover:opacity-100 hover:bg-gray-700 mb-2"
-          title="Change Theme"
-        >
-          <Palette size={20} className={colors.icon} />
-        </button>
       </div>
       {/* Theme Modal */}
       {showThemeModal && (
@@ -1153,7 +1145,8 @@ const SchoolPlanner = () => {
               <h3 className="text-lg font-bold text-white">Choose Theme</h3>
               <button onClick={() => setShowThemeModal(false)} className="text-white opacity-60 hover:opacity-100"><X size={20} /></button>
             </div>
-            <div className="grid grid-cols-4 gap-4">
+            <div className="mb-2 text-lg font-semibold text-white">Normal Colour</div>
+            <div className="flex flex-row flex-wrap gap-4 mb-6">
               {Object.entries(themeColors).map(([key, val]) => (
                 <div key={key} className="flex flex-col items-center">
                   <button
@@ -1161,9 +1154,17 @@ const SchoolPlanner = () => {
                     onClick={() => { setTheme(key as any); setShowThemeModal(false); }}
                     title={val.label}
                   />
-                  <span>{val.label}</span>
-                  <div className={val.swatch + ' w-6 h-6 rounded-full mt-1'}></div>
-                  <div className={val.swatchExtreme + ' w-4 h-4 rounded-full mt-1'}></div>
+                  <div className={val.swatch + ' w-10 h-10 rounded-full mt-1'}></div>
+                  <span className="text-sm mt-1">{val.label}</span>
+                </div>
+              ))}
+            </div>
+            <div className="mb-2 text-lg font-semibold text-white">Extreme Colour</div>
+            <div className="flex flex-row flex-wrap gap-4">
+              {Object.entries(themeColors).map(([key, val]) => (
+                <div key={key} className="flex flex-col items-center">
+                  <div className={val.swatchExtreme + ' w-6 h-6 rounded-full'}></div>
+                  <span className="text-sm mt-1">{val.label}</span>
                 </div>
               ))}
             </div>
