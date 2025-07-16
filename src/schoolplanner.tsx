@@ -1058,7 +1058,6 @@ const SchoolPlanner = () => {
   // In renderHome, insert breaks for the day's events
   const renderHome = () => {
     const { dayLabel, events } = getTodayOrNextEvents();
-    const enabledFields = infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key]);
     // Insert breaks for the day's events
     const eventsWithBreaks = insertBreaksBetweenEvents([...events].sort((a, b) => a.dtstart.getTime() - b.dtstart.getTime()));
     return (
