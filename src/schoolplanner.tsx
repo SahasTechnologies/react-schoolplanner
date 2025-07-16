@@ -548,18 +548,20 @@ const SchoolPlanner = () => {
                         className="rounded-lg p-3 text-white text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
                         style={{ backgroundColor: getEventColour(event.summary) }}
                       >
-                        <div className="font-medium mb-1 leading-tight flex items-center gap-1">
-                          {getSubjectIcon(event.summary)}
-                          {event.summary}
+                        <div className="font-medium mb-1 leading-tight flex items-center justify-between">
+                          <span>{event.summary}</span>
+                          <span style={{ opacity: 0.35 }} className="text-black">
+                            {getSubjectIcon(event.summary)}
+                          </span>
                         </div>
                         {/* Teacher name row */}
                         {teacherName && (
-                          <div className="flex items-center gap-1 text-xs opacity-90 mb-1">
+                          <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
                             <User size={12} />
                             <span>{teacherName}</span>
                           </div>
                         )}
-                        <div className="flex items-center gap-1 text-xs opacity-90 mb-1">
+                        <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
                           <Clock size={12} />
                           <span>{formatTime(event.dtstart)}</span>
                           {event.dtend && !isNaN(new Date(event.dtend).getTime()) && (
@@ -569,7 +571,7 @@ const SchoolPlanner = () => {
                           )}
                         </div>
                         {event.location && (
-                          <div className="flex items-center gap-1 text-xs opacity-75">
+                          <div className="flex items-center gap-1 text-xs text-white opacity-80">
                             <MapPin size={12} />
                             <span>{event.location}</span>
                           </div>
