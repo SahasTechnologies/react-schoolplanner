@@ -568,53 +568,55 @@ const SchoolPlanner = () => {
                           </div>
                         </div>
                       );
-                    }
-                    // Extract teacher name from description if present
-                    let teacherName = '';
-                    if (event.description) {
-                      const match = event.description.match(/Teacher:\s*([^\n\r]+?)(?:\s*Period:|$)/i);
-                      if (match) {
-                        teacherName = match[1].trim();
+                    } else {
+                      const realEvent = event as CalendarEvent;
+                      // Extract teacher name from description if present
+                      let teacherName = '';
+                      if (realEvent.description) {
+                        const match = realEvent.description.match(/Teacher:\s*([^\n\r]+?)(?:\s*Period:|$)/i);
+                        if (match) {
+                          teacherName = match[1].trim();
+                        }
                       }
-                    }
-                    return (
-                      <div
-                        key={eventIndex}
-                        className="rounded-lg p-3 text-white text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
-                        style={{ backgroundColor: getEventColour(event.summary) }}
-                      >
-                        <div className="flex items-center justify-between" style={{ minHeight: 40, alignItems: 'center' }}>
-                          <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>
-                            {normalizeSubjectName(event.summary)}
-                          </span>
-                          <span style={{ opacity: 0.35, display: 'flex', alignItems: 'center' }} className="text-black">
-                            {getSubjectIcon(event.summary, 24, effectiveMode)}
-                          </span>
-                        </div>
-                        {/* Teacher name row */}
-                        {teacherName && (
-                          <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
-                            <User size={12} />
-                            <span>{teacherName}</span>
+                      return (
+                        <div
+                          key={eventIndex}
+                          className="rounded-lg p-3 text-white text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
+                          style={{ backgroundColor: getEventColour(realEvent.summary) }}
+                        >
+                          <div className="flex items-center justify-between" style={{ minHeight: 40, alignItems: 'center' }}>
+                            <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>
+                              {normalizeSubjectName(realEvent.summary)}
+                            </span>
+                            <span style={{ opacity: 0.35, display: 'flex', alignItems: 'center' }} className="text-black">
+                              {getSubjectIcon(realEvent.summary, 24, effectiveMode)}
+                            </span>
                           </div>
-                        )}
-                        <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
-                          <Clock size={12} />
-                          <span>{formatTime(event.dtstart)}</span>
-                          {event.dtend && !isNaN(new Date(event.dtend).getTime()) && (
-                            <>
-                              <span> - {formatTime(event.dtend)}</span>
-                            </>
+                          {/* Teacher name row */}
+                          {teacherName && (
+                            <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
+                              <User size={12} />
+                              <span>{teacherName}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
+                            <Clock size={12} />
+                            <span>{formatTime(realEvent.dtstart)}</span>
+                            {realEvent.dtend && !isNaN(new Date(realEvent.dtend).getTime()) && (
+                              <>
+                                <span> - {formatTime(realEvent.dtend)}</span>
+                              </>
+                            )}
+                          </div>
+                          {realEvent.location && (
+                            <div className="flex items-center gap-1 text-xs text-white opacity-80">
+                              <MapPin size={12} />
+                              <span>{realEvent.location}</span>
+                            </div>
                           )}
                         </div>
-                        {event.location && (
-                          <div className="flex items-center gap-1 text-xs text-white opacity-80">
-                            <MapPin size={12} />
-                            <span>{event.location}</span>
-                          </div>
-                        )}
-                      </div>
-                    );
+                      );
+                    }
                   })
                 )}
               </div>
@@ -1078,53 +1080,53 @@ const SchoolPlanner = () => {
                         </div>
                       </div>
                     );
-                  }
-                  // Extract teacher name from description if present
-                  let teacherName = '';
-                  if (event.description) {
-                    const match = event.description.match(/Teacher:\s*([^\n\r]+?)(?:\s*Period:|$)/i);
-                    if (match) {
-                      teacherName = match[1].trim();
+                  } else {
+                    const realEvent = event as CalendarEvent;
+                    let teacherName = '';
+                    if (realEvent.description) {
+                      const match = realEvent.description.match(/Teacher:\s*([^\n\r]+?)(?:\s*Period:|$)/i);
+                      if (match) {
+                        teacherName = match[1].trim();
+                      }
                     }
-                  }
-                  return (
-                    <div
-                      key={idx}
-                      className="rounded-lg p-3 text-white text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
-                      style={{ backgroundColor: getEventColour(event.summary) }}
-                    >
-                      <div className="flex items-center justify-between" style={{ minHeight: 40, alignItems: 'center' }}>
-                        <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>
-                          {normalizeSubjectName(event.summary)}
-                        </span>
-                        <span style={{ opacity: 0.35, display: 'flex', alignItems: 'center' }} className="text-black">
-                          {getSubjectIcon(event.summary, 24, effectiveMode)}
-                        </span>
-                      </div>
-                      {/* Teacher name row */}
-                      {teacherName && (
-                        <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
-                          <User size={12} />
-                          <span>{teacherName}</span>
+                    return (
+                      <div
+                        key={idx}
+                        className="rounded-lg p-3 text-white text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
+                        style={{ backgroundColor: getEventColour(realEvent.summary) }}
+                      >
+                        <div className="flex items-center justify-between" style={{ minHeight: 40, alignItems: 'center' }}>
+                          <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>
+                            {normalizeSubjectName(realEvent.summary)}
+                          </span>
+                          <span style={{ opacity: 0.35, display: 'flex', alignItems: 'center' }} className="text-black">
+                            {getSubjectIcon(realEvent.summary, 24, effectiveMode)}
+                          </span>
                         </div>
-                      )}
-                      <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
-                        <Clock size={12} />
-                        <span>{formatTime(event.dtstart)}</span>
-                        {event.dtend && !isNaN(new Date(event.dtend).getTime()) && (
-                          <>
-                            <span> - {formatTime(event.dtend)}</span>
-                          </>
+                        {teacherName && (
+                          <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
+                            <User size={12} />
+                            <span>{teacherName}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
+                          <Clock size={12} />
+                          <span>{formatTime(realEvent.dtstart)}</span>
+                          {realEvent.dtend && !isNaN(new Date(realEvent.dtend).getTime()) && (
+                            <>
+                              <span> - {formatTime(realEvent.dtend)}</span>
+                            </>
+                          )}
+                        </div>
+                        {realEvent.location && (
+                          <div className="flex items-center gap-1 text-xs text-white opacity-80">
+                            <MapPin size={12} />
+                            <span>{realEvent.location}</span>
+                          </div>
                         )}
                       </div>
-                      {event.location && (
-                        <div className="flex items-center gap-1 text-xs text-white opacity-80">
-                          <MapPin size={12} />
-                          <span>{event.location}</span>
-                        </div>
-                      )}
-                    </div>
-                  );
+                    );
+                  }
                 })}
               </div>
             )}
@@ -2096,8 +2098,8 @@ function insertBreaks(events: CalendarEvent[], showBreaks: boolean, effectiveMod
   for (let i = 0; i < events.length; ++i) {
     result.push(events[i]);
     if (i < events.length - 1) {
-      const currEnd = events[i].dtend ? new Date(events[i].dtend) : new Date(events[i].dtstart);
-      const nextStart = new Date(events[i + 1].dtstart);
+      const currEnd = events[i].dtend ? new Date(events[i].dtend as Date) : new Date(events[i].dtstart as Date);
+      const nextStart = new Date(events[i + 1].dtstart as Date);
       if ((nextStart.getTime() - currEnd.getTime()) > 60 * 1000) {
         result.push({ isBreak: true, start: currEnd, end: nextStart });
       }
