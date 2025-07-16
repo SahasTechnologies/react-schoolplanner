@@ -525,8 +525,8 @@ const SchoolPlanner = () => {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           {days.map((day, index) => (
-            <div key={day} className="bg-gray-800 rounded-lg border border-gray-700">
-              <div className="p-4 border-b border-gray-700">
+            <div key={day} className={`${colors.container} rounded-lg ${colors.border} border`}>
+              <div className={`p-4 border-b ${colors.border}`}>
                 <h3 className="font-semibold text-white text-center">{day}</h3>
               </div>
               <div className="p-3 space-y-2 min-h-[400px]">
@@ -662,7 +662,7 @@ const SchoolPlanner = () => {
             </div>
           ) : (
             subjects.map((subject: Subject) => (
-              <div key={subject.id} className="bg-gray-800 rounded-lg border border-gray-700 p-4">
+              <div key={subject.id} className={`${colors.container} rounded-lg ${colors.border} border p-4`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     {getSubjectIcon(subject.name)}
@@ -687,7 +687,7 @@ const SchoolPlanner = () => {
         {/* Subject Edit Modal */}
         {showSubjectEditModal && selectedSubjectForEdit && (
           <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md">
+            <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
               <h3 className="text-xl font-semibold text-white mb-4">Edit Subject</h3>
               <p className="text-gray-400 text-sm mb-4">Original Name: <span className="font-medium text-white">{selectedSubjectForEdit.name}</span></p> {/* Added original name */}
               <div className="space-y-4">
@@ -832,7 +832,7 @@ const SchoolPlanner = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+          <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
             <div className="flex items-center gap-3 mb-4">
               <Calendar className="text-blue-400" size={20} />
               <h3 className="text-lg font-medium text-white">Schedule</h3>
@@ -848,7 +848,7 @@ const SchoolPlanner = () => {
             </button>
           </div>
 
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+          <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
             <div className="flex items-center gap-3 mb-4">
               <BarChart3 className="text-blue-400" size={20} />
               <h3 className="text-lg font-medium text-white">Markbook</h3>
@@ -966,88 +966,88 @@ const SchoolPlanner = () => {
   // Theme color system: all themes use the same neutral backgrounds, only accent colors change
   const themeColors = {
     blue: {
-      background: 'bg-gray-900',
-      container: 'bg-gray-800',
-      border: 'border-gray-700',
+      background: 'bg-blue-950',
+      container: 'bg-blue-900',
+      border: 'border-blue-800',
       icon: 'text-blue-400',
       button: 'bg-blue-600 hover:bg-blue-700',
       accent: 'text-blue-400',
       ring: 'focus:ring-blue-500',
       borderAccent: 'border-blue-400',
       spin: 'border-blue-400',
-      settingsContainer: 'bg-gray-800',
+      settingsContainer: 'bg-blue-900',
     },
     green: {
-      background: 'bg-gray-900',
-      container: 'bg-gray-800',
-      border: 'border-gray-700',
+      background: 'bg-green-950',
+      container: 'bg-green-900',
+      border: 'border-green-800',
       icon: 'text-green-400',
       button: 'bg-green-600 hover:bg-green-700',
       accent: 'text-green-400',
       ring: 'focus:ring-green-500',
       borderAccent: 'border-green-400',
       spin: 'border-green-400',
-      settingsContainer: 'bg-gray-800',
+      settingsContainer: 'bg-green-900',
     },
     red: {
-      background: 'bg-gray-900',
-      container: 'bg-gray-800',
-      border: 'border-gray-700',
+      background: 'bg-red-950',
+      container: 'bg-red-900',
+      border: 'border-red-800',
       icon: 'text-red-400',
       button: 'bg-red-600 hover:bg-red-700',
       accent: 'text-red-400',
       ring: 'focus:ring-red-500',
       borderAccent: 'border-red-400',
       spin: 'border-red-400',
-      settingsContainer: 'bg-gray-800',
+      settingsContainer: 'bg-red-900',
     },
     orange: {
-      background: 'bg-gray-900',
-      container: 'bg-gray-800',
-      border: 'border-gray-700',
+      background: 'bg-orange-950',
+      container: 'bg-orange-900',
+      border: 'border-orange-800',
       icon: 'text-orange-400',
       button: 'bg-orange-600 hover:bg-orange-700',
       accent: 'text-orange-400',
       ring: 'focus:ring-orange-500',
       borderAccent: 'border-orange-400',
       spin: 'border-orange-400',
-      settingsContainer: 'bg-gray-800',
+      settingsContainer: 'bg-orange-900',
     },
     yellow: {
-      background: 'bg-gray-900',
-      container: 'bg-gray-800',
-      border: 'border-gray-700',
+      background: 'bg-yellow-950',
+      container: 'bg-yellow-900',
+      border: 'border-yellow-800',
       icon: 'text-yellow-400',
       button: 'bg-yellow-600 hover:bg-yellow-700',
       accent: 'text-yellow-400',
       ring: 'focus:ring-yellow-500',
       borderAccent: 'border-yellow-400',
       spin: 'border-yellow-400',
-      settingsContainer: 'bg-gray-800',
+      settingsContainer: 'bg-yellow-900',
     },
     purple: {
-      background: 'bg-gray-900',
-      container: 'bg-gray-800',
-      border: 'border-gray-700',
+      background: 'bg-purple-950',
+      container: 'bg-purple-900',
+      border: 'border-purple-800',
       icon: 'text-purple-400',
       button: 'bg-purple-600 hover:bg-purple-700',
       accent: 'text-purple-400',
       ring: 'focus:ring-purple-500',
       borderAccent: 'border-purple-400',
       spin: 'border-purple-400',
-      settingsContainer: 'bg-gray-800',
+      settingsContainer: 'bg-purple-900',
     },
     pink: {
-      background: 'bg-gray-900',
-      container: 'bg-gray-800',
-      border: 'border-gray-700',
+      background: 'bg-pink-950',
+      container: 'bg-pink-900',
+      border: 'border-pink-800',
       icon: 'text-pink-400',
       button: 'bg-pink-600 hover:bg-pink-700',
       accent: 'text-pink-400',
       ring: 'focus:ring-pink-500',
       borderAccent: 'border-pink-400',
       spin: 'border-pink-400',
-      settingsContainer: 'bg-gray-800',
+      settingsContainer: 'bg-pink-900',
     },
   };
 
