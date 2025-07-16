@@ -9,6 +9,7 @@ import {
   Users, BookOpen, PenLine, BookUser, Briefcase, HeartHandshake, Library, BookMarked, Star, 
   GraduationCap, Bot
 } from 'lucide-react';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 
 interface CalendarEvent {
   dtstart: Date;
@@ -35,7 +36,9 @@ const SchoolPlanner = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-  const [currentPage, setCurrentPage] = useState('home'); // Initial page
+  // Remove currentPage state, use router location instead
+  const navigate = useNavigate();
+  const location = useLocation();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   
   // State for subject editing modal
@@ -838,7 +841,7 @@ const SchoolPlanner = () => {
               {weekData ? 'View your weekly schedule' : 'Upload your ICS calendar file to get started'}
             </p>
             <button
-              onClick={() => setCurrentPage('calendar')}
+              onClick={() => navigate('/calendar')}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
             >
               {weekData ? 'View Schedule' : 'Upload Calendar'}
@@ -854,7 +857,7 @@ const SchoolPlanner = () => {
               {subjects.length > 0 ? `Manage your ${subjects.length} subjects` : 'No subjects available yet'}
             </p>
             <button
-              onClick={() => setCurrentPage('markbook')}
+              onClick={() => navigate('/markbook')}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
             >
               Open Markbook
@@ -960,21 +963,6 @@ const SchoolPlanner = () => {
     }
   };
 
-  const renderCurrentPage = () => {
-    switch (currentPage) {
-      case 'home':
-        return renderHome();
-      case 'calendar':
-        return renderWeekView();
-      case 'markbook':
-        return renderMarkbook();
-      case 'settings':
-        return renderSettings();
-      default:
-        return renderHome();
-    }
-  };
-
   // Theme color system: all themes use the same neutral backgrounds, only accent colors change
   const themeColors = {
     blue: {
@@ -1067,11 +1055,27 @@ const SchoolPlanner = () => {
   const [showThemeModal, setShowThemeModal] = useState(false);
   const colors = themeColors[theme];
 
-  // Main render logic based on welcomeStep
+  // Main content routes
+  // Only show welcome screen if not completed
+  let mainContent = null;
+  if (welcomeStep !== 'completed') {
+    mainContent = renderWelcomeScreen();
+  } else {
+    mainContent = (
+      <Routes>
+        <Route path="/" element={renderHome()} />
+        <Route path="/calendar" element={renderWeekView()} />
+        <Route path="/markbook" element={renderMarkbook()} />
+        <Route path="/settings" element={renderSettings()} />
+      </Routes>
+    );
+  }
+
+  // Main render logic
   if (welcomeStep !== 'completed') {
     return (
       <div className={`min-h-screen ${colors.background} text-white flex items-center justify-center font-inter`}>
-        {renderWelcomeScreen()}
+        {mainContent}
       </div>
     );
   }
@@ -1081,33 +1085,31 @@ const SchoolPlanner = () => {
       {/* Sidebar */}
       <div className={`w-16 ${colors.container} ${colors.border} border-r flex flex-col items-center py-4`}>
         <div className="space-y-4 w-full flex-1"> {/* Added w-full here for centering */}
+          {/* Sidebar buttons here */}
           <button
-            onClick={() => setCurrentPage('home')}
-            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${currentPage === 'home' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 hover:bg-gray-700`}`}
+            onClick={() => navigate('/')}
+            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${location.pathname === '/' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 hover:bg-gray-700`}`}
             title="Home"
           >
             <Home size={20} className={colors.icon} />
           </button>
-
           <button
-            onClick={() => setCurrentPage('calendar')}
-            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${currentPage === 'calendar' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 hover:bg-gray-700`}`}
+            onClick={() => navigate('/calendar')}
+            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${location.pathname === '/calendar' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 hover:bg-gray-700`}`}
             title="Calendar"
           >
             <Calendar size={20} className={colors.icon} />
           </button>
-
           <button
-            onClick={() => setCurrentPage('markbook')}
-            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${currentPage === 'markbook' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 hover:bg-gray-700`}`}
+            onClick={() => navigate('/markbook')}
+            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${location.pathname === '/markbook' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 hover:bg-gray-700`}`}
             title="Markbook"
           >
             <BarChart3 size={20} className={colors.icon} />
           </button>
-
           <button
-            onClick={() => setCurrentPage('settings')}
-            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${currentPage === 'settings' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 hover:bg-gray-700`}`}
+            onClick={() => navigate('/settings')}
+            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${location.pathname === '/settings' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 hover:bg-gray-700`}`}
             title="Settings"
           >
             <Settings size={20} className={colors.icon} />
@@ -1148,8 +1150,8 @@ const SchoolPlanner = () => {
       <div className="flex-1">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-7xl mx-auto">
-            {/* Header - Conditional based on page */}
-            {currentPage === 'home' && (
+            {/* Header - Conditional based on route */}
+            {location.pathname === '/' && (
               <div className="text-center mb-8">
                 <h1 className="text-4xl font-bold mb-2 text-white">
                   {userName ? `${getGreeting()}, ${userName}!` : 'School Planner'}
@@ -1157,13 +1159,12 @@ const SchoolPlanner = () => {
                 <p className="text-gray-400">Manage your schedule and subjects</p>
               </div>
             )}
-            {currentPage === 'settings' && (
+            {location.pathname === '/settings' && (
               <div className="text-center mb-8">
                 <h1 className="text-4xl font-bold mb-2 text-white">School Planner</h1>
                 <p className="text-gray-400">Manage your schedule and subjects</p>
               </div>
             )}
-
 
             {/* Loading State (only for main app after welcome) */}
             {loading && welcomeStep === 'completed' && (
@@ -1183,11 +1184,11 @@ const SchoolPlanner = () => {
               </div>
             )}
 
-            {/* Current Page Content */}
-            {renderCurrentPage()}
+            {/* Main Content Routes */}
+            {mainContent}
 
             {/* Empty State for Calendar (only if not loading, no error, no data, and on calendar page) */}
-            {!loading && !error && !weekData && currentPage === 'calendar' && (
+            {!loading && !error && !weekData && location.pathname === '/calendar' && (
               <div className="text-center py-16">
                 <Calendar size={64} className="mx-auto mb-4 text-gray-600" />
                 <p className="text-gray-400 text-lg">No calendar data loaded yet</p>
