@@ -912,13 +912,17 @@ const SchoolPlanner = () => {
                   >
                     <GripVertical className="text-gray-400 cursor-grab" size={20} />
                     <span className="flex-1 font-medium">{item.label}</span>
-                    <input
-                      type="checkbox"
-                      checked={infoShown[item.key]}
-                      onChange={() => handleToggleInfoShown(item.key)}
-                      className="toggle-checkbox h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded transition duration-200"
-                      style={{ accentColor: '#2563eb' }}
-                    />
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={infoShown[item.key]}
+                        onChange={() => handleToggleInfoShown(item.key)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-10 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-blue-600 transition-colors duration-200">
+                        <div className="absolute left-0.5 top-0.5 bg-white border border-gray-300 rounded-full h-4 w-4 transition-transform duration-200 peer-checked:translate-x-5"></div>
+                      </div>
+                    </label>
                   </div>
                 ))}
               </div>
@@ -982,8 +986,16 @@ const SchoolPlanner = () => {
 
   const renderHome = () => {
     const { dayLabel, events } = getTodayOrNextEvents();
-    // Always show enabled fields in order; if none enabled, fallback to hover logic
     const enabledFields = infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key]);
+    // Determine layout: if all subject names + first enabled info fit in a row, use row layout for all, else stack all info below for all
+    // We'll use a heuristic: if all subject names are short (<18 chars) and first enabled info is present, use row layout
+    let useRowLayout = false;
+    if (enabledFields.length > 0 && events.length > 0) {
+      useRowLayout = events.every(event => {
+        const name = normalizeSubjectName(event.summary);
+        return name.length <= 18;
+      });
+    }
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
@@ -1004,7 +1016,6 @@ const SchoolPlanner = () => {
             ) : (
               <div className="space-y-3">
                 {events.map((event: CalendarEvent, idx: number) => {
-                  // Extract teacher name from description if present
                   let teacherName = '';
                   if (event.description) {
                     const match = event.description.match(/Teacher:\s*([^\n\r]+?)(?:\s*Period:|$)/i);
@@ -1012,12 +1023,11 @@ const SchoolPlanner = () => {
                       teacherName = match[1].trim();
                     }
                   }
-                  // Helper to render info fields
                   const infoFields = [
                     {
                       key: 'time',
                       node: (
-                        <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1" key="time">
+                        <div className="flex items-center gap-1 text-xs text-white opacity-80" key="time">
                           <Clock size={12} />
                           <span>{formatTime(event.dtstart)}</span>
                           {event.dtend && !isNaN(new Date(event.dtend).getTime()) && (
@@ -1038,57 +1048,61 @@ const SchoolPlanner = () => {
                     {
                       key: 'teacher',
                       node: teacherName ? (
-                        <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1" key="teacher">
+                        <div className="flex items-center gap-1 text-xs text-white opacity-80" key="teacher">
                           <User size={12} />
                           <span>{teacherName}</span>
                         </div>
                       ) : null
                     }
                   ];
-                  // Order and filter info fields
+                  // Always show enabled fields, on hover show all fields
+                  const isHovered = hoveredEventIdx === idx;
                   let shownFields;
-                  if (enabledFields.length > 0) {
-                    shownFields = enabledFields.map((o: { key: string; label: string }) => infoFields.find((f: { key: string; node: React.ReactNode }) => f.key === o.key)).filter(Boolean);
+                  if (isHovered) {
+                    shownFields = infoOrder.map((o: { key: string; label: string }) => infoFields.find((f: { key: string; node: React.ReactNode }) => f.key === o.key)).filter(Boolean);
                   } else {
-                    // Fallback: show all fields on hover (legacy behavior)
-                    const isExpanded = hoveredEventIdx === idx;
-                    shownFields = (isExpanded
-                      ? infoOrder.map((o: { key: string; label: string }) => infoFields.find((f: { key: string; node: React.ReactNode }) => f.key === o.key)).filter(Boolean)
-                      : []);
+                    shownFields = enabledFields.map((o: { key: string; label: string }) => infoFields.find((f: { key: string; node: React.ReactNode }) => f.key === o.key)).filter(Boolean);
                   }
-                  // Card class and handlers
+                  // Row layout: subject name + first info beside, rest below; else all info below
+                  let besideInfo = null;
+                  let belowInfo = shownFields;
+                  if (useRowLayout && shownFields.length > 0) {
+                    besideInfo = shownFields[0];
+                    belowInfo = shownFields.slice(1);
+                  }
                   const cardClass = `rounded-lg p-3 text-white text-sm transition-all duration-300 hover:shadow-lg hover:scale-[1.02] cursor-pointer overflow-hidden`;
-                  // Animate info area: always visible if enabledFields, else slide down on hover
-                  const infoVisible = enabledFields.length > 0 || (hoveredEventIdx === idx);
                   return (
                     <div
                       key={idx}
                       className={cardClass}
                       style={{ backgroundColor: getEventColour(event.summary) }}
-                      {...(enabledFields.length === 0 ? {
-                        onMouseEnter: () => setHoveredEventIdx(idx),
-                        onMouseLeave: () => setHoveredEventIdx(null)
-                      } : {})}
+                      onMouseEnter={() => setHoveredEventIdx(idx)}
+                      onMouseLeave={() => setHoveredEventIdx(null)}
                     >
-                      <div className="flex items-center justify-between" style={{ minHeight: 40, alignItems: 'center' }}>
-                        <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>
+                      <div className={`flex items-center justify-between min-h-[40px]`}>
+                        <span className="font-medium leading-tight flex items-center gap-2" style={{ fontSize: '1.1rem' }}>
                           {normalizeSubjectName(event.summary)}
+                          {useRowLayout && besideInfo && (
+                            <span className="ml-2 flex items-center gap-1 text-xs text-white opacity-80">{besideInfo.node}</span>
+                          )}
                         </span>
                         <span style={{ opacity: 0.35, display: 'flex', alignItems: 'center' }} className="text-black">
                           {getSubjectIcon(event.summary, 24, effectiveMode)}
                         </span>
                       </div>
-                      <div
-                        className="transition-all duration-500"
-                        style={{
-                          maxHeight: infoVisible ? 200 : 0,
-                          opacity: infoVisible ? 1 : 0,
-                          overflow: 'hidden',
-                          marginTop: infoVisible && shownFields.length > 0 ? 8 : 0,
-                        }}
-                      >
-                        {shownFields.map((f: { key: string; node: React.ReactNode }) => f.node)}
-                      </div>
+                      {/* Info below (if any) */}
+                      {belowInfo.length > 0 && (
+                        <div
+                          className="transition-all duration-500 flex flex-col gap-1 mt-1"
+                          style={{
+                            maxHeight: 200,
+                            opacity: 1,
+                            overflow: 'hidden',
+                          }}
+                        >
+                          {belowInfo.map((f: { key: string; node: React.ReactNode }) => f.node)}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
