@@ -583,7 +583,7 @@ const SchoolPlanner = () => {
                         >
                           Break
                           <div className="text-xs mt-1 opacity-60">
-                            {formatTime(event.dtstart)} - {formatTime(event.dtend)}
+                            {formatTime(event.dtstart)} - {formatTime(event.dtend ?? event.dtstart)}
                           </div>
                         </div>
                       );
@@ -621,7 +621,7 @@ const SchoolPlanner = () => {
                           <span>{formatTime(event.dtstart)}</span>
                           {event.dtend && !isNaN(new Date(event.dtend).getTime()) && (
                             <>
-                              <span> - {formatTime(event.dtend)}</span>
+                              <span> - {formatTime(event.dtend ?? event.dtstart)}</span>
                             </>
                           )}
                         </div>
@@ -1075,7 +1075,7 @@ const SchoolPlanner = () => {
                       >
                         Break
                         <div className="text-xs mt-1 opacity-60">
-                          {formatTime(event.dtstart)} - {formatTime(event.dtend)}
+                          {formatTime(event.dtstart)} - {formatTime(event.dtend ?? event.dtstart)}
                         </div>
                       </div>
                     );
@@ -1096,7 +1096,7 @@ const SchoolPlanner = () => {
                           <Clock size={12} />
                           <span>{formatTime(event.dtstart)}</span>
                           {event.dtend && !isNaN(new Date(event.dtend).getTime()) && (
-                            <span> - {formatTime(event.dtend)}</span>
+                            <span> - {formatTime(event.dtend ?? event.dtstart)}</span>
                           )}
                         </div>
                       )
