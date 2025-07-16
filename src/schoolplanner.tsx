@@ -781,57 +781,97 @@ const SchoolPlanner = () => {
           <Settings className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
           <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Settings</h2>
         </div>
-        <div className="space-y-4">
-          {/* Timetable Settings */}
-          <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
-            <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Timetable Settings</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Clear Timetable Data</p>
-                  <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>This will remove all uploaded calendar data and subjects</p>
-                </div>
+        {/* Data Section */}
+        <div className={`${colors.container} rounded-lg ${colors.border} border p-6 mb-4`}>
+          <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Data</h3>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Name</p>
+              <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>{userName || <span className="italic">(not set)</span>}</p>
+            </div>
+            <button
+              onClick={() => { setEditUserName(userName); setShowNameEditModal(true); }}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+            >
+              <Edit2 size={16} />
+              Change Name
+            </button>
+          </div>
+        </div>
+        {/* Name Edit Modal */}
+        {showNameEditModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+            <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
+              <h3 className={`text-xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Edit Name</h3>
+              <input
+                type="text"
+                value={editUserName}
+                onChange={e => setEditUserName(e.target.value)}
+                className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6 text-lg ${effectiveMode === 'light' ? 'bg-gray-100 text-black border-gray-300' : 'bg-gray-700 text-white border-gray-600'}`}
+                placeholder="Enter your name"
+              />
+              <div className="flex justify-end gap-3">
                 <button
-                  onClick={clearData}
-                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
-                >
-                  <X size={16} />
-                  Clear Data
-                </button>
-              </div>
-              <div className="flex items-center justify-between mt-4 border-t border-gray-700 pt-4">
-                <div>
-                  <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Enable Auto-Naming</p>
-                  <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Automatically rename subjects based on keywords</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={autoNamingEnabled}
-                    onChange={() => setAutoNamingEnabled(!autoNamingEnabled)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                </label>
+                  onClick={() => setShowNameEditModal(false)}
+                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+                >Cancel</button>
+                <button
+                  onClick={() => { setUserName(editUserName); setShowNameEditModal(false); }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+                >Save</button>
               </div>
             </div>
           </div>
-          {/* Customise Section */}
-          <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
-            <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Customise</h3>
+        )}
+        {/* Timetable Settings */}
+        <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
+          <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Timetable Settings</h3>
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Theme</p>
-                <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Change the color theme of the app</p>
+                <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Clear Timetable Data</p>
+                <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>This will remove all uploaded calendar data and subjects</p>
               </div>
               <button
-                onClick={() => setShowThemeModal(true)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${colors.button} text-white`}
+                onClick={clearData}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
               >
-                <Palette size={18} />
-                Change Theme
+                <X size={16} />
+                Clear Data
               </button>
             </div>
+            <div className="flex items-center justify-between mt-4 border-t border-gray-700 pt-4">
+              <div>
+                <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Enable Auto-Naming</p>
+                <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Automatically rename subjects based on keywords</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={autoNamingEnabled}
+                  onChange={() => setAutoNamingEnabled(!autoNamingEnabled)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+          </div>
+        </div>
+        {/* Customise Section */}
+        <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
+          <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Customise</h3>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Theme</p>
+              <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Change the color theme of the app</p>
+            </div>
+            <button
+              onClick={() => setShowThemeModal(true)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${colors.button} text-white`}
+            >
+              <Palette size={18} />
+              Change Theme
+            </button>
           </div>
         </div>
       </div>
@@ -1531,6 +1571,17 @@ const SchoolPlanner = () => {
       }
     }
   }, [weekData, subjects, welcomeStep]);
+
+  // --- On mount, if weekData and subjects exist in localStorage, skip welcome screen ---
+  React.useEffect(() => {
+    if (welcomeStep === 'welcome') {
+      const savedWeekData = localStorage.getItem('weekData');
+      const savedSubjects = localStorage.getItem('subjects');
+      if (savedWeekData && savedSubjects) {
+        setWelcomeStep('completed');
+      }
+    }
+  }, [welcomeStep]);
 
   // Main content routes
   // Only show welcome screen if not completed
