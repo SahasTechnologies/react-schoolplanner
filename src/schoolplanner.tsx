@@ -286,7 +286,7 @@ const SchoolPlanner = () => {
   };
   const [theme, setTheme] = useState<keyof typeof colorVars>('blue');
   const [themeType, setThemeType] = useState<'normal' | 'extreme'>('normal');
-  const themeColors = (mode: 'light' | 'dark') => colorVars;
+  const themeColors = (_mode: 'light' | 'dark') => colorVars;
   const handleThemeChange = (key: keyof typeof colorVars, type: 'normal' | 'extreme') => {
     setTheme(key);
     setThemeType(type);
