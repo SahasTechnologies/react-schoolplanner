@@ -55,8 +55,6 @@ const SchoolPlanner = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const customColourInputRef = useRef<HTMLInputElement>(null); // Ref for hidden colour input
-  const [showThemeModal, setShowThemeModal] = useState(false);
-  const [themeColor, setThemeColor] = useState('blue');
 
   // Default colours for the palette
   const defaultColours = [
@@ -638,10 +636,10 @@ const SchoolPlanner = () => {
     'Robotics': Bot,
   };
 
-  function getSubjectIcon(subjectName: string, size: number = 20, colorClass: string = 'text-black') {
+  function getSubjectIcon(subjectName: string, size: number = 20) {
     const normalized = normalizeSubjectName(subjectName);
     const IconComponent = subjectIconMap[normalized] || Book;
-    return <IconComponent size={size} className={colorClass} />;
+    return <IconComponent size={size} className="text-black" />;
   }
 
   const renderMarkbook = () => {
@@ -664,7 +662,7 @@ const SchoolPlanner = () => {
               <div key={subject.id} className="bg-gray-800 rounded-lg border border-gray-700 p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    {getSubjectIcon(subject.name, 20, 'text-white')}
+                    {getSubjectIcon(subject.name)}
                     <div
                       className="w-4 h-4 rounded-full"
                       style={{ backgroundColor: subject.colour }}
@@ -697,7 +695,7 @@ const SchoolPlanner = () => {
                     type="text"
                     value={editName}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditName(e.target.value)}
-                    className="w-full bg-gray-700 text-white px-3 py-2 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[theme.secondary]"
+                    className="w-full bg-gray-700 text-white px-3 py-2 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
@@ -706,7 +704,7 @@ const SchoolPlanner = () => {
                     {defaultColours.map((colour, index) => (
                       <button
                         key={index}
-                        className={`w-8 h-8 rounded-full border-2 ${editColour === colour ? 'border-[theme.secondary]' : 'border-gray-600'} transition-all duration-200 hover:scale-110`}
+                        className={`w-8 h-8 rounded-full border-2 ${editColour === colour ? 'border-blue-400' : 'border-gray-600'} transition-all duration-200 hover:scale-110`}
                         style={{ backgroundColor: colour }}
                         onClick={() => setEditColour(colour)}
                         title={colour}
@@ -714,7 +712,7 @@ const SchoolPlanner = () => {
                     ))}
                     {/* Custom Colour Button */}
                     <button
-                      className={`w-8 h-8 rounded-full border-2 ${editColour && !defaultColours.includes(editColour) ? 'border-[theme.secondary]' : 'border-gray-600'} flex items-center justify-center transition-all duration-200 hover:scale-110`}
+                      className={`w-8 h-8 rounded-full border-2 ${editColour && !defaultColours.includes(editColour) ? 'border-blue-400' : 'border-gray-600'} flex items-center justify-center transition-all duration-200 hover:scale-110`}
                       style={{ background: 'linear-gradient(to right, #FF0000, #FF7F00, #FFFF00, #00FF00, #0000FF, #4B0082, #9400D3)' }}
                       onClick={() => customColourInputRef.current?.click()}
                       title="Choose Custom Colour"
@@ -758,49 +756,6 @@ const SchoolPlanner = () => {
     );
   };
 
-  // Expand themeOptions to include extreme versions and display as a vertical list
-  const themeOptions = [
-    { name: 'Blue Extreme (Default)', value: 'blue-extreme', color: '#2563eb' },
-    { name: 'Blue', value: 'blue', color: '#23272b' },
-    { name: 'Red Extreme', value: 'red-extreme', color: '#dc2626' },
-    { name: 'Red', value: 'red', color: '#1e2329' },
-    { name: 'Orange Extreme', value: 'orange-extreme', color: '#f97316' },
-    { name: 'Orange', value: 'orange', color: '#23211e' },
-    { name: 'Yellow Extreme', value: 'yellow-extreme', color: '#eab308' },
-    { name: 'Yellow', value: 'yellow', color: '#23231e' },
-    { name: 'Green Extreme', value: 'green-extreme', color: '#059669' },
-    { name: 'Green', value: 'green', color: '#1e2923' },
-    { name: 'Purple Extreme', value: 'purple-extreme', color: '#a78bfa' },
-    { name: 'Purple', value: 'purple', color: '#231e29' },
-    { name: 'Pink Extreme', value: 'pink-extreme', color: '#db2777' },
-    { name: 'Pink', value: 'pink', color: '#231e23' },
-    { name: 'Grey Extreme', value: 'grey-extreme', color: '#64748b' },
-    { name: 'Grey', value: 'grey', color: '#23272b' },
-  ];
-
-  // Expand themeColorMap to include standard and 'Extreme' versions
-  const themeColorMap: Record<string, { bg: string; sidebar: string; border: string; secondary: string; accent: string; text: string }> = {
-    red:    { bg: 'bg-[#1a181b]', sidebar: 'bg-[#1e2329]', border: 'border-[#2d2323]', secondary: 'bg-[#b91c1c]', accent: 'bg-[#dc2626]', text: 'text-[#dc2626]' },
-    'red-extreme':    { bg: 'bg-[#1a181b]', sidebar: 'bg-[#dc2626]', border: 'border-[#b91c1c]', secondary: 'bg-[#dc2626]', accent: 'bg-[#f87171]', text: 'text-[#dc2626]' },
-    orange: { bg: 'bg-[#1a1916]', sidebar: 'bg-[#23211e]', border: 'border-[#2d241b]', secondary: 'bg-[#ea580c]', accent: 'bg-[#f97316]', text: 'text-[#f97316]' },
-    'orange-extreme': { bg: 'bg-[#1a1916]', sidebar: 'bg-[#f97316]', border: 'border-[#ea580c]', secondary: 'bg-[#f97316]', accent: 'bg-[#fdba74]', text: 'text-[#f97316]' },
-    yellow: { bg: 'bg-[#1a1a16]', sidebar: 'bg-[#23231e]', border: 'border-[#2d2d1b]', secondary: 'bg-[#ca8a04]', accent: 'bg-[#eab308]', text: 'text-[#eab308]' },
-    'yellow-extreme': { bg: 'bg-[#1a1a16]', sidebar: 'bg-[#eab308]', border: 'border-[#ca8a04]', secondary: 'bg-[#eab308]', accent: 'bg-[#fde047]', text: 'text-[#eab308]' },
-    green:  { bg: 'bg-[#16241a]', sidebar: 'bg-[#1e2923]', border: 'border-[#1b2d23]', secondary: 'bg-[#047857]', accent: 'bg-[#059669]', text: 'text-[#059669]' },
-    'green-extreme':  { bg: 'bg-[#16241a]', sidebar: 'bg-[#059669]', border: 'border-[#047857]', secondary: 'bg-[#059669]', accent: 'bg-[#6ee7b7]', text: 'text-[#059669]' },
-    blue:   { bg: 'bg-[#181b1f]', sidebar: 'bg-[#23272b]', border: 'border-[#1e293b]', secondary: 'bg-[#2563eb]', accent: 'bg-[#3b82f6]', text: 'text-[#2563eb]' },
-    'blue-extreme':   { bg: 'bg-[#181b1f]', sidebar: 'bg-[#2563eb]', border: 'border-[#1e293b]', secondary: 'bg-[#2563eb]', accent: 'bg-[#60a5fa]', text: 'text-[#2563eb]' },
-    purple: { bg: 'bg-[#1b1820]', sidebar: 'bg-[#231e29]', border: 'border-[#2d1b2d]', secondary: 'bg-[#7c3aed]', accent: 'bg-[#a78bfa]', text: 'text-[#7c3aed]' },
-    'purple-extreme': { bg: 'bg-[#1b1820]', sidebar: 'bg-[#a78bfa]', border: 'border-[#7c3aed]', secondary: 'bg-[#a78bfa]', accent: 'bg-[#c4b5fd]', text: 'text-[#7c3aed]' },
-    pink:   { bg: 'bg-[#1b181a]', sidebar: 'bg-[#231e23]', border: 'border-[#2d1b23]', secondary: 'bg-[#db2777]', accent: 'bg-[#f472b6]', text: 'text-[#db2777]' },
-    'pink-extreme':   { bg: 'bg-[#1b181a]', sidebar: 'bg-[#db2777]', border: 'border-[#db2777]', secondary: 'bg-[#db2777]', accent: 'bg-[#f9a8d4]', text: 'text-[#db2777]' },
-    grey:   { bg: 'bg-[#181b1f]', sidebar: 'bg-[#23272b]', border: 'border-[#374151]', secondary: 'bg-[#64748b]', accent: 'bg-[#94a3b8]', text: 'text-[#64748b]' },
-    'grey-extreme':   { bg: 'bg-[#181b1f]', sidebar: 'bg-[#64748b]', border: 'border-[#374151]', secondary: 'bg-[#64748b]', accent: 'bg-[#cbd5e1]', text: 'text-[#64748b]' },
-  };
-
-  // Set 'blue-extreme' as the default
-  const theme = themeColorMap[themeColor] || themeColorMap['blue-extreme'];
-
   const renderSettings = () => {
     return (
       <div className="space-y-6">
@@ -810,7 +765,7 @@ const SchoolPlanner = () => {
         </div>
 
         <div className="space-y-4">
-          <div className={`${theme.sidebar} rounded-lg border ${theme.border} p-6`}>
+          <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
             <h3 className="text-lg font-medium text-white mb-4">Timetable Settings</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -820,7 +775,7 @@ const SchoolPlanner = () => {
                 </div>
                 <button
                   onClick={clearData}
-                  className={`${theme.secondary} hover:${theme.accent} text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
                 >
                   <X size={16} />
                   Clear Data
@@ -838,54 +793,36 @@ const SchoolPlanner = () => {
                     onChange={() => setAutoNamingEnabled(!autoNamingEnabled)}
                     className="sr-only peer"
                   />
-                  <div className={`w-11 h-6 ${theme.accent} peer-focus:outline-none peer-focus:ring-4 ${theme.accent} rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:${theme.secondary}`}></div>
+                  <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                 </label>
               </div>
-              {/* Theme Button */}
+              {/* Theme Switcher */}
               <div className="flex items-center justify-between mt-4 border-t border-gray-700 pt-4">
                 <div>
                   <p className="text-white font-medium">Theme</p>
-                  <p className="text-gray-400 text-sm">Change the app's color theme</p>
+                  <p className="text-gray-400 text-sm">Choose your color theme</p>
                 </div>
-                <button
-                  onClick={() => setShowThemeModal(true)}
-                  className={`${theme.secondary} hover:${theme.accent} text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
-                >
-                  Theme
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    className={`w-8 h-8 rounded-full border-2 ${theme === 'blue' ? 'border-blue-400' : 'border-gray-600'} bg-blue-600`}
+                    onClick={() => setTheme('blue')}
+                    title="Blue Theme"
+                  />
+                  <button
+                    className={`w-8 h-8 rounded-full border-2 ${theme === 'green' ? 'border-green-400' : 'border-gray-600'} bg-green-600`}
+                    onClick={() => setTheme('green')}
+                    title="Green Theme"
+                  />
+                  <button
+                    className={`w-8 h-8 rounded-full border-2 ${theme === 'red' ? 'border-red-400' : 'border-gray-600'} bg-red-600`}
+                    onClick={() => setTheme('red')}
+                    title="Red Theme"
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
-        {/* Theme Modal */}
-        {showThemeModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md">
-              <h3 className="text-xl font-semibold text-white mb-4">Select Theme</h3>
-              <div className="flex flex-col gap-2 mb-6">
-                {themeOptions.map(option => (
-                  <button
-                    key={option.value}
-                    className={`w-full h-14 rounded-lg flex items-center justify-between border-2 transition-all duration-200 px-4 ${themeColor === option.value ? `${theme.accent} scale-105` : 'border-gray-600'}`}
-                    style={{ backgroundColor: option.color }}
-                    onClick={() => setThemeColor(option.value)}
-                  >
-                    <span className="text-white text-sm font-medium capitalize">{option.name}</span>
-                    <span className="w-6 h-6 rounded-full border border-white" style={{ backgroundColor: option.color }}></span>
-                  </button>
-                ))}
-              </div>
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setShowThemeModal(false)}
-                  className={`${theme.secondary} hover:${theme.accent} text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     );
   };
@@ -935,7 +872,6 @@ const SchoolPlanner = () => {
     );
   };
 
-  // Restore the renderWelcomeScreen function for onboarding and file upload
   const renderWelcomeScreen = () => {
     switch (welcomeStep) {
       case 'welcome':
@@ -962,7 +898,7 @@ const SchoolPlanner = () => {
               value={userName}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserName(e.target.value)}
               placeholder="Enter your name"
-              className="w-full max-w-sm bg-gray-700 text-white px-4 py-3 rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-[theme.secondary] mb-6 text-lg"
+              className="w-full max-w-sm bg-gray-700 text-white px-4 py-3 rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6 text-lg"
             />
             <button
               onClick={() => setWelcomeStep('upload_ics')}
@@ -1031,58 +967,100 @@ const SchoolPlanner = () => {
     }
   };
 
-  // In the return statement, show the welcome screen if not completed
+  const renderCurrentPage = () => {
+    switch (currentPage) {
+      case 'home':
+        return renderHome();
+      case 'calendar':
+        return renderWeekView();
+      case 'markbook':
+        return renderMarkbook();
+      case 'settings':
+        return renderSettings();
+      default:
+        return renderHome();
+    }
+  };
+
+  const themeColors = {
+    blue: {
+      background: 'bg-gray-900',
+      container: 'bg-gray-800',
+      border: 'border-gray-700',
+      icon: 'text-blue-400',
+      button: 'bg-blue-600 hover:bg-blue-700',
+      accent: 'text-blue-400',
+      ring: 'focus:ring-blue-500',
+      borderAccent: 'border-blue-400',
+      spin: 'border-blue-400',
+    },
+    green: {
+      background: 'bg-green-950',
+      container: 'bg-green-900',
+      border: 'border-green-800',
+      icon: 'text-green-400',
+      button: 'bg-green-600 hover:bg-green-700',
+      accent: 'text-green-400',
+      ring: 'focus:ring-green-500',
+      borderAccent: 'border-green-400',
+      spin: 'border-green-400',
+    },
+    red: {
+      background: 'bg-red-950',
+      container: 'bg-red-900',
+      border: 'border-red-800',
+      icon: 'text-red-400',
+      button: 'bg-red-600 hover:bg-red-700',
+      accent: 'text-red-400',
+      ring: 'focus:ring-red-500',
+      borderAccent: 'border-red-400',
+      spin: 'border-red-400',
+    },
+  };
+
+  const [theme, setTheme] = useState<'blue' | 'green' | 'red'>('blue');
+  const colors = themeColors[theme];
+
+  // Main render logic based on welcomeStep
   if (welcomeStep !== 'completed') {
-    return renderWelcomeScreen();
+    return (
+      <div className={`min-h-screen ${colors.background} text-white flex items-center justify-center font-inter`}>
+        {renderWelcomeScreen()}
+      </div>
+    );
   }
 
   return (
-    <div className={`min-h-screen ${theme.bg} text-white flex font-inter`}>
+    <div className={`min-h-screen ${colors.background} text-white flex font-inter`}>
       {/* Sidebar */}
-      <div className={`w-16 ${theme.sidebar} ${theme.border} border-r flex flex-col items-center py-4`}>
+      <div className={`w-16 ${colors.container} ${colors.border} border-r flex flex-col items-center py-4`}>
         <div className="space-y-4 w-full"> {/* Added w-full here for centering */}
           <button
             onClick={() => setCurrentPage('home')}
-            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${
-              currentPage === 'home'
-                ? `${theme.secondary} text-white`
-                : `${theme.text} hover:text-white hover:${theme.secondary}`
-            }`}
+            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${currentPage === 'home' ? `${colors.button} text-white` : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}
           >
-            <Home size={20} />
+            <Home size={20} className={colors.icon} />
           </button>
 
           <button
             onClick={() => setCurrentPage('calendar')}
-            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${
-              currentPage === 'calendar'
-                ? `${theme.secondary} text-white`
-                : `${theme.text} hover:text-white hover:${theme.secondary}`
-            }`}
+            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${currentPage === 'calendar' ? `${colors.button} text-white` : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}
           >
-            <Calendar size={20} />
+            <Calendar size={20} className={colors.icon} />
           </button>
 
           <button
             onClick={() => setCurrentPage('markbook')}
-            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${
-              currentPage === 'markbook'
-                ? `${theme.secondary} text-white`
-                : `${theme.text} hover:text-white hover:${theme.secondary}`
-            }`}
+            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${currentPage === 'markbook' ? `${colors.button} text-white` : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}
           >
-            <BarChart3 size={20} />
+            <BarChart3 size={20} className={colors.icon} />
           </button>
 
           <button
             onClick={() => setCurrentPage('settings')}
-            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${
-              currentPage === 'settings'
-                ? `${theme.secondary} text-white`
-                : `${theme.text} hover:text-white hover:${theme.secondary}`
-            }`}
+            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${currentPage === 'settings' ? `${colors.button} text-white` : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}
           >
-            <Settings size={20} />
+            <Settings size={20} className={colors.icon} />
           </button>
         </div>
       </div>
@@ -1107,10 +1085,11 @@ const SchoolPlanner = () => {
               </div>
             )}
 
+
             {/* Loading State (only for main app after welcome) */}
             {loading && welcomeStep === 'completed' && (
               <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
+                <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${colors.spin} mx-auto mb-4`}></div>
                 <p className="text-gray-400">Processing your calendar...</p>
               </div>
             )}
@@ -1126,12 +1105,7 @@ const SchoolPlanner = () => {
             )}
 
             {/* Current Page Content */}
-            <div className="space-y-6">
-              {currentPage === 'settings' && renderSettings()}
-              {currentPage === 'markbook' && renderMarkbook()}
-              {currentPage === 'calendar' && renderWeekView()}
-              {currentPage === 'home' && renderHome()}
-            </div>
+            {renderCurrentPage()}
 
             {/* Empty State for Calendar (only if not loading, no error, no data, and on calendar page) */}
             {!loading && !error && !weekData && currentPage === 'calendar' && (
