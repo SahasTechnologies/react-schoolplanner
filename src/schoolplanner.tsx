@@ -896,7 +896,7 @@ const SchoolPlanner = () => {
             <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
               <h3 className={`text-xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Info Shown at Start</h3>
               <div className="space-y-3">
-                {infoOrder.map((item, idx) => (
+                {infoOrder.map((item: { key: string; label: string }, idx: number) => (
                   <div
                     key={item.key}
                     className={`flex items-center gap-3 p-2 rounded ${draggedIdx === idx ? 'bg-blue-100/20' : ''}`}
@@ -911,7 +911,7 @@ const SchoolPlanner = () => {
                       <input
                         type="checkbox"
                         checked={infoShown[item.key]}
-                        onChange={() => setInfoShown(s => ({ ...s, [item.key]: !s[item.key] }))}
+                        onChange={() => setInfoShown((s: Record<string, boolean>) => ({ ...s, [item.key]: !s[item.key] }))}
                         className="sr-only peer"
                       />
                       <div className="w-10 h-5 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:bg-blue-600 transition-colors"></div>
@@ -1063,7 +1063,7 @@ const SchoolPlanner = () => {
                         </span>
                       </div>
                       <div className={`transition-all duration-300 ${shownFields.length > 0 && isExpanded ? 'opacity-100 mt-2' : !isExpanded && shownFields.length > 0 ? 'opacity-100 mt-2' : 'opacity-0 h-0 pointer-events-none'}`} style={{overflow: 'hidden'}}>
-                        {shownFields.map(f => f.node)}
+                        {shownFields.map((f: { key: string; node: React.ReactNode }) => f.node)}
                       </div>
                     </div>
                   );
