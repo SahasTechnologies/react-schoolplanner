@@ -46,7 +46,7 @@ function hexToRgba(hex: string, alpha: number) {
 const SchoolPlanner = () => {
   const [weekData, setWeekData] = useState<WeekData | null>(null);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
   // Remove currentPage state, use router location instead
   const navigate = useNavigate();
   const location = useLocation();
@@ -169,53 +169,6 @@ const SchoolPlanner = () => {
     return subject ? subject.colour : generateRandomColour(); // Changed to 'subject.colour'
   };
 
-  const parseICS = (icsContent: string): CalendarEvent[] => {
-    const events: CalendarEvent[] = [];
-    const lines = icsContent.split(/\r?\n/);
-    let currentEvent: Partial<CalendarEvent> | null = null;
-
-    console.log('Parsing ICS content, total lines:', lines.length);
-
-    for (let i = 0; i < lines.length; i++) {
-      let line = lines[i].trim();
-
-      // Handle line folding (lines that start with space or tab are continuations)
-      while (i + 1 < lines.length && (lines[i + 1].startsWith(' ') || lines[i + 1].startsWith('\t'))) {
-        i++;
-        line += lines[i].substring(1);
-      }
-
-      if (line === 'BEGIN:VEVENT') {
-        currentEvent = {} as Partial<CalendarEvent>;
-      } else if (line === 'END:VEVENT' && currentEvent) {
-        if (currentEvent.dtstart && currentEvent.summary) { // dtend is optional
-          events.push(currentEvent as CalendarEvent);
-          console.log('Added event:', currentEvent.summary, 'from', currentEvent.dtstart, 'to', currentEvent.dtend);
-        }
-        currentEvent = null;
-      } else if (currentEvent && line.includes(':')) {
-        const colonIndex = line.indexOf(':');
-        const key = line.substring(0, colonIndex);
-        const value = line.substring(colonIndex + 1);
-
-        if (key.startsWith('DTSTART')) {
-          currentEvent.dtstart = parseDateTime(value);
-        } else if (key.startsWith('DTEND')) {
-          currentEvent.dtend = parseDateTime(value);
-        } else if (key === 'SUMMARY') {
-          currentEvent.summary = value.replace(/\\n/g, ' ').replace(/\\,/g, ',').replace(/\\\\/g, '\\');
-        } else if (key === 'LOCATION') {
-          currentEvent.location = value.replace(/\\n/g, ' ').replace(/\\,/g, ',').replace(/\\\\/g, '\\');
-        } else if (key === 'DESCRIPTION') {
-          currentEvent.description = value.replace(/\\n/g, ' ').replace(/\\,/g, ',').replace(/\\\\/g, '\\');
-        }
-      }
-    }
-
-    console.log('Total events parsed:', events.length);
-    return events;
-  };
-
   const parseDateTime = (dateStr: string): Date => {
     // console.log('Parsing datetime:', dateStr); // Commented out to reduce console noise
 
@@ -278,59 +231,6 @@ const SchoolPlanner = () => {
     date.setDate(diff);
     date.setHours(0, 0, 0, 0);
     return date;
-  };
-
-  // Groups all events into their actual Monday-Friday weeks
-  const groupAllEventsIntoActualWeeks = (allEvents: CalendarEvent[]): WeekData[] => {
-    const weeksMap = new Map<string, CalendarEvent[]>(); // Key: 'YYYY-MM-DD' (Monday's date)
-
-    allEvents.forEach(event => {
-      const eventDate = new Date(event.dtstart);
-      if (isNaN(eventDate.getTime())) {
-        console.warn('Skipping event with invalid date:', event);
-        return;
-      }
-
-      const mondayOfWeek = getMonday(eventDate);
-      // Use local date for key
-      const mondayKey = mondayOfWeek.getFullYear() + '-' + String(mondayOfWeek.getMonth() + 1).padStart(2, '0') + '-' + String(mondayOfWeek.getDate()).padStart(2, '0');
-
-      if (!weeksMap.has(mondayKey)) {
-        weeksMap.set(mondayKey, []);
-      }
-      weeksMap.get(mondayKey)?.push(event);
-    });
-
-    const actualWeeks: WeekData[] = [];
-    const sortedMondayKeys = Array.from(weeksMap.keys()).sort();
-
-    sortedMondayKeys.forEach(mondayKey => {
-      const mondayDate = new Date(mondayKey);
-      // Use local time for week range
-      const localMonday = new Date(mondayDate.getFullYear(), mondayDate.getMonth(), mondayDate.getDate(), 0, 0, 0, 0);
-      // Calculate localFriday as the same week Friday at 23:59:59.999
-      const localFriday = new Date(localMonday);
-      localFriday.setDate(localMonday.getDate() + 4);
-      localFriday.setHours(23, 59, 59, 999);
-
-      const eventsInThisWeek = weeksMap.get(mondayKey) || [];
-      // Filter to only include events within the Mon-Fri range for this specific week (local time)
-      const filteredEvents = eventsInThisWeek.filter(event => {
-        const eventDtstart = new Date(event.dtstart);
-        return eventDtstart.getTime() >= localMonday.getTime() && eventDtstart.getTime() <= localFriday.getTime();
-      });
-
-      // Only add weeks that have at least one event
-      if (filteredEvents.length > 0) {
-        actualWeeks.push({
-          monday: localMonday,
-          friday: localFriday,
-          events: filteredEvents
-        });
-      }
-    });
-
-    return actualWeeks;
   };
 
   // Clear all localStorage and reset state
