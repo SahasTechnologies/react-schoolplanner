@@ -10,7 +10,7 @@ import {
   GraduationCap, Bot,
   Sun, Moon, Monitor
 } from 'lucide-react';
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 
 interface CalendarEvent {
   dtstart: Date;
@@ -1587,14 +1587,48 @@ const SchoolPlanner = () => {
   const [showNameEditModal, setShowNameEditModal] = useState(false);
   const [editUserName, setEditUserName] = useState(userName);
 
+  // --- Persist userName to localStorage on change ---
+  React.useEffect(() => {
+    if (userName !== undefined) {
+      localStorage.setItem('userName', userName);
+    }
+  }, [userName]);
+
+  // --- Load userName from localStorage on mount ---
+  React.useEffect(() => {
+    const savedName = localStorage.getItem('userName');
+    if (savedName && !userName) {
+      setUserName(savedName);
+    }
+  }, []);
+
+  // --- On mount, if userName, weekData, and subjects exist in localStorage, skip welcome screen ---
+  React.useEffect(() => {
+    if (welcomeStep === 'welcome') {
+      const savedWeekData = localStorage.getItem('weekData');
+      const savedSubjects = localStorage.getItem('subjects');
+      const savedName = localStorage.getItem('userName');
+      if (savedWeekData && savedSubjects && savedName) {
+        setUserName(savedName);
+        setWelcomeStep('completed');
+      }
+    }
+  }, [welcomeStep]);
+
   // Main content routes
   // Only show welcome screen if not completed
   let mainContent = null;
   if (welcomeStep !== 'completed') {
-    mainContent = renderWelcomeScreen();
+    mainContent = (
+      <Routes>
+        <Route path="/" element={<Navigate to="/welcome" replace />} />
+        <Route path="/welcome" element={renderWelcomeScreen()} />
+      </Routes>
+    );
   } else {
     mainContent = (
       <Routes>
+        <Route path="/" element={<Navigate to="/home" replace />} />
         <Route path="/home" element={renderHome()} />
         <Route path="/calendar" element={renderWeekView()} />
         <Route path="/markbook" element={renderMarkbook()} />
