@@ -19,6 +19,7 @@
     "@eslint/js": "^9.31.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "@types/react-router-dom": "^5.3.3",
     "@vitejs/plugin-react": "^4.6.0",
     "autoprefixer": "^10.x.x",
     "eslint": "^9.31.0",

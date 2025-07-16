@@ -7,7 +7,8 @@ import {
   Upload, Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Settings, Edit2, User, Book,
   Calculator, FlaskConical, Palette, Music, Globe, Dumbbell, Languages, Code2, Brain, Mic2, 
   Users, BookOpen, PenLine, BookUser, Briefcase, HeartHandshake, Library, BookMarked, Star, 
-  GraduationCap, Bot
+  GraduationCap, Bot,
+  Sun, Moon, Monitor
 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 
@@ -31,7 +32,7 @@ interface Subject {
   colour: string; // Changed to Australian English 'colour'
 }
 
-type ThemeKey = 'red' | 'orange' | 'yellow' | 'green' | 'blue' | 'purple' | 'pink';
+type ThemeKey = 'red' | 'orange' | 'yellow' | 'green' | 'blue' | 'purple' | 'pink' | 'grey';
 
 const SchoolPlanner = () => {
   const [weekData, setWeekData] = useState<WeekData | null>(null);
@@ -521,9 +522,9 @@ const SchoolPlanner = () => {
 
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-3">
+        <div className={`flex items-center gap-3 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
           <Calendar className="text-white" size={24} />
-          <h2 className="text-2xl font-semibold text-white">Weekly Schedule</h2>
+          <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Weekly Schedule</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           {days.map((day, index) => (
@@ -652,15 +653,15 @@ const SchoolPlanner = () => {
       <div className="space-y-6">
         <div className="flex items-center gap-3">
           <BarChart3 className="text-white" size={24} />
-          <h2 className="text-2xl font-semibold text-white">Markbook</h2>
+          <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Markbook</h2>
         </div>
 
         <div className="space-y-4">
           {subjects.length === 0 ? (
             <div className="text-center py-16">
               <BarChart3 size={64} className="mx-auto mb-4 text-gray-600" />
-              <p className="text-gray-400 text-lg">No subjects found</p>
-              <p className="text-gray-500 text-sm">Upload a calendar file to see your subjects</p>
+              <p className={`text-gray-400 text-lg ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>No subjects found</p>
+              <p className={`text-gray-500 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Upload a calendar file to see your subjects</p>
             </div>
           ) : (
             subjects.map((subject: Subject) => (
@@ -690,11 +691,11 @@ const SchoolPlanner = () => {
         {showSubjectEditModal && selectedSubjectForEdit && (
           <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
             <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
-              <h3 className="text-xl font-semibold text-white mb-4">Edit Subject</h3>
-              <p className="text-gray-400 text-sm mb-4">Original Name: <span className="font-medium text-white">{selectedSubjectForEdit.name}</span></p> {/* Added original name */}
+              <h3 className={`text-xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Edit Subject</h3>
+              <p className={`text-gray-400 text-sm mb-4 ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Original Name: <span className="font-medium text-white">{selectedSubjectForEdit.name}</span></p> {/* Added original name */}
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="subjectName" className="block text-gray-300 text-sm font-medium mb-1">Subject Name</label>
+                  <label htmlFor="subjectName" className={`block ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-300'} text-sm font-medium mb-1`}>Subject Name</label>
                   <input
                     id="subjectName"
                     type="text"
@@ -704,7 +705,7 @@ const SchoolPlanner = () => {
                   />
                 </div>
                 <div>
-                  <label htmlFor="subjectColour" className="block text-gray-300 text-sm font-medium mb-2">Subject Colour</label> {/* Changed to 'subjectColour' */}
+                  <label htmlFor="subjectColour" className={`block ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-300'} text-sm font-medium mb-2`}>Subject Colour</label> {/* Changed to 'subjectColour' */}
                   <div className="grid grid-cols-6 gap-2 mb-4"> {/* Colour palette */}
                     {defaultColours.map((colour, index) => (
                       <button
@@ -766,17 +767,17 @@ const SchoolPlanner = () => {
       <div className="space-y-6">
         <div className="flex items-center gap-3">
           <Settings className="text-white" size={24} />
-          <h2 className="text-2xl font-semibold text-white">Settings</h2>
+          <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Settings</h2>
         </div>
         <div className="space-y-4">
           {/* Timetable Settings */}
           <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
-            <h3 className="text-lg font-medium text-white mb-4">Timetable Settings</h3>
+            <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Timetable Settings</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-white font-medium">Clear Timetable Data</p>
-                  <p className="text-gray-400 text-sm">This will remove all uploaded calendar data and subjects</p>
+                  <p className={`text-white font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Clear Timetable Data</p>
+                  <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>This will remove all uploaded calendar data and subjects</p>
                 </div>
                 <button
                   onClick={clearData}
@@ -788,8 +789,8 @@ const SchoolPlanner = () => {
               </div>
               <div className="flex items-center justify-between mt-4 border-t border-gray-700 pt-4">
                 <div>
-                  <p className="text-white font-medium">Enable Auto-Naming</p>
-                  <p className="text-gray-400 text-sm">Automatically rename subjects based on keywords</p>
+                  <p className={`text-white font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Enable Auto-Naming</p>
+                  <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Automatically rename subjects based on keywords</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -805,11 +806,11 @@ const SchoolPlanner = () => {
           </div>
           {/* Customise Section */}
           <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
-            <h3 className="text-lg font-medium text-white mb-4">Customise</h3>
+            <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Customise</h3>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-white font-medium">Theme</p>
-                <p className="text-gray-400 text-sm">Change the color theme of the app</p>
+                <p className={`text-white font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Theme</p>
+                <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Change the color theme of the app</p>
               </div>
               <button
                 onClick={() => setShowThemeModal(true)}
@@ -830,16 +831,16 @@ const SchoolPlanner = () => {
       <div className="space-y-6">
         <div className="flex items-center gap-3">
           <Home className="text-white" size={24} />
-          <h2 className="text-2xl font-semibold text-white">Home</h2>
+          <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Home</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
             <div className="flex items-center gap-3 mb-4">
               <Calendar className="text-white" size={20} />
-              <h3 className="text-lg font-medium text-white">Schedule</h3>
+              <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Schedule</h3>
             </div>
-            <p className="text-gray-400 mb-4">
+            <p className={`text-gray-400 mb-4 ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>
               {weekData ? 'View your weekly schedule' : 'Upload your ICS calendar file to get started'}
             </p>
             <button
@@ -853,9 +854,9 @@ const SchoolPlanner = () => {
           <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
             <div className="flex items-center gap-3 mb-4">
               <BarChart3 className="text-white" size={20} />
-              <h3 className="text-lg font-medium text-white">Markbook</h3>
+              <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Markbook</h3>
             </div>
-            <p className="text-gray-400 mb-4">
+            <p className={`text-gray-400 mb-4 ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>
               {subjects.length > 0 ? `Manage your ${subjects.length} subjects` : 'No subjects available yet'}
             </p>
             <button
@@ -1449,26 +1450,42 @@ const SchoolPlanner = () => {
               <h3 className={`text-lg font-bold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Choose Theme</h3>
               <button onClick={() => setShowThemeModal(false)} className={`${effectiveMode === 'light' ? 'text-black' : 'text-white'} opacity-60 hover:opacity-100`}><X size={20} /></button>
             </div>
-            {/* Theme Mode Selector */}
-            <div className="mb-6 flex flex-row items-center justify-center gap-2">
-              <button
-                className={`px-3 py-1 rounded-lg font-medium transition-colors duration-200 ${themeMode === 'light' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-black hover:bg-gray-300'}`}
-                onClick={() => setThemeMode('light')}
-              >
-                Light
-              </button>
-              <button
-                className={`px-3 py-1 rounded-lg font-medium transition-colors duration-200 ${themeMode === 'dark' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-white hover:bg-gray-600'}`}
-                onClick={() => setThemeMode('dark')}
-              >
-                Dark
-              </button>
-              <button
-                className={`px-3 py-1 rounded-lg font-medium transition-colors duration-200 ${themeMode === 'system' ? 'bg-blue-500 text-white' : (effectiveMode === 'light' ? 'bg-gray-200 text-black hover:bg-gray-300' : 'bg-gray-700 text-white hover:bg-gray-600')}`}
-                onClick={() => setThemeMode('system')}
-              >
-                System
-              </button>
+            {/* Theme Mode Toggle */}
+            <div className="mb-6 flex flex-row items-center justify-center">
+              <div className={`relative flex bg-gray-200 dark:bg-gray-700 rounded-full w-44 h-12 p-1 transition-colors duration-200`}>
+                {/* Toggle thumb */}
+                <div
+                  className={`absolute top-1 left-1 h-10 w-12 rounded-full transition-all duration-200 shadow-md ${themeMode === 'light' ? 'translate-x-0 bg-white' : themeMode === 'dark' ? 'translate-x-28 bg-gray-900' : 'translate-x-14 bg-gray-300 dark:bg-gray-800'}`}
+                  style={{ zIndex: 1 }}
+                />
+                {/* Light */}
+                <button
+                  className={`relative flex-1 flex flex-col items-center justify-center z-10 rounded-full transition-colors duration-200 ${themeMode === 'light' ? (effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400') : (effectiveMode === 'light' ? 'text-black' : 'text-white')}`}
+                  style={{ height: '40px' }}
+                  onClick={() => setThemeMode('light')}
+                >
+                  <Sun size={20} />
+                  <span className="text-xs font-medium">Light</span>
+                </button>
+                {/* System */}
+                <button
+                  className={`relative flex-1 flex flex-col items-center justify-center z-10 rounded-full transition-colors duration-200 ${themeMode === 'system' ? (effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400') : (effectiveMode === 'light' ? 'text-black' : 'text-white')}`}
+                  style={{ height: '40px' }}
+                  onClick={() => setThemeMode('system')}
+                >
+                  <Monitor size={20} />
+                  <span className="text-xs font-medium">System</span>
+                </button>
+                {/* Dark */}
+                <button
+                  className={`relative flex-1 flex flex-col items-center justify-center z-10 rounded-full transition-colors duration-200 ${themeMode === 'dark' ? (effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400') : (effectiveMode === 'light' ? 'text-black' : 'text-white')}`}
+                  style={{ height: '40px' }}
+                  onClick={() => setThemeMode('dark')}
+                >
+                  <Moon size={20} />
+                  <span className="text-xs font-medium">Dark</span>
+                </button>
+              </div>
             </div>
             {/* Normal Colour */}
             <div className={`mb-2 text-lg font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Normal Colour</div>
