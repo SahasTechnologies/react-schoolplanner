@@ -578,6 +578,7 @@ const SchoolPlanner = () => {
                   </div>
                 ) : (
                   dayEventsWithBreaks[index].map((event, eventIndex) => {
+                    const enabledFields = infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key]);
                     // Extract teacher and period
                     let teacherName = '';
                     let periodName = '';
@@ -1072,6 +1073,7 @@ const SchoolPlanner = () => {
             ) : (
               <div className="space-y-3">
                 {eventsWithBreaks.map((event, idx) => {
+                  const enabledFields = infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key]);
                   if (event.isBreak) {
                     return (
                       <div
