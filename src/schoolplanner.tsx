@@ -1241,7 +1241,7 @@ const SchoolPlanner = () => {
               {(Object.entries(colorVars) as [ThemeKey, typeof colorVars[ThemeKey]][]).map(([key, val]) => (
                 <div key={key} className="flex flex-col items-center">
                   <button
-                    className={`w-10 h-10 rounded-full border-2 ${(theme === key && themeType === 'normal') ? themeColors(effectiveMode)[key].borderAccent : 'border-gray-600'} ${val[effectiveMode].normal.swatch}`}
+                    className={`w-10 h-10 rounded-full border-2 ${(theme === key && themeType === 'normal') ? 'border-blue-400' : 'border-gray-600'} ${val[effectiveMode].normal.swatch}`}
                     onClick={() => handleThemeChange(key, 'normal')}
                     title={themeColors(effectiveMode)[key].label}
                   />
@@ -1255,7 +1255,7 @@ const SchoolPlanner = () => {
               {(Object.entries(colorVars) as [ThemeKey, typeof colorVars[ThemeKey]][]).map(([key, val]) => (
                 <div key={key} className="flex flex-col items-center">
                   <button
-                    className={`w-10 h-10 rounded-full border-2 ${(theme === key && themeType === 'extreme') ? themeColors(effectiveMode)[key].borderAccent : 'border-gray-600'} ${val[effectiveMode].extreme.swatch}`}
+                    className={`w-10 h-10 rounded-full border-2 ${(theme === key && themeType === 'extreme') ? 'border-blue-400' : 'border-gray-600'} ${val[effectiveMode].extreme.swatch}`}
                     onClick={() => handleThemeChange(key, 'extreme')}
                     title={themeColors(effectiveMode)[key].label + ' (Extreme)'}
                   />
