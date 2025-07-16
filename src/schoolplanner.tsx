@@ -1048,10 +1048,6 @@ const SchoolPlanner = () => {
   const renderHome = () => {
     const { dayLabel, events } = getTodayOrNextEvents();
     const enabledFields = infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key]);
-    let useRowLayout = showFirstInfoBeside && enabledFields.length > 0 && events.length > 0 && events.every(event => {
-      const name = normalizeSubjectName(event.summary);
-      return name.length <= 18;
-    });
     // Insert breaks for the day's events
     const eventsWithBreaks = insertBreaksBetweenEvents([...events].sort((a, b) => a.dtstart.getTime() - b.dtstart.getTime()));
     return (
