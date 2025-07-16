@@ -520,13 +520,13 @@ const SchoolPlanner = () => {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <Calendar className={colors.icon} size={24} />
+          <Calendar className="text-white" size={24} />
           <h2 className="text-2xl font-semibold text-white">Weekly Schedule</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           {days.map((day, index) => (
-            <div key={day} className={`${colors.container} rounded-lg ${colors.border} border`}>
-              <div className={`p-4 border-b ${colors.border}`}>
+            <div key={day} className={`${themeColors.blue.container} rounded-lg ${themeColors.blue.border} border`}>
+              <div className={`p-4 border-b ${themeColors.blue.border}`}>
                 <h3 className="font-semibold text-white text-center">{day}</h3>
               </div>
               <div className="p-3 space-y-2 min-h-[400px]">
@@ -649,7 +649,7 @@ const SchoolPlanner = () => {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <BarChart3 className="text-blue-400" size={24} />
+          <BarChart3 className="text-white" size={24} />
           <h2 className="text-2xl font-semibold text-white">Markbook</h2>
         </div>
 
@@ -662,7 +662,7 @@ const SchoolPlanner = () => {
             </div>
           ) : (
             subjects.map((subject: Subject) => (
-              <div key={subject.id} className={`${colors.container} rounded-lg ${colors.border} border p-4`}>
+              <div key={subject.id} className={`${themeColors.blue.container} rounded-lg ${themeColors.blue.border} border p-4`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     {getSubjectIcon(subject.name)}
@@ -687,7 +687,7 @@ const SchoolPlanner = () => {
         {/* Subject Edit Modal */}
         {showSubjectEditModal && selectedSubjectForEdit && (
           <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-            <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
+            <div className={`${themeColors.blue.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
               <h3 className="text-xl font-semibold text-white mb-4">Edit Subject</h3>
               <p className="text-gray-400 text-sm mb-4">Original Name: <span className="font-medium text-white">{selectedSubjectForEdit.name}</span></p> {/* Added original name */}
               <div className="space-y-4">
@@ -763,12 +763,12 @@ const SchoolPlanner = () => {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <Settings className="text-blue-400" size={24} />
+          <Settings className="text-white" size={24} />
           <h2 className="text-2xl font-semibold text-white">Settings</h2>
         </div>
         <div className="space-y-4">
           {/* Timetable Settings */}
-          <div className={`${colors.settingsContainer} rounded-lg ${colors.border} border p-6`}>
+          <div className={`${themeColors.blue.settingsContainer} rounded-lg ${themeColors.blue.border} border p-6`}>
             <h3 className="text-lg font-medium text-white mb-4">Timetable Settings</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -802,7 +802,7 @@ const SchoolPlanner = () => {
             </div>
           </div>
           {/* Customise Section */}
-          <div className={`${colors.settingsContainer} rounded-lg ${colors.border} border p-6`}>
+          <div className={`${themeColors.blue.settingsContainer} rounded-lg ${themeColors.blue.border} border p-6`}>
             <h3 className="text-lg font-medium text-white mb-4">Customise</h3>
             <div className="flex items-center justify-between">
               <div>
@@ -811,7 +811,7 @@ const SchoolPlanner = () => {
               </div>
               <button
                 onClick={() => setShowThemeModal(true)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${colors.button} text-white`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${themeColors.blue.button} text-white`}
               >
                 <Palette size={18} />
                 Change Theme
@@ -827,14 +827,14 @@ const SchoolPlanner = () => {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <Home className="text-blue-400" size={24} />
+          <Home className="text-white" size={24} />
           <h2 className="text-2xl font-semibold text-white">Home</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
+          <div className={`${themeColors.blue.container} rounded-lg ${themeColors.blue.border} border p-6`}>
             <div className="flex items-center gap-3 mb-4">
-              <Calendar className="text-blue-400" size={20} />
+              <Calendar className="text-white" size={20} />
               <h3 className="text-lg font-medium text-white">Schedule</h3>
             </div>
             <p className="text-gray-400 mb-4">
@@ -848,9 +848,9 @@ const SchoolPlanner = () => {
             </button>
           </div>
 
-          <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
+          <div className={`${themeColors.blue.container} rounded-lg ${themeColors.blue.border} border p-6`}>
             <div className="flex items-center gap-3 mb-4">
-              <BarChart3 className="text-blue-400" size={20} />
+              <BarChart3 className="text-white" size={20} />
               <h3 className="text-lg font-medium text-white">Markbook</h3>
             </div>
             <p className="text-gray-400 mb-4">
@@ -963,91 +963,147 @@ const SchoolPlanner = () => {
     }
   };
 
-  // Theme color system: all themes use the same neutral backgrounds, only accent colors change
+  // Refactored themeColors with both 'extreme' and 'normal' color sets
   const themeColors = {
-    blue: {
+    extremeBlue: {
       background: 'bg-blue-950',
       container: 'bg-blue-900',
       border: 'border-blue-800',
-      icon: 'text-blue-400',
+      icon: 'text-white',
       button: 'bg-blue-600 hover:bg-blue-700',
       accent: 'text-blue-400',
       ring: 'focus:ring-blue-500',
       borderAccent: 'border-blue-400',
       spin: 'border-blue-400',
       settingsContainer: 'bg-blue-900',
+      swatch: 'bg-blue-600',
+      swatchExtreme: 'bg-blue-700',
     },
-    green: {
+    blue: {
+      background: 'bg-gray-900',
+      container: 'bg-gray-800',
+      border: 'border-gray-700',
+      icon: 'text-white',
+      button: 'bg-blue-500 hover:bg-blue-600',
+      accent: 'text-blue-300',
+      ring: 'focus:ring-blue-300',
+      borderAccent: 'border-blue-300',
+      spin: 'border-blue-300',
+      settingsContainer: 'bg-gray-800',
+      swatch: 'bg-blue-400',
+      swatchExtreme: 'bg-blue-700',
+    },
+    extremeGreen: {
       background: 'bg-green-950',
       container: 'bg-green-900',
       border: 'border-green-800',
-      icon: 'text-green-400',
+      icon: 'text-white',
       button: 'bg-green-600 hover:bg-green-700',
       accent: 'text-green-400',
       ring: 'focus:ring-green-500',
       borderAccent: 'border-green-400',
       spin: 'border-green-400',
       settingsContainer: 'bg-green-900',
+      swatch: 'bg-green-600',
+      swatchExtreme: 'bg-green-700',
     },
-    red: {
+    green: {
+      background: 'bg-gray-900',
+      container: 'bg-gray-800',
+      border: 'border-gray-700',
+      icon: 'text-white',
+      button: 'bg-green-500 hover:bg-green-600',
+      accent: 'text-green-300',
+      ring: 'focus:ring-green-300',
+      borderAccent: 'border-green-300',
+      spin: 'border-green-300',
+      settingsContainer: 'bg-gray-800',
+      swatch: 'bg-green-400',
+      swatchExtreme: 'bg-green-700',
+    },
+    extremeRed: {
       background: 'bg-red-950',
       container: 'bg-red-900',
       border: 'border-red-800',
-      icon: 'text-red-400',
+      icon: 'text-white',
       button: 'bg-red-600 hover:bg-red-700',
       accent: 'text-red-400',
       ring: 'focus:ring-red-500',
       borderAccent: 'border-red-400',
       spin: 'border-red-400',
       settingsContainer: 'bg-red-900',
+      swatch: 'bg-red-600',
+      swatchExtreme: 'bg-red-700',
+    },
+    red: {
+      background: 'bg-gray-900',
+      container: 'bg-gray-800',
+      border: 'border-gray-700',
+      icon: 'text-white',
+      button: 'bg-red-500 hover:bg-red-600',
+      accent: 'text-red-300',
+      ring: 'focus:ring-red-300',
+      borderAccent: 'border-red-300',
+      spin: 'border-red-300',
+      settingsContainer: 'bg-gray-800',
+      swatch: 'bg-red-400',
+      swatchExtreme: 'bg-red-700',
     },
     orange: {
-      background: 'bg-orange-950',
-      container: 'bg-orange-900',
-      border: 'border-orange-800',
-      icon: 'text-orange-400',
-      button: 'bg-orange-600 hover:bg-orange-700',
-      accent: 'text-orange-400',
-      ring: 'focus:ring-orange-500',
-      borderAccent: 'border-orange-400',
-      spin: 'border-orange-400',
-      settingsContainer: 'bg-orange-900',
+      background: 'bg-gray-900',
+      container: 'bg-gray-800',
+      border: 'border-gray-700',
+      icon: 'text-white',
+      button: 'bg-orange-500 hover:bg-orange-600',
+      accent: 'text-orange-300',
+      ring: 'focus:ring-orange-300',
+      borderAccent: 'border-orange-300',
+      spin: 'border-orange-300',
+      settingsContainer: 'bg-gray-800',
+      swatch: 'bg-orange-400',
+      swatchExtreme: 'bg-orange-700',
     },
     yellow: {
-      background: 'bg-yellow-950',
-      container: 'bg-yellow-900',
-      border: 'border-yellow-800',
-      icon: 'text-yellow-400',
-      button: 'bg-yellow-600 hover:bg-yellow-700',
-      accent: 'text-yellow-400',
-      ring: 'focus:ring-yellow-500',
-      borderAccent: 'border-yellow-400',
-      spin: 'border-yellow-400',
-      settingsContainer: 'bg-yellow-900',
+      background: 'bg-gray-900',
+      container: 'bg-gray-800',
+      border: 'border-gray-700',
+      icon: 'text-white',
+      button: 'bg-yellow-500 hover:bg-yellow-600',
+      accent: 'text-yellow-300',
+      ring: 'focus:ring-yellow-300',
+      borderAccent: 'border-yellow-300',
+      spin: 'border-yellow-300',
+      settingsContainer: 'bg-gray-800',
+      swatch: 'bg-yellow-400',
+      swatchExtreme: 'bg-yellow-700',
     },
     purple: {
-      background: 'bg-purple-950',
-      container: 'bg-purple-900',
-      border: 'border-purple-800',
-      icon: 'text-purple-400',
-      button: 'bg-purple-600 hover:bg-purple-700',
-      accent: 'text-purple-400',
-      ring: 'focus:ring-purple-500',
-      borderAccent: 'border-purple-400',
-      spin: 'border-purple-400',
-      settingsContainer: 'bg-purple-900',
+      background: 'bg-gray-900',
+      container: 'bg-gray-800',
+      border: 'border-gray-700',
+      icon: 'text-white',
+      button: 'bg-purple-500 hover:bg-purple-600',
+      accent: 'text-purple-300',
+      ring: 'focus:ring-purple-300',
+      borderAccent: 'border-purple-300',
+      spin: 'border-purple-300',
+      settingsContainer: 'bg-gray-800',
+      swatch: 'bg-purple-400',
+      swatchExtreme: 'bg-purple-700',
     },
     pink: {
-      background: 'bg-pink-950',
-      container: 'bg-pink-900',
-      border: 'border-pink-800',
-      icon: 'text-pink-400',
-      button: 'bg-pink-600 hover:bg-pink-700',
-      accent: 'text-pink-400',
-      ring: 'focus:ring-pink-500',
-      borderAccent: 'border-pink-400',
-      spin: 'border-pink-400',
-      settingsContainer: 'bg-pink-900',
+      background: 'bg-gray-900',
+      container: 'bg-gray-800',
+      border: 'border-gray-700',
+      icon: 'text-white',
+      button: 'bg-pink-500 hover:bg-pink-600',
+      accent: 'text-pink-300',
+      ring: 'focus:ring-pink-300',
+      borderAccent: 'border-pink-300',
+      spin: 'border-pink-300',
+      settingsContainer: 'bg-gray-800',
+      swatch: 'bg-pink-400',
+      swatchExtreme: 'bg-pink-700',
     },
   };
 
@@ -1134,12 +1190,17 @@ const SchoolPlanner = () => {
             </div>
             <div className="grid grid-cols-4 gap-4">
               {Object.entries(themeColors).map(([key, val]) => (
-                <button
-                  key={key}
-                  className={`w-10 h-10 rounded-full border-2 ${theme === key ? val.borderAccent : 'border-gray-600'} ${val.button.split(' ')[0]}`}
-                  onClick={() => { setTheme(key as any); setShowThemeModal(false); }}
-                  title={key.charAt(0).toUpperCase() + key.slice(1)}
-                />
+                <div key={key} className="flex flex-col items-center">
+                  <button
+                    className={`w-10 h-10 rounded-full border-2 ${theme === key ? val.borderAccent : 'border-gray-600'} ${val.button.split(' ')[0]}`}
+                    onClick={() => { setTheme(key as any); setShowThemeModal(false); }}
+                    title={key.charAt(0).toUpperCase() + key.slice(1)}
+                  />
+                  <span>Normal</span>
+                  <div className={val.swatch + ' w-6 h-6 rounded-full mt-1'}></div>
+                  <span>Extreme</span>
+                  <div className={val.swatchExtreme + ' w-6 h-6 rounded-full mt-1'}></div>
+                </div>
               ))}
             </div>
           </div>
