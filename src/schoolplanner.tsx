@@ -47,7 +47,6 @@ const SchoolPlanner = () => {
   const [weekData, setWeekData] = useState<WeekData | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [dragOver, setDragOver] = useState(false);
   // Remove currentPage state, use router location instead
   const navigate = useNavigate();
   const location = useLocation();
@@ -404,16 +403,16 @@ const SchoolPlanner = () => {
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    setDragOver(true);
+    // setDragOver(true); // Removed as per edit hint
   };
 
   const handleDragLeave = () => {
-    setDragOver(false);
+    // setDragOver(false); // Removed as per edit hint
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    setDragOver(false);
+    // setDragOver(false); // Removed as per edit hint
     const files = e.dataTransfer.files;
     if (files.length > 0 && files[0].name.endsWith('.ics')) {
       processFile(files[0]);
@@ -511,6 +510,46 @@ const SchoolPlanner = () => {
 
   // Compute the effective mode
   const effectiveMode: 'light' | 'dark' = themeMode === 'system' ? getSystemMode() : themeMode;
+
+  // Define the 'colors' object for theme-based styling if not already defined
+  const colors = {
+    background: effectiveMode === 'light' ? 'bg-gray-100' : 'bg-gray-900',
+    container: effectiveMode === 'light' ? 'bg-white' : 'bg-gray-800',
+    border: effectiveMode === 'light' ? 'border-gray-200' : 'border-gray-700',
+    button: effectiveMode === 'light' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-500 hover:bg-blue-600',
+    icon: effectiveMode === 'light' ? 'text-black' : 'text-white',
+    spin: effectiveMode === 'light' ? 'border-blue-600' : 'border-blue-400',
+  };
+
+  // Add missing state and handlers for name edit modal
+  const [showNameEditModal, setShowNameEditModal] = useState(false);
+  const [editUserName, setEditUserName] = useState('');
+
+  // Add missing state and handlers for theme modal and theme selection
+  const [showThemeModal, setShowThemeModal] = useState(false);
+  // Theme color variables and handlers (minimal stub for now)
+  const colorVars = {
+    red: { label: 'Red', light: { normal: { swatch: 'bg-red-500' }, extreme: { swatch: 'bg-red-700' } }, dark: { normal: { swatch: 'bg-red-400' }, extreme: { swatch: 'bg-red-800' } } },
+    orange: { label: 'Orange', light: { normal: { swatch: 'bg-orange-500' }, extreme: { swatch: 'bg-orange-700' } }, dark: { normal: { swatch: 'bg-orange-400' }, extreme: { swatch: 'bg-orange-800' } } },
+    yellow: { label: 'Yellow', light: { normal: { swatch: 'bg-yellow-400' }, extreme: { swatch: 'bg-yellow-600' } }, dark: { normal: { swatch: 'bg-yellow-300' }, extreme: { swatch: 'bg-yellow-700' } } },
+    green: { label: 'Green', light: { normal: { swatch: 'bg-green-500' }, extreme: { swatch: 'bg-green-700' } }, dark: { normal: { swatch: 'bg-green-400' }, extreme: { swatch: 'bg-green-800' } } },
+    blue: { label: 'Blue', light: { normal: { swatch: 'bg-blue-500' }, extreme: { swatch: 'bg-blue-700' } }, dark: { normal: { swatch: 'bg-blue-400' }, extreme: { swatch: 'bg-blue-800' } } },
+    purple: { label: 'Purple', light: { normal: { swatch: 'bg-purple-500' }, extreme: { swatch: 'bg-purple-700' } }, dark: { normal: { swatch: 'bg-purple-400' }, extreme: { swatch: 'bg-purple-800' } } },
+    pink: { label: 'Pink', light: { normal: { swatch: 'bg-pink-500' }, extreme: { swatch: 'bg-pink-700' } }, dark: { normal: { swatch: 'bg-pink-400' }, extreme: { swatch: 'bg-pink-800' } } },
+    grey: { label: 'Grey', light: { normal: { swatch: 'bg-gray-400' }, extreme: { swatch: 'bg-gray-700' } }, dark: { normal: { swatch: 'bg-gray-300' }, extreme: { swatch: 'bg-gray-800' } } },
+  };
+  const [theme, setTheme] = useState<keyof typeof colorVars>('blue');
+  const [themeType, setThemeType] = useState<'normal' | 'extreme'>('normal');
+  const themeColors = (mode: 'light' | 'dark') => colorVars;
+  const handleThemeChange = (key: keyof typeof colorVars, type: 'normal' | 'extreme') => {
+    setTheme(key);
+    setThemeType(type);
+  };
+
+  // Add stubs for renderWelcomeScreen, renderHome, isInitializing if not defined
+  const isInitializing = false; // Set to false unless you have an init routine
+  function renderWelcomeScreen() { return <div>Welcome Screen (stub)</div>; }
+  function renderHome() { return <div>Home (stub)</div>; }
 
   const renderWeekView = () => {
     if (!weekData) return null;
