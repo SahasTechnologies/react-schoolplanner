@@ -199,10 +199,10 @@ export const colorVars = {
     },
     light: {
       normal: {
-        background: 'bg-[#fff5fa]',
-        container: 'bg-[#ffeaf3]',
+        background: 'bg-[#fff5f8]',
+        container: 'bg-[#ffeaf0]',
         border: 'border-[#ffd6e0]',
-        swatch: 'bg-[#ffeaf3]',
+        swatch: 'bg-[#ffeaf0]',
       },
       extreme: {
         background: 'bg-pink-100',
@@ -215,24 +215,24 @@ export const colorVars = {
   grey: {
     dark: {
       normal: {
-        background: 'bg-[#18191a]',
-        container: 'bg-[#232425]',
-        border: 'border-[#393a3b]',
-        swatch: 'bg-[#232425]',
+        background: 'bg-[#1a1a1a]',
+        container: 'bg-[#232323]',
+        border: 'border-[#3a3a3a]',
+        swatch: 'bg-[#232323]',
       },
       extreme: {
-        background: 'bg-gray-900',
-        container: 'bg-gray-800',
-        border: 'border-gray-700',
-        swatch: 'bg-gray-800',
+        background: 'bg-gray-950',
+        container: 'bg-gray-900',
+        border: 'border-gray-800',
+        swatch: 'bg-gray-900',
       },
     },
     light: {
       normal: {
-        background: 'bg-[#f7f7f8]',
-        container: 'bg-[#ededed]',
-        border: 'border-[#d1d5db]',
-        swatch: 'bg-[#ededed]',
+        background: 'bg-[#f8f8f8]',
+        container: 'bg-[#f0f0f0]',
+        border: 'border-[#e0e0e0]',
+        swatch: 'bg-[#f0f0f0]',
       },
       extreme: {
         background: 'bg-gray-100',
@@ -333,7 +333,7 @@ export const themeColors = (mode: 'dark' | 'light') => ({
   grey: {
     ...colorVars.grey[mode].normal,
     icon: mode === 'dark' ? 'text-white' : 'text-gray-700',
-    button: mode === 'dark' ? 'bg-gray-500 hover:bg-gray-600' : 'bg-gray-300 hover:bg-gray-400',
+    button: mode === 'dark' ? 'bg-gray-500 hover:bg-gray-600' : 'bg-gray-400 hover:bg-gray-500',
     accent: mode === 'dark' ? 'text-gray-400' : 'text-gray-600',
     ring: mode === 'dark' ? 'focus:ring-gray-400' : 'focus:ring-gray-300',
     borderAccent: mode === 'dark' ? 'border-gray-400' : 'border-gray-300',
@@ -344,7 +344,7 @@ export const themeColors = (mode: 'dark' | 'light') => ({
   },
 });
 
-// Helper function to get the correct color set for the current theme and type
+// Helper to get the correct color set for the current theme and type
 export const getColors = (theme: ThemeKey, themeType: 'normal' | 'extreme', effectiveMode: 'light' | 'dark') => {
   return themeType === 'normal'
     ? themeColors(effectiveMode)[theme]

@@ -12,7 +12,7 @@ import {
   Utensils // <-- Add Utensils icon
 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { ThemeKey, colorVars, themeColors, getColors } from '../public/theme';
+import { ThemeKey, colorVars, themeColors, getColors } from './theme';
 
 interface CalendarEvent {
   dtstart: Date;
