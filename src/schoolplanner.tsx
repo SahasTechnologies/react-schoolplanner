@@ -899,23 +899,26 @@ const SchoolPlanner = () => {
                 {infoOrder.map((item: { key: string; label: string }, idx: number) => (
                   <div
                     key={item.key}
-                    className={`flex items-center gap-3 p-2 rounded ${draggedIdx === idx ? 'bg-blue-100/20' : ''}`}
+                    className={`flex items-center gap-3 p-2 rounded transition-all duration-300 ${draggedIdx === idx ? 'bg-blue-100/20' : ''}`}
                     draggable
                     onDragStart={() => handleDragStart(idx)}
                     onDragOver={e => { e.preventDefault(); handleInfoDragOver(idx); }}
                     onDragEnd={handleDragEnd}
+                    style={{
+                      transition: 'margin 0.3s, transform 0.3s',
+                      marginTop: infoShown[item.key] && idx !== 0 ? '-12px' : '',
+                      zIndex: draggedIdx === idx ? 10 : 1,
+                    }}
                   >
                     <GripVertical className="text-gray-400 cursor-grab" size={20} />
                     <span className="flex-1 font-medium">{item.label}</span>
-                    <label className="inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={infoShown[item.key]}
-                        onChange={() => handleToggleInfoShown(item.key)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-10 h-5 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:bg-blue-600 transition-colors"></div>
-                    </label>
+                    <input
+                      type="checkbox"
+                      checked={infoShown[item.key]}
+                      onChange={() => handleToggleInfoShown(item.key)}
+                      className="toggle-checkbox h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded transition duration-200"
+                      style={{ accentColor: '#2563eb' }}
+                    />
                   </div>
                 ))}
               </div>
@@ -979,7 +982,8 @@ const SchoolPlanner = () => {
 
   const renderHome = () => {
     const { dayLabel, events } = getTodayOrNextEvents();
-    const allFieldsShown = infoOrder.every((o: { key: string; label: string }) => infoShown[o.key]);
+    // Always show enabled fields in order; if none enabled, fallback to hover logic
+    const enabledFields = infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key]);
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
@@ -1008,7 +1012,6 @@ const SchoolPlanner = () => {
                       teacherName = match[1].trim();
                     }
                   }
-                  const isExpanded = hoveredEventIdx === idx;
                   // Helper to render info fields
                   const infoFields = [
                     {
@@ -1043,19 +1046,26 @@ const SchoolPlanner = () => {
                     }
                   ];
                   // Order and filter info fields
-                  const shownFields = (isExpanded
-                    ? infoOrder.map((o: { key: string; label: string }) => infoFields.find((f: { key: string; node: React.ReactNode }) => f.key === o.key)).filter(Boolean)
-                    : infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key]).map((o: { key: string; label: string }) => infoFields.find((f: { key: string; node: React.ReactNode }) => f.key === o.key)).filter(Boolean)
-                  );
+                  let shownFields;
+                  if (enabledFields.length > 0) {
+                    shownFields = enabledFields.map((o: { key: string; label: string }) => infoFields.find((f: { key: string; node: React.ReactNode }) => f.key === o.key)).filter(Boolean);
+                  } else {
+                    // Fallback: show all fields on hover (legacy behavior)
+                    const isExpanded = hoveredEventIdx === idx;
+                    shownFields = (isExpanded
+                      ? infoOrder.map((o: { key: string; label: string }) => infoFields.find((f: { key: string; node: React.ReactNode }) => f.key === o.key)).filter(Boolean)
+                      : []);
+                  }
                   // Card class and handlers
-                  const cardClass = `rounded-lg p-3 text-white text-sm ${!allFieldsShown ? 'transition-all duration-300 hover:shadow-lg hover:scale-[1.02] cursor-pointer overflow-hidden ' + (isExpanded ? 'max-h-60' : 'max-h-14') : ''}`;
-                  const infoClass = `transition-all duration-300 ${shownFields.length > 0 && (isExpanded || allFieldsShown) ? 'opacity-100 mt-2' : !isExpanded && shownFields.length > 0 ? 'opacity-100 mt-2' : 'opacity-0 h-0 pointer-events-none'}`;
+                  const cardClass = `rounded-lg p-3 text-white text-sm transition-all duration-300 hover:shadow-lg hover:scale-[1.02] cursor-pointer overflow-hidden`;
+                  // Animate info area: always visible if enabledFields, else slide down on hover
+                  const infoVisible = enabledFields.length > 0 || (hoveredEventIdx === idx);
                   return (
                     <div
                       key={idx}
                       className={cardClass}
                       style={{ backgroundColor: getEventColour(event.summary) }}
-                      {...(!allFieldsShown ? {
+                      {...(enabledFields.length === 0 ? {
                         onMouseEnter: () => setHoveredEventIdx(idx),
                         onMouseLeave: () => setHoveredEventIdx(null)
                       } : {})}
@@ -1068,7 +1078,15 @@ const SchoolPlanner = () => {
                           {getSubjectIcon(event.summary, 24, effectiveMode)}
                         </span>
                       </div>
-                      <div className={infoClass} style={{overflow: 'hidden'}}>
+                      <div
+                        className="transition-all duration-500"
+                        style={{
+                          maxHeight: infoVisible ? 200 : 0,
+                          opacity: infoVisible ? 1 : 0,
+                          overflow: 'hidden',
+                          marginTop: infoVisible && shownFields.length > 0 ? 8 : 0,
+                        }}
+                      >
                         {shownFields.map((f: { key: string; node: React.ReactNode }) => f.node)}
                       </div>
                     </div>
