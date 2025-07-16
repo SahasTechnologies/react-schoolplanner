@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { 
-  Upload, Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Settings, Edit2, User, Book,
+  Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Settings, Edit2, User, Book,
   Calculator, FlaskConical, Palette, Music, Globe, Dumbbell, Languages, Code2, Brain, Mic2, 
   Users, BookOpen, PenLine, BookUser, Briefcase, HeartHandshake, Library, BookMarked, Star, 
   GraduationCap, Bot, Utensils, // <-- Add Utensils icon
@@ -68,7 +68,6 @@ const SchoolPlanner = () => {
 
   // Remove enhanced biweekly schedule and pattern logic
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const customColourInputRef = useRef<HTMLInputElement>(null); // Ref for hidden colour input
 
   // Default colours for the palette
@@ -401,12 +400,6 @@ const SchoolPlanner = () => {
       }
     };
     reader.readAsText(file);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      processFile(e.target.files[0]);
-    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -1010,48 +1003,6 @@ const SchoolPlanner = () => {
       </div>
     );
   };
-
-  // Helper to get events for today or tomorrow (if today's are over)
-  function getTodayOrNextEvents(): { dayLabel: string, events: CalendarEvent[] } {
-    if (!weekData) return { dayLabel: '', events: [] };
-    const now = new Date();
-    // Get local day index (0=Sunday, 1=Monday, ..., 6=Saturday)
-    let dayIdx = now.getDay();
-    // Only consider Mon-Fri (1-5)
-    const isWeekday = (d: number) => d >= 1 && d <= 5;
-    // Build a map: dayIdx (1-5) -> events[]
-    const dayEvents: CalendarEvent[][] = [[], [], [], [], []];
-    weekData.events.forEach((event: CalendarEvent) => {
-      const eventDate = new Date(event.dtstart);
-      const eventDay = eventDate.getDay();
-      if (eventDay >= 1 && eventDay <= 5) {
-        dayEvents[eventDay - 1].push(event);
-      }
-    });
-    // Sort events for each day
-    dayEvents.forEach(list => list.sort((a, b) => a.dtstart.getTime() - b.dtstart.getTime()));
-    // Try today first
-    if (isWeekday(dayIdx)) {
-      const todayEvents = dayEvents[dayIdx - 1];
-      if (todayEvents.length > 0) {
-        // If any event is still upcoming or ongoing, show today
-        const lastEventEnd = todayEvents[todayEvents.length - 1].dtend || todayEvents[todayEvents.length - 1].dtstart;
-        if (now <= lastEventEnd) {
-          return { dayLabel: 'Today', events: todayEvents };
-        }
-      }
-    }
-    // Otherwise, show the next weekday with events (usually tomorrow)
-    for (let offset = 1; offset <= 5; ++offset) {
-      let nextIdx = ((dayIdx - 1 + offset) % 5);
-      if (dayEvents[nextIdx].length > 0) {
-        const label = offset === 1 ? 'Tomorrow' : ['Monday','Tuesday','Wednesday','Thursday','Friday'][nextIdx];
-        return { dayLabel: label, events: dayEvents[nextIdx] };
-      }
-    }
-    // Fallback: no events
-    return { dayLabel: '', events: [] };
-  }
 
   // Add state for info shown at start and popup/modal
   const defaultInfoOrder = [
