@@ -31,6 +31,8 @@ interface Subject {
   colour: string; // Changed to Australian English 'colour'
 }
 
+type ThemeKey = 'red' | 'orange' | 'yellow' | 'green' | 'blue' | 'purple' | 'pink';
+
 const SchoolPlanner = () => {
   const [weekData, setWeekData] = useState<WeekData | null>(null);
   const [error, setError] = useState('');
@@ -1154,11 +1156,23 @@ const SchoolPlanner = () => {
   };
 
   // Add a new state to track if the user selected a normal or extreme theme
+  const [theme, setTheme] = useState<ThemeKey>('blue');
   const [themeType, setThemeType] = useState<'normal' | 'extreme'>('normal');
+  const [showThemeModal, setShowThemeModal] = useState(false);
+
+  // Helper to get the correct color set for the current theme and type
+  const colors = themeType === 'normal' ? themeColors[theme] : {
+    ...themeColors[theme],
+    background: colorVars[theme].extreme.background,
+    container: colorVars[theme].extreme.container,
+    border: colorVars[theme].extreme.border,
+    swatch: colorVars[theme].extreme.swatch,
+    settingsContainer: colorVars[theme].extreme.container,
+  };
 
   // When setting theme, also set themeType
   function handleThemeChange(key: string, type: 'normal' | 'extreme') {
-    setTheme(key as any);
+    setTheme(key as ThemeKey);
     setThemeType(type);
     setShowThemeModal(false);
   }
