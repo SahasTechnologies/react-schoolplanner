@@ -517,7 +517,7 @@ const SchoolPlanner = () => {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <Calendar className="text-blue-400" size={24} />
+          <Calendar className={colors.icon} size={24} />
           <h2 className="text-2xl font-semibold text-white">Weekly Schedule</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -975,6 +975,7 @@ const SchoolPlanner = () => {
     }
   };
 
+  // Theme color system: all themes use the same neutral backgrounds, only accent colors change
   const themeColors = {
     blue: {
       background: 'bg-gray-900',
@@ -989,76 +990,76 @@ const SchoolPlanner = () => {
       settingsContainer: 'bg-gray-800',
     },
     green: {
-      background: 'bg-green-950',
-      container: 'bg-green-800',
-      border: 'border-green-700',
+      background: 'bg-gray-900',
+      container: 'bg-gray-800',
+      border: 'border-gray-700',
       icon: 'text-green-400',
       button: 'bg-green-600 hover:bg-green-700',
       accent: 'text-green-400',
       ring: 'focus:ring-green-500',
       borderAccent: 'border-green-400',
       spin: 'border-green-400',
-      settingsContainer: 'bg-green-800',
+      settingsContainer: 'bg-gray-800',
     },
     red: {
-      background: 'bg-red-950',
-      container: 'bg-red-800',
-      border: 'border-red-700',
+      background: 'bg-gray-900',
+      container: 'bg-gray-800',
+      border: 'border-gray-700',
       icon: 'text-red-400',
       button: 'bg-red-600 hover:bg-red-700',
       accent: 'text-red-400',
       ring: 'focus:ring-red-500',
       borderAccent: 'border-red-400',
       spin: 'border-red-400',
-      settingsContainer: 'bg-red-800',
+      settingsContainer: 'bg-gray-800',
     },
     orange: {
-      background: 'bg-orange-950',
-      container: 'bg-orange-800',
-      border: 'border-orange-700',
+      background: 'bg-gray-900',
+      container: 'bg-gray-800',
+      border: 'border-gray-700',
       icon: 'text-orange-400',
       button: 'bg-orange-600 hover:bg-orange-700',
       accent: 'text-orange-400',
       ring: 'focus:ring-orange-500',
       borderAccent: 'border-orange-400',
       spin: 'border-orange-400',
-      settingsContainer: 'bg-orange-800',
+      settingsContainer: 'bg-gray-800',
     },
     yellow: {
-      background: 'bg-yellow-950',
-      container: 'bg-yellow-800',
-      border: 'border-yellow-700',
+      background: 'bg-gray-900',
+      container: 'bg-gray-800',
+      border: 'border-gray-700',
       icon: 'text-yellow-400',
       button: 'bg-yellow-600 hover:bg-yellow-700',
       accent: 'text-yellow-400',
       ring: 'focus:ring-yellow-500',
       borderAccent: 'border-yellow-400',
       spin: 'border-yellow-400',
-      settingsContainer: 'bg-yellow-800',
+      settingsContainer: 'bg-gray-800',
     },
     purple: {
-      background: 'bg-purple-950',
-      container: 'bg-purple-800',
-      border: 'border-purple-700',
+      background: 'bg-gray-900',
+      container: 'bg-gray-800',
+      border: 'border-gray-700',
       icon: 'text-purple-400',
       button: 'bg-purple-600 hover:bg-purple-700',
       accent: 'text-purple-400',
       ring: 'focus:ring-purple-500',
       borderAccent: 'border-purple-400',
       spin: 'border-purple-400',
-      settingsContainer: 'bg-purple-800',
+      settingsContainer: 'bg-gray-800',
     },
     pink: {
-      background: 'bg-pink-950',
-      container: 'bg-pink-800',
-      border: 'border-pink-700',
+      background: 'bg-gray-900',
+      container: 'bg-gray-800',
+      border: 'border-gray-700',
       icon: 'text-pink-400',
       button: 'bg-pink-600 hover:bg-pink-700',
       accent: 'text-pink-400',
       ring: 'focus:ring-pink-500',
       borderAccent: 'border-pink-400',
       spin: 'border-pink-400',
-      settingsContainer: 'bg-pink-800',
+      settingsContainer: 'bg-gray-800',
     },
   };
 
@@ -1082,30 +1083,34 @@ const SchoolPlanner = () => {
         <div className="space-y-4 w-full flex-1"> {/* Added w-full here for centering */}
           <button
             onClick={() => setCurrentPage('home')}
-            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${currentPage === 'home' ? `${colors.button} text-white` : 'text-white opacity-70 hover:opacity-100 hover:bg-gray-700'}`}
+            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${currentPage === 'home' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 hover:bg-gray-700`}`}
+            title="Home"
           >
-            <Home size={20} />
+            <Home size={20} className={colors.icon} />
           </button>
 
           <button
             onClick={() => setCurrentPage('calendar')}
-            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${currentPage === 'calendar' ? `${colors.button} text-white` : 'text-white opacity-70 hover:opacity-100 hover:bg-gray-700'}`}
+            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${currentPage === 'calendar' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 hover:bg-gray-700`}`}
+            title="Calendar"
           >
-            <Calendar size={20} />
+            <Calendar size={20} className={colors.icon} />
           </button>
 
           <button
             onClick={() => setCurrentPage('markbook')}
-            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${currentPage === 'markbook' ? `${colors.button} text-white` : 'text-white opacity-70 hover:opacity-100 hover:bg-gray-700'}`}
+            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${currentPage === 'markbook' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 hover:bg-gray-700`}`}
+            title="Markbook"
           >
-            <BarChart3 size={20} />
+            <BarChart3 size={20} className={colors.icon} />
           </button>
 
           <button
             onClick={() => setCurrentPage('settings')}
-            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${currentPage === 'settings' ? `${colors.button} text-white` : 'text-white opacity-70 hover:opacity-100 hover:bg-gray-700'}`}
+            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${currentPage === 'settings' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 hover:bg-gray-700`}`}
+            title="Settings"
           >
-            <Settings size={20} />
+            <Settings size={20} className={colors.icon} />
           </button>
         </div>
         {/* Theme button at bottom */}
@@ -1114,7 +1119,7 @@ const SchoolPlanner = () => {
           className="p-3 rounded-lg transition-colors duration-200 mx-auto block text-white opacity-70 hover:opacity-100 hover:bg-gray-700 mb-2"
           title="Change Theme"
         >
-          <Palette size={20} />
+          <Palette size={20} className={colors.icon} />
         </button>
       </div>
       {/* Theme Modal */}
