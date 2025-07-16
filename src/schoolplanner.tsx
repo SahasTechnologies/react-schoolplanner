@@ -872,6 +872,20 @@ const SchoolPlanner = () => {
   };
 
   const renderWelcomeScreen = () => {
+    if (welcomeStep === 'completed' && location.pathname === '/welcome') {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-center p-8">
+          <h2 className={`text-3xl font-bold mb-4 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Setup Complete</h2>
+          <p className={`${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'} mb-6`}>You have already uploaded your timetable and name. To change them, go to Settings.</p>
+          <button
+            onClick={() => navigate('/settings')}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+          >
+            Go to Settings
+          </button>
+        </div>
+      );
+    }
     switch (welcomeStep) {
       case 'welcome':
         return (
@@ -1381,6 +1395,40 @@ const SchoolPlanner = () => {
     }
   }, []);
 
+  // --- Welcome screen URL logic ---
+  React.useEffect(() => {
+    if (welcomeStep !== 'completed' && location.pathname !== '/welcome') {
+      navigate('/welcome', { replace: true });
+    }
+    if (welcomeStep === 'completed' && location.pathname === '/welcome') {
+      // If setup is complete but user is on /welcome, show a message (handled in renderWelcomeScreen)
+    }
+  }, [welcomeStep, location.pathname, navigate]);
+
+  // --- Save weekData to localStorage ---
+  React.useEffect(() => {
+    if (weekData && welcomeStep === 'completed') {
+      localStorage.setItem('weekData', JSON.stringify(weekData));
+    }
+  }, [weekData, welcomeStep]);
+
+  // --- Load weekData from localStorage on mount ---
+  React.useEffect(() => {
+    if (!weekData && welcomeStep === 'completed') {
+      const saved = localStorage.getItem('weekData');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          // Convert date strings back to Date objects
+          parsed.monday = new Date(parsed.monday);
+          parsed.friday = new Date(parsed.friday);
+          parsed.events = parsed.events.map((e: any) => ({ ...e, dtstart: new Date(e.dtstart), dtend: e.dtend ? new Date(e.dtend) : undefined }));
+          setWeekData(parsed);
+        } catch {}
+      }
+    }
+  }, [weekData, welcomeStep]);
+
   // Main content routes
   // Only show welcome screen if not completed
   let mainContent = null;
@@ -1452,10 +1500,10 @@ const SchoolPlanner = () => {
             </div>
             {/* Theme Mode Toggle */}
             <div className="mb-6 flex flex-row items-center justify-center">
-              <div className={`relative flex ${effectiveMode === 'light' ? 'bg-white' : 'bg-gray-800'} rounded-full w-44 h-12 px-2 gap-x-1 transition-colors duration-200`}>
+              <div className={`relative flex ${effectiveMode === 'light' ? 'bg-white' : 'bg-gray-800'} rounded-full w-44 h-12 px-3 gap-x-2 py-2 transition-colors duration-200`}>
                 {/* Toggle thumb */}
                 <div
-                  className={`absolute top-1 left-2 h-10 w-12 rounded-full transition-all duration-200 shadow-md ${themeMode === 'light' ? 'translate-x-0 bg-white' : themeMode === 'dark' ? 'translate-x-28 bg-gray-900' : 'translate-x-14 bg-gray-300 dark:bg-gray-800'}`}
+                  className={`absolute top-2 left-3 h-8 w-12 rounded-full transition-all duration-200 shadow-md ${themeMode === 'light' ? 'translate-x-0 bg-white' : themeMode === 'dark' ? 'translate-x-28 bg-gray-900' : 'translate-x-14 bg-gray-300 dark:bg-gray-800'}`}
                   style={{ zIndex: 1 }}
                 />
                 {/* Light */}
