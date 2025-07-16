@@ -5,7 +5,7 @@ import * as React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { 
   Upload, Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Settings, Edit2, User,
-  Sun, Moon, Monitor, GripVertical,
+  Sun, Moon, Monitor, GripVertical, Palette,
   Utensils // <-- Add Utensils icon
 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
