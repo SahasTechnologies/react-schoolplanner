@@ -725,10 +725,10 @@ const SchoolPlanner = () => {
     'Robotics': Bot,
   };
 
-  function getSubjectIcon(subjectName: string, size: number = 20, mode: 'light' | 'dark' = 'light') {
+  function getSubjectIcon(subjectName: string, size: number = 20, _mode: 'light' | 'dark' = 'light') {
     const normalized = normalizeSubjectName(subjectName);
     const IconComponent = subjectIconMap[normalized] || Book;
-    return <IconComponent size={size} className={mode === 'light' ? 'text-black' : 'text-white'} />;
+    return <IconComponent size={size} className={_mode === 'light' ? 'text-black' : 'text-white'} />;
   }
 
   const renderMarkbook = () => {
@@ -1332,7 +1332,7 @@ export default SchoolPlanner;
 // 3. For favicon, export the Lucide 'School' icon as SVG and set as <link rel="icon" href="/school.svg"> in index.html.
 
 // Helper to insert breaks between events if needed
-function insertBreaks(events: CalendarEvent[], showBreaks: boolean, effectiveMode: 'light' | 'dark'): (CalendarEvent | { isBreak: true, start: Date, end: Date })[] {
+function insertBreaks(events: CalendarEvent[], showBreaks: boolean, _effectiveMode: 'light' | 'dark'): (CalendarEvent | { isBreak: true, start: Date, end: Date })[] {
   if (!showBreaks) return events;
   if (!events || events.length === 0) return events;
   const result: (CalendarEvent | { isBreak: true, start: Date, end: Date })[] = [];
