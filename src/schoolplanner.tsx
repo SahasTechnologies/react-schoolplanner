@@ -523,14 +523,14 @@ const SchoolPlanner = () => {
     return (
       <div className="space-y-6">
         <div className={`flex items-center gap-3 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
-          <Calendar className="text-white" size={24} />
+          <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
           <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Weekly Schedule</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           {days.map((day, index) => (
             <div key={day} className={`${colors.container} rounded-lg ${colors.border} border`}>
               <div className={`p-4 border-b ${colors.border}`}>
-                <h3 className="font-semibold text-white text-center">{day}</h3>
+                <h3 className={`font-semibold text-center ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{day}</h3>
               </div>
               <div className="p-3 space-y-2 min-h-[400px]">
                 {dayEvents[index].length === 0 ? (
@@ -559,7 +559,7 @@ const SchoolPlanner = () => {
                             {normalizeSubjectName(event.summary)}
                           </span>
                           <span style={{ opacity: 0.35, display: 'flex', alignItems: 'center' }} className="text-black">
-                            {getSubjectIcon(event.summary, 24)}
+                            {getSubjectIcon(event.summary, 24, effectiveMode)}
                           </span>
                         </div>
                         {/* Teacher name row */}
@@ -642,17 +642,17 @@ const SchoolPlanner = () => {
     'Robotics': Bot,
   };
 
-  function getSubjectIcon(subjectName: string, size: number = 20) {
+  function getSubjectIcon(subjectName: string, size: number = 20, mode: 'light' | 'dark' = 'light') {
     const normalized = normalizeSubjectName(subjectName);
     const IconComponent = subjectIconMap[normalized] || Book;
-    return <IconComponent size={size} className="text-black" />;
+    return <IconComponent size={size} className={mode === 'light' ? 'text-black' : 'text-white'} />;
   }
 
   const renderMarkbook = () => {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <BarChart3 className="text-white" size={24} />
+          <BarChart3 className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
           <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Markbook</h2>
         </div>
 
@@ -668,12 +668,12 @@ const SchoolPlanner = () => {
               <div key={subject.id} className={`${colors.container} rounded-lg ${colors.border} border p-4`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    {getSubjectIcon(subject.name)}
+                    {getSubjectIcon(subject.name, 20, effectiveMode)}
                     <div
                       className="w-4 h-4 rounded-full"
                       style={{ backgroundColor: subject.colour }}
                     />
-                    <span className="text-white font-medium capitalize">{subject.name}</span>
+                    <span className={`font-medium capitalize ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{subject.name}</span>
                   </div>
                   <button
                     onClick={() => startEditingSubject(subject)}
@@ -766,7 +766,7 @@ const SchoolPlanner = () => {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <Settings className="text-white" size={24} />
+          <Settings className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
           <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Settings</h2>
         </div>
         <div className="space-y-4">
@@ -830,14 +830,14 @@ const SchoolPlanner = () => {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
-          <Home className="text-white" size={24} />
+          <Home className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
           <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Home</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
             <div className="flex items-center gap-3 mb-4">
-              <Calendar className="text-white" size={20} />
+              <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
               <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Schedule</h3>
             </div>
             <p className={`text-gray-400 mb-4 ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>
@@ -853,7 +853,7 @@ const SchoolPlanner = () => {
 
           <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
             <div className="flex items-center gap-3 mb-4">
-              <BarChart3 className="text-white" size={20} />
+              <BarChart3 className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
               <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Markbook</h3>
             </div>
             <p className={`text-gray-400 mb-4 ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>
@@ -1452,15 +1452,15 @@ const SchoolPlanner = () => {
             </div>
             {/* Theme Mode Toggle */}
             <div className="mb-6 flex flex-row items-center justify-center">
-              <div className={`relative flex bg-gray-200 dark:bg-gray-700 rounded-full w-44 h-12 p-1 transition-colors duration-200`}>
+              <div className={`relative flex ${effectiveMode === 'light' ? 'bg-white' : 'bg-gray-800'} rounded-full w-44 h-12 px-2 gap-x-1 transition-colors duration-200`}>
                 {/* Toggle thumb */}
                 <div
-                  className={`absolute top-1 left-1 h-10 w-12 rounded-full transition-all duration-200 shadow-md ${themeMode === 'light' ? 'translate-x-0 bg-white' : themeMode === 'dark' ? 'translate-x-28 bg-gray-900' : 'translate-x-14 bg-gray-300 dark:bg-gray-800'}`}
+                  className={`absolute top-1 left-2 h-10 w-12 rounded-full transition-all duration-200 shadow-md ${themeMode === 'light' ? 'translate-x-0 bg-white' : themeMode === 'dark' ? 'translate-x-28 bg-gray-900' : 'translate-x-14 bg-gray-300 dark:bg-gray-800'}`}
                   style={{ zIndex: 1 }}
                 />
                 {/* Light */}
                 <button
-                  className={`relative flex-1 flex flex-col items-center justify-center z-10 rounded-full transition-colors duration-200 ${themeMode === 'light' ? (effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400') : (effectiveMode === 'light' ? 'text-black' : 'text-white')}`}
+                  className={`relative flex-1 flex flex-col items-center justify-center z-10 rounded-full transition-colors duration-200 ${themeMode === 'light' ? (effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400') : (effectiveMode === 'light' ? 'text-black' : 'text-white')} mx-1`}
                   style={{ height: '40px' }}
                   onClick={() => setThemeMode('light')}
                 >
@@ -1469,7 +1469,7 @@ const SchoolPlanner = () => {
                 </button>
                 {/* System */}
                 <button
-                  className={`relative flex-1 flex flex-col items-center justify-center z-10 rounded-full transition-colors duration-200 ${themeMode === 'system' ? (effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400') : (effectiveMode === 'light' ? 'text-black' : 'text-white')}`}
+                  className={`relative flex-1 flex flex-col items-center justify-center z-10 rounded-full transition-colors duration-200 ${themeMode === 'system' ? (effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400') : (effectiveMode === 'light' ? 'text-black' : 'text-white')} mx-1`}
                   style={{ height: '40px' }}
                   onClick={() => setThemeMode('system')}
                 >
@@ -1478,7 +1478,7 @@ const SchoolPlanner = () => {
                 </button>
                 {/* Dark */}
                 <button
-                  className={`relative flex-1 flex flex-col items-center justify-center z-10 rounded-full transition-colors duration-200 ${themeMode === 'dark' ? (effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400') : (effectiveMode === 'light' ? 'text-black' : 'text-white')}`}
+                  className={`relative flex-1 flex flex-col items-center justify-center z-10 rounded-full transition-colors duration-200 ${themeMode === 'dark' ? (effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400') : (effectiveMode === 'light' ? 'text-black' : 'text-white')} mx-1`}
                   style={{ height: '40px' }}
                   onClick={() => setThemeMode('dark')}
                 >
