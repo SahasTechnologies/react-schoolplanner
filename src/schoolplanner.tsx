@@ -765,7 +765,7 @@ const SchoolPlanner = () => {
         </div>
 
         <div className="space-y-4">
-          <div className="bg-gray-800 rounded-lg border border-gray-700 p-6">
+          <div className={`${colors.settingsContainer} rounded-lg ${colors.border} border p-6`}>
             <h3 className="text-lg font-medium text-white mb-4">Timetable Settings</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -796,30 +796,7 @@ const SchoolPlanner = () => {
                   <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                 </label>
               </div>
-              {/* Theme Switcher */}
-              <div className="flex items-center justify-between mt-4 border-t border-gray-700 pt-4">
-                <div>
-                  <p className="text-white font-medium">Theme</p>
-                  <p className="text-gray-400 text-sm">Choose your color theme</p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    className={`w-8 h-8 rounded-full border-2 ${theme === 'blue' ? 'border-blue-400' : 'border-gray-600'} bg-blue-600`}
-                    onClick={() => setTheme('blue')}
-                    title="Blue Theme"
-                  />
-                  <button
-                    className={`w-8 h-8 rounded-full border-2 ${theme === 'green' ? 'border-green-400' : 'border-gray-600'} bg-green-600`}
-                    onClick={() => setTheme('green')}
-                    title="Green Theme"
-                  />
-                  <button
-                    className={`w-8 h-8 rounded-full border-2 ${theme === 'red' ? 'border-red-400' : 'border-gray-600'} bg-red-600`}
-                    onClick={() => setTheme('red')}
-                    title="Red Theme"
-                  />
-                </div>
-              </div>
+              {/* Theme Switcher removed for modal implementation */}
             </div>
           </div>
         </div>
@@ -993,6 +970,7 @@ const SchoolPlanner = () => {
       ring: 'focus:ring-blue-500',
       borderAccent: 'border-blue-400',
       spin: 'border-blue-400',
+      settingsContainer: 'bg-gray-800',
     },
     green: {
       background: 'bg-green-950',
@@ -1004,6 +982,7 @@ const SchoolPlanner = () => {
       ring: 'focus:ring-green-500',
       borderAccent: 'border-green-400',
       spin: 'border-green-400',
+      settingsContainer: 'bg-green-900',
     },
     red: {
       background: 'bg-red-950',
@@ -1015,6 +994,55 @@ const SchoolPlanner = () => {
       ring: 'focus:ring-red-500',
       borderAccent: 'border-red-400',
       spin: 'border-red-400',
+      settingsContainer: 'bg-red-900',
+    },
+    orange: {
+      background: 'bg-orange-950',
+      container: 'bg-orange-900',
+      border: 'border-orange-800',
+      icon: 'text-orange-400',
+      button: 'bg-orange-600 hover:bg-orange-700',
+      accent: 'text-orange-400',
+      ring: 'focus:ring-orange-500',
+      borderAccent: 'border-orange-400',
+      spin: 'border-orange-400',
+      settingsContainer: 'bg-orange-900',
+    },
+    yellow: {
+      background: 'bg-yellow-950',
+      container: 'bg-yellow-900',
+      border: 'border-yellow-800',
+      icon: 'text-yellow-400',
+      button: 'bg-yellow-600 hover:bg-yellow-700',
+      accent: 'text-yellow-400',
+      ring: 'focus:ring-yellow-500',
+      borderAccent: 'border-yellow-400',
+      spin: 'border-yellow-400',
+      settingsContainer: 'bg-yellow-900',
+    },
+    purple: {
+      background: 'bg-purple-950',
+      container: 'bg-purple-900',
+      border: 'border-purple-800',
+      icon: 'text-purple-400',
+      button: 'bg-purple-600 hover:bg-purple-700',
+      accent: 'text-purple-400',
+      ring: 'focus:ring-purple-500',
+      borderAccent: 'border-purple-400',
+      spin: 'border-purple-400',
+      settingsContainer: 'bg-purple-900',
+    },
+    pink: {
+      background: 'bg-pink-950',
+      container: 'bg-pink-900',
+      border: 'border-pink-800',
+      icon: 'text-pink-400',
+      button: 'bg-pink-600 hover:bg-pink-700',
+      accent: 'text-pink-400',
+      ring: 'focus:ring-pink-500',
+      borderAccent: 'border-pink-400',
+      spin: 'border-pink-400',
+      settingsContainer: 'bg-pink-900',
     },
   };
 
@@ -1037,30 +1065,30 @@ const SchoolPlanner = () => {
         <div className="space-y-4 w-full"> {/* Added w-full here for centering */}
           <button
             onClick={() => setCurrentPage('home')}
-            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${currentPage === 'home' ? `${colors.button} text-white` : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}
+            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${currentPage === 'home' ? `${colors.button} text-white` : 'text-white opacity-70 hover:opacity-100 hover:bg-gray-700'}`}
           >
-            <Home size={20} className={colors.icon} />
+            <Home size={20} />
           </button>
 
           <button
             onClick={() => setCurrentPage('calendar')}
-            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${currentPage === 'calendar' ? `${colors.button} text-white` : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}
+            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${currentPage === 'calendar' ? `${colors.button} text-white` : 'text-white opacity-70 hover:opacity-100 hover:bg-gray-700'}`}
           >
-            <Calendar size={20} className={colors.icon} />
+            <Calendar size={20} />
           </button>
 
           <button
             onClick={() => setCurrentPage('markbook')}
-            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${currentPage === 'markbook' ? `${colors.button} text-white` : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}
+            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${currentPage === 'markbook' ? `${colors.button} text-white` : 'text-white opacity-70 hover:opacity-100 hover:bg-gray-700'}`}
           >
-            <BarChart3 size={20} className={colors.icon} />
+            <BarChart3 size={20} />
           </button>
 
           <button
             onClick={() => setCurrentPage('settings')}
-            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${currentPage === 'settings' ? `${colors.button} text-white` : 'text-gray-400 hover:text-white hover:bg-gray-700'}`}
+            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${currentPage === 'settings' ? `${colors.button} text-white` : 'text-white opacity-70 hover:opacity-100 hover:bg-gray-700'}`}
           >
-            <Settings size={20} className={colors.icon} />
+            <Settings size={20} />
           </button>
         </div>
       </div>
