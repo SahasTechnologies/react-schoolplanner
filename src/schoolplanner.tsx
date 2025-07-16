@@ -634,9 +634,10 @@ const SchoolPlanner = () => {
                         </div>
                       ) : null,
                     };
+                    const enabledFields = infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key]);
                     const getFirstEnabledField = () => {
                       if (!showFirstInfoBeside) return null;
-                      const firstField = infoOrder.find(item => infoShown[item.key]);
+                      const firstField = infoOrder.find((item: { key: string; label: string }) => infoShown[item.key]);
                       if (!firstField) return null;
                       return infoFields[firstField.key];
                     };
@@ -660,7 +661,7 @@ const SchoolPlanner = () => {
                           </span>
                         </div>
                         {/* Info fields, only show enabled by default, all on hover */}
-                        {(hoveredEventIdx === eventIndex ? infoOrder : enabledFields).map((item: { key: string }) => infoFields[item.key]).filter(Boolean)}
+                        {(hoveredEventIdx === eventIndex ? infoOrder : enabledFields).map((item: { key: string; label: string }) => infoFields[item.key]).filter(Boolean)}
                       </div>
                     );
                   })
@@ -1151,9 +1152,10 @@ const SchoolPlanner = () => {
                       </div>
                     ) : null,
                   };
+                  const enabledFields = infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key]);
                   const getFirstEnabledField = () => {
                     if (!showFirstInfoBeside) return null;
-                    const firstField = infoOrder.find(item => infoShown[item.key]);
+                    const firstField = infoOrder.find((item: { key: string; label: string }) => infoShown[item.key]);
                     if (!firstField) return null;
                     return infoFields[firstField.key];
                   };
@@ -1177,7 +1179,7 @@ const SchoolPlanner = () => {
                         </span>
                       </div>
                       {/* Info fields, only show enabled by default, all on hover */}
-                      {(hoveredEventIdx === idx ? infoOrder : enabledFields).map((item: { key: string }) => infoFields[item.key]).filter(Boolean)}
+                      {(hoveredEventIdx === idx ? infoOrder : enabledFields).map((item: { key: string; label: string }) => infoFields[item.key]).filter(Boolean)}
                     </div>
                   );
                 })}
