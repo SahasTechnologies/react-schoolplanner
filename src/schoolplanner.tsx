@@ -8,7 +8,8 @@ import {
   Calculator, FlaskConical, Palette, Music, Globe, Dumbbell, Languages, Code2, Brain, Mic2, 
   Users, BookOpen, PenLine, BookUser, Briefcase, HeartHandshake, Library, BookMarked, Star, 
   GraduationCap, Bot,
-  Sun, Moon, Monitor, GripVertical
+  Sun, Moon, Monitor, GripVertical,
+  Utensils // <-- Add Utensils icon
 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 
@@ -578,13 +579,20 @@ const SchoolPlanner = () => {
                       return (
                         <div
                           key={`break-${eventIndex}`}
-                          className="rounded-lg p-3 text-center text-black text-sm font-semibold opacity-80"
-                          style={{ backgroundColor: effectiveMode === 'light' ? '#000' : 'transparent', color: effectiveMode === 'light' ? '#fff' : '#fff', border: '1px dashed #888', borderWidth: 1 }}
+                          className="rounded-lg p-3 flex items-center justify-between text-sm font-semibold opacity-80"
+                          style={{ 
+                            backgroundColor: effectiveMode === 'light' ? 'transparent' : 'transparent', 
+                            color: effectiveMode === 'light' ? '#000' : '#fff',
+                            border: '1px dashed #888',
+                            borderWidth: 1,
+                            minHeight: 40
+                          }}
                         >
-                          Break
-                          <div className="text-xs mt-1 opacity-60">
-                            {formatTime(event.dtstart)} - {formatTime(event.dtend ?? event.dtstart)}
+                          <div className="flex-1 text-left flex items-center" style={{justifyContent: 'flex-start'}}>
+                            Break
+                            <span className="text-xs ml-2 opacity-60">{formatTime(event.dtstart)} - {formatTime(event.dtend ?? event.dtstart)}</span>
                           </div>
+                          <Utensils size={20} className={effectiveMode === 'light' ? 'text-black' : 'text-white'} />
                         </div>
                       );
                     }
@@ -1070,13 +1078,20 @@ const SchoolPlanner = () => {
                     return (
                       <div
                         key={`break-${idx}`}
-                        className="rounded-lg p-3 text-center text-black text-sm font-semibold opacity-80"
-                        style={{ backgroundColor: effectiveMode === 'light' ? '#000' : 'transparent', color: effectiveMode === 'light' ? '#fff' : '#fff', border: '1px dashed #888', borderWidth: 1 }}
+                        className="rounded-lg p-3 flex items-center justify-between text-sm font-semibold opacity-80"
+                        style={{ 
+                          backgroundColor: effectiveMode === 'light' ? 'transparent' : 'transparent', 
+                          color: effectiveMode === 'light' ? '#000' : '#fff',
+                          border: '1px dashed #888',
+                          borderWidth: 1,
+                          minHeight: 40
+                        }}
                       >
-                        Break
-                        <div className="text-xs mt-1 opacity-60">
-                          {formatTime(event.dtstart)} - {formatTime(event.dtend ?? event.dtstart)}
+                        <div className="flex-1 text-left flex items-center" style={{justifyContent: 'flex-start'}}>
+                          Break
+                          <span className="text-xs ml-2 opacity-60">{formatTime(event.dtstart)} - {formatTime(event.dtend ?? event.dtstart)}</span>
                         </div>
+                        <Utensils size={20} className={effectiveMode === 'light' ? 'text-black' : 'text-white'} />
                       </div>
                     );
                   }
@@ -1088,81 +1103,39 @@ const SchoolPlanner = () => {
                       teacherName = match[1].trim();
                     }
                   }
-                  const infoFields = [
-                    {
-                      key: 'time',
-                      node: (
-                        <div className="flex items-center gap-1 text-xs text-white opacity-80" key="time">
-                          <Clock size={12} />
-                          <span>{formatTime(event.dtstart)}</span>
-                          {event.dtend && !isNaN(new Date(event.dtend).getTime()) && (
-                            <span> - {formatTime(event.dtend ?? event.dtstart)}</span>
-                          )}
-                        </div>
-                      )
-                    },
-                    {
-                      key: 'location',
-                      node: event.location ? (
-                        <div className="flex items-center gap-1 text-xs text-white opacity-80" key="location">
-                          <MapPin size={12} />
-                          <span>{event.location}</span>
-                        </div>
-                      ) : null
-                    },
-                    {
-                      key: 'teacher',
-                      node: teacherName ? (
-                        <div className="flex items-center gap-1 text-xs text-white opacity-80" key="teacher">
-                          <User size={12} />
-                          <span>{teacherName}</span>
-                        </div>
-                      ) : null
-                    }
-                  ];
-                  const isHovered = hoveredEventIdx === idx;
-                  let shownFields;
-                  if (isHovered) {
-                    shownFields = infoOrder.map((o: { key: string; label: string }) => infoFields.find((f: { key: string; node: React.ReactNode }) => f.key === o.key)).filter(Boolean);
-                  } else {
-                    shownFields = enabledFields.map((o: { key: string; label: string }) => infoFields.find((f: { key: string; node: React.ReactNode }) => f.key === o.key)).filter(Boolean);
-                  }
-                  let besideInfo = null;
-                  let belowInfo = shownFields;
-                  if (useRowLayout && shownFields.length > 0) {
-                    besideInfo = shownFields[0];
-                    belowInfo = shownFields.slice(1);
-                  }
-                  const cardClass = `rounded-lg p-3 text-white text-sm transition-all duration-300 hover:shadow-lg cursor-pointer overflow-hidden transform-gpu`;
                   return (
                     <div
-                      key={idx}
-                      className={cardClass + ' ' + (isHovered ? 'scale-103' : 'scale-100')}
-                      style={{ backgroundColor: getEventColour(event.summary), transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1)' }}
-                      onMouseEnter={() => setHoveredEventIdx(idx)}
-                      onMouseLeave={() => setHoveredEventIdx(null)}
+                      key={eventIndex}
+                      className="rounded-lg p-3 text-white text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
+                      style={{ backgroundColor: getEventColour(event.summary) }}
                     >
-                      <div className={`flex items-center justify-between min-h-[40px]`}>
-                        <span className="font-medium leading-tight flex items-center gap-2" style={{ fontSize: '1.1rem' }}>
+                      <div className="flex items-center justify-between" style={{ minHeight: 40, alignItems: 'center' }}>
+                        <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>
                           {normalizeSubjectName(event.summary)}
-                          {useRowLayout && besideInfo && (
-                            <span className="ml-2 flex items-center gap-1 text-xs text-white opacity-80">{besideInfo.node}</span>
-                          )}
                         </span>
                         <span style={{ opacity: 0.35, display: 'flex', alignItems: 'center' }} className="text-black">
                           {getSubjectIcon(event.summary, 24, effectiveMode)}
                         </span>
                       </div>
-                      {belowInfo.length > 0 && (
-                        <div
-                          className="transition-all duration-500 flex flex-col gap-1 mt-1"
-                          style={{
-                            maxHeight: 200,
-                            opacity: 1,
-                            overflow: 'hidden',
-                          }}
-                        >
-                          {belowInfo.map((f: { key: string; node: React.ReactNode }) => f.node)}
+                      {teacherName && (
+                        <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
+                          <User size={12} />
+                          <span>{teacherName}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
+                        <Clock size={12} />
+                        <span>{formatTime(event.dtstart)}</span>
+                        {event.dtend && !isNaN(new Date(event.dtend).getTime()) && (
+                          <>
+                            <span> - {formatTime(event.dtend ?? event.dtstart)}</span>
+                          </>
+                        )}
+                      </div>
+                      {event.location && (
+                        <div className="flex items-center gap-1 text-xs text-white opacity-80">
+                          <MapPin size={12} />
+                          <span>{event.location}</span>
                         </div>
                       )}
                     </div>
@@ -1947,7 +1920,7 @@ const SchoolPlanner = () => {
   return (
     <div className={`min-h-screen ${colors.background} text-white flex font-inter`}>
       {/* Sidebar */}
-      <div className={`w-16 ${colors.container} ${colors.border} border-r flex flex-col items-center py-4`}>
+      <div className={`w-16 ${colors.container} ${colors.border} border-r flex flex-col items-center py-4 fixed top-0 left-0 h-full z-40`}>
         <div className="space-y-4 w-full flex-1"> {/* Added w-full here for centering */}
           {/* Sidebar buttons here */}
           <button
@@ -2058,7 +2031,7 @@ const SchoolPlanner = () => {
       )}
 
       {/* Main Content */}
-      <div className="flex-1">
+      <div className="flex-1 ml-16">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-7xl mx-auto">
             {/* Header - Conditional based on route */}
