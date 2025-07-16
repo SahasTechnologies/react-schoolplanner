@@ -969,105 +969,105 @@ const SchoolPlanner = () => {
   const colorVars = {
     red: {
       normal: {
+        background: 'bg-[#1a1313]',
+        container: 'bg-[#231616]',
+        border: 'border-[#3a2323]',
+        swatch: 'bg-[#231616]',
+      },
+      extreme: {
         background: 'bg-red-950',
         container: 'bg-red-900',
         border: 'border-red-800',
         swatch: 'bg-red-900',
       },
-      extreme: {
-        background: 'bg-red-700',
-        container: 'bg-red-600',
-        border: 'border-red-500',
-        swatch: 'bg-red-500',
-      },
     },
     orange: {
       normal: {
+        background: 'bg-[#1e1812]',
+        container: 'bg-[#2a1f13]',
+        border: 'border-[#3a291a]',
+        swatch: 'bg-[#2a1f13]',
+      },
+      extreme: {
         background: 'bg-orange-950',
         container: 'bg-orange-900',
         border: 'border-orange-800',
         swatch: 'bg-orange-900',
       },
-      extreme: {
-        background: 'bg-orange-700',
-        container: 'bg-orange-600',
-        border: 'border-orange-500',
-        swatch: 'bg-orange-400',
-      },
     },
     yellow: {
       normal: {
+        background: 'bg-[#1a1a13]',
+        container: 'bg-[#232312]',
+        border: 'border-[#39391a]',
+        swatch: 'bg-[#232312]',
+      },
+      extreme: {
         background: 'bg-yellow-950',
         container: 'bg-yellow-900',
         border: 'border-yellow-800',
         swatch: 'bg-yellow-900',
       },
-      extreme: {
-        background: 'bg-yellow-700',
-        container: 'bg-yellow-600',
-        border: 'border-yellow-500',
-        swatch: 'bg-yellow-400',
-      },
     },
     green: {
       normal: {
+        background: 'bg-[#142017]',
+        container: 'bg-[#1b2b15]',
+        border: 'border-[#233a23]',
+        swatch: 'bg-[#1b2b15]',
+      },
+      extreme: {
         background: 'bg-green-950',
         container: 'bg-green-900',
         border: 'border-green-800',
         swatch: 'bg-green-900',
       },
-      extreme: {
-        background: 'bg-green-700',
-        container: 'bg-green-600',
-        border: 'border-green-500',
-        swatch: 'bg-green-400',
-      },
     },
     blue: {
       normal: {
+        background: 'bg-[#151a20]',
+        container: 'bg-[#18202b]',
+        border: 'border-[#1a233a]',
+        swatch: 'bg-[#18202b]',
+      },
+      extreme: {
         background: 'bg-blue-950',
         container: 'bg-blue-900',
         border: 'border-blue-800',
         swatch: 'bg-blue-900',
       },
-      extreme: {
-        background: 'bg-blue-700',
-        container: 'bg-blue-600',
-        border: 'border-blue-500',
-        swatch: 'bg-blue-400',
-      },
     },
     purple: {
       normal: {
+        background: 'bg-[#1a1620]',
+        container: 'bg-[#23182b]',
+        border: 'border-[#2f1a3a]',
+        swatch: 'bg-[#23182b]',
+      },
+      extreme: {
         background: 'bg-purple-950',
         container: 'bg-purple-900',
         border: 'border-purple-800',
         swatch: 'bg-purple-900',
       },
-      extreme: {
-        background: 'bg-purple-700',
-        container: 'bg-purple-600',
-        border: 'border-purple-500',
-        swatch: 'bg-purple-400',
-      },
     },
     pink: {
       normal: {
+        background: 'bg-[#20151a]',
+        container: 'bg-[#2b1820]',
+        border: 'border-[#3a1a23]',
+        swatch: 'bg-[#2b1820]',
+      },
+      extreme: {
         background: 'bg-pink-950',
         container: 'bg-pink-900',
         border: 'border-pink-800',
         swatch: 'bg-pink-900',
       },
-      extreme: {
-        background: 'bg-pink-700',
-        container: 'bg-pink-600',
-        border: 'border-pink-500',
-        swatch: 'bg-pink-400',
-      },
     },
   };
 
-  // themeColors now references colorVars for both normal and extreme
+  // themeColors now references colorVars for both normal (muted) and extreme (bright)
   const themeColors = {
     red: {
       ...colorVars.red.normal,
@@ -1165,9 +1165,9 @@ const SchoolPlanner = () => {
     ...themeColors[theme],
     background: colorVars[theme].extreme.background,
     container: colorVars[theme].extreme.container,
-    border: colorVars[theme].extreme.border,
-    swatch: colorVars[theme].extreme.swatch,
-    settingsContainer: colorVars[theme].extreme.container,
+    border: colorVars.extreme.border,
+    swatch: colorVars.extreme.swatch,
+    settingsContainer: colorVars.extreme.container,
   };
 
   // When setting theme, also set themeType
