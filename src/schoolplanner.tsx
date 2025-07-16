@@ -1046,7 +1046,8 @@ const SchoolPlanner = () => {
     },
   };
 
-  const [theme, setTheme] = useState<'blue' | 'green' | 'red'>('blue');
+  const [theme, setTheme] = useState<'blue' | 'green' | 'red' | 'orange' | 'yellow' | 'purple' | 'pink'>('blue');
+  const [showThemeModal, setShowThemeModal] = useState(false);
   const colors = themeColors[theme];
 
   // Main render logic based on welcomeStep
@@ -1062,7 +1063,7 @@ const SchoolPlanner = () => {
     <div className={`min-h-screen ${colors.background} text-white flex font-inter`}>
       {/* Sidebar */}
       <div className={`w-16 ${colors.container} ${colors.border} border-r flex flex-col items-center py-4`}>
-        <div className="space-y-4 w-full"> {/* Added w-full here for centering */}
+        <div className="space-y-4 w-full flex-1"> {/* Added w-full here for centering */}
           <button
             onClick={() => setCurrentPage('home')}
             className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${currentPage === 'home' ? `${colors.button} text-white` : 'text-white opacity-70 hover:opacity-100 hover:bg-gray-700'}`}
@@ -1091,7 +1092,36 @@ const SchoolPlanner = () => {
             <Settings size={20} />
           </button>
         </div>
+        {/* Theme button at bottom */}
+        <button
+          onClick={() => setShowThemeModal(true)}
+          className="p-3 rounded-lg transition-colors duration-200 mx-auto block text-white opacity-70 hover:opacity-100 hover:bg-gray-700 mb-2"
+          title="Change Theme"
+        >
+          <Palette size={20} />
+        </button>
       </div>
+      {/* Theme Modal */}
+      {showThemeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+          <div className={`rounded-xl p-8 shadow-2xl border-2 ${colors.container} ${colors.border} w-full max-w-xs mx-4`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-white">Choose Theme</h3>
+              <button onClick={() => setShowThemeModal(false)} className="text-white opacity-60 hover:opacity-100"><X size={20} /></button>
+            </div>
+            <div className="grid grid-cols-4 gap-4">
+              {Object.entries(themeColors).map(([key, val]) => (
+                <button
+                  key={key}
+                  className={`w-10 h-10 rounded-full border-2 ${theme === key ? val.borderAccent : 'border-gray-600'} ${val.button.split(' ')[0]}`}
+                  onClick={() => { setTheme(key as any); setShowThemeModal(false); }}
+                  title={key.charAt(0).toUpperCase() + key.slice(1)}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="flex-1">
