@@ -596,7 +596,7 @@ const SchoolPlanner = () => {
                         </div>
                       );
                     }
-                    // ... existing code for normal event ...
+                    // Extract teacher and period
                     let teacherName = '';
                     let periodName = '';
                     if (event.description) {
@@ -609,11 +609,40 @@ const SchoolPlanner = () => {
                         periodName = periodMatch[1].trim();
                       }
                     }
+                    // Info fields for this event
+                    const infoFields: Record<string, React.ReactNode> = {
+                      time: (
+                        <div key="time" className="flex items-center gap-1 text-xs opacity-80 mb-1">
+                          <Clock size={12} />
+                          <span>{formatTime(event.dtstart)}{event.dtend && !isNaN(new Date(event.dtend).getTime()) ? ` - ${formatTime(event.dtend ?? event.dtstart)}` : ''}</span>
+                        </div>
+                      ),
+                      location: event.location ? (
+                        <div key="location" className="flex items-center gap-1 text-xs opacity-80 mb-1">
+                          <MapPin size={12} />
+                          <span>{event.location}</span>
+                        </div>
+                      ) : null,
+                      teacher: teacherName ? (
+                        <div key="teacher" className="flex items-center gap-1 text-xs opacity-80 mb-1">
+                          <User size={12} />
+                          <span>{teacherName}</span>
+                        </div>
+                      ) : null,
+                      period: periodName ? (
+                        <div key="period" className="flex items-center gap-1 text-xs opacity-80 mb-1">
+                          <BookOpen size={12} />
+                          <span>{periodName}</span>
+                        </div>
+                      ) : null,
+                    };
                     return (
                       <div
                         key={eventIndex}
                         className="rounded-lg p-3 text-white text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
                         style={{ backgroundColor: getEventColour(event.summary) }}
+                        onMouseEnter={() => setHoveredEventIdx(eventIndex)}
+                        onMouseLeave={() => setHoveredEventIdx(null)}
                       >
                         <div className="flex items-center justify-between" style={{ minHeight: 40, alignItems: 'center' }}>
                           <span className="font-medium leading-tight flex items-center gap-2" style={{ fontSize: '1.1rem' }}>
@@ -627,8 +656,8 @@ const SchoolPlanner = () => {
                           </span>
                         </div>
                         {/* Info fields, only show enabled by default, all on hover */}
-                        {(hoveredEventIdx === idx ? infoOrder : enabledFields)
-                          .filter((item, i) => !(showFirstInfoBeside && enabledFields.length > 0 && item.key === enabledFields[0].key))
+                        {(hoveredEventIdx === eventIndex ? infoOrder : enabledFields)
+                          .filter((item: { key: string }, i: number) => !(showFirstInfoBeside && enabledFields.length > 0 && item.key === enabledFields[0].key))
                           .map((item: { key: string }) => infoFields[item.key])
                           .filter(Boolean)}
                       </div>
@@ -1083,7 +1112,7 @@ const SchoolPlanner = () => {
                       </div>
                     );
                   }
-                  // ... existing code for normal event ...
+                  // Extract teacher and period
                   let teacherName = '';
                   let periodName = '';
                   if (event.description) {
@@ -1096,7 +1125,7 @@ const SchoolPlanner = () => {
                       periodName = periodMatch[1].trim();
                     }
                   }
-                  // Info fields
+                  // Info fields for this event
                   const infoFields: Record<string, React.ReactNode> = {
                     time: (
                       <div key="time" className="flex items-center gap-1 text-xs opacity-80 mb-1">
@@ -1123,7 +1152,6 @@ const SchoolPlanner = () => {
                       </div>
                     ) : null,
                   };
-                  // Show all info on hover/expand, otherwise only enabled fields
                   return (
                     <div
                       key={idx}
@@ -1145,7 +1173,7 @@ const SchoolPlanner = () => {
                       </div>
                       {/* Info fields, only show enabled by default, all on hover */}
                       {(hoveredEventIdx === idx ? infoOrder : enabledFields)
-                        .filter((item, i) => !(showFirstInfoBeside && enabledFields.length > 0 && item.key === enabledFields[0].key))
+                        .filter((item: { key: string }, i: number) => !(showFirstInfoBeside && enabledFields.length > 0 && item.key === enabledFields[0].key))
                         .map((item: { key: string }) => infoFields[item.key])
                         .filter(Boolean)}
                     </div>
