@@ -1090,7 +1090,7 @@ const SchoolPlanner = () => {
             ) : (
               <div className="space-y-3">
                 {events.map((event, idx) => {
-                  if (event.isBreak) {
+                  if (isBreakEvent(event)) {
                     return (
                       <div
                         key={`break-${idx}`}
@@ -1149,6 +1149,7 @@ const SchoolPlanner = () => {
                       </div>
                     ) : null,
                   };
+                  const enabledFields = infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key]);
                   const getFirstEnabledField = () => {
                     if (!showFirstInfoBeside) return null;
                     const firstField = infoOrder.find((item: { key: string; label: string }) => infoShown[item.key]);
@@ -1175,7 +1176,7 @@ const SchoolPlanner = () => {
                         </span>
                       </div>
                       {/* Info fields, only show enabled by default, all on hover */}
-                      {(hoveredEventIdx === idx ? infoOrder : infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key])).map((item: { key: string; label: string }) => infoFields[item.key]).filter(Boolean)}
+                      {(hoveredEventIdx === idx ? infoOrder : enabledFields).map((item: { key: string; label: string }) => infoFields[item.key]).filter(Boolean)}
                     </div>
                   );
                 })}
@@ -2132,3 +2133,8 @@ export default SchoolPlanner;
 // 1. Edit public/index.html
 // 2. Set <title>School Planner</title>
 // 3. For favicon, export the Lucide 'School' icon as SVG and set as <link rel="icon" href="/school.svg"> in index.html.
+
+// Add a type guard for isBreak above renderHome:
+function isBreakEvent(event: CalendarEvent | (CalendarEvent & { isBreak?: boolean })): event is CalendarEvent & { isBreak: true } {
+  return (event as any).isBreak === true;
+}
