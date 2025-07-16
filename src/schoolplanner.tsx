@@ -1443,35 +1443,35 @@ const SchoolPlanner = () => {
       </div>
       {/* Theme Modal */}
       {showThemeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30"> {/* Lowered opacity */}
           <div className={`rounded-xl p-8 shadow-2xl border-2 ${colors.container} ${colors.border} w-full max-w-xs mx-4`}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-white">Choose Theme</h3>
-              <button onClick={() => setShowThemeModal(false)} className="text-white opacity-60 hover:opacity-100"><X size={20} /></button>
+              <h3 className={`text-lg font-bold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Choose Theme</h3>
+              <button onClick={() => setShowThemeModal(false)} className={`${effectiveMode === 'light' ? 'text-black' : 'text-white'} opacity-60 hover:opacity-100`}><X size={20} /></button>
             </div>
             {/* Theme Mode Selector */}
             <div className="mb-6 flex flex-row items-center justify-center gap-2">
               <button
-                className={`px-3 py-1 rounded-lg font-medium transition-colors duration-200 ${themeMode === 'light' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-200 hover:bg-gray-600'}`}
+                className={`px-3 py-1 rounded-lg font-medium transition-colors duration-200 ${themeMode === 'light' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-black hover:bg-gray-300'}`}
                 onClick={() => setThemeMode('light')}
               >
                 Light
               </button>
               <button
-                className={`px-3 py-1 rounded-lg font-medium transition-colors duration-200 ${themeMode === 'dark' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-200 hover:bg-gray-600'}`}
+                className={`px-3 py-1 rounded-lg font-medium transition-colors duration-200 ${themeMode === 'dark' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-white hover:bg-gray-600'}`}
                 onClick={() => setThemeMode('dark')}
               >
                 Dark
               </button>
               <button
-                className={`px-3 py-1 rounded-lg font-medium transition-colors duration-200 ${themeMode === 'system' ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-200 hover:bg-gray-600'}`}
+                className={`px-3 py-1 rounded-lg font-medium transition-colors duration-200 ${themeMode === 'system' ? 'bg-blue-500 text-white' : (effectiveMode === 'light' ? 'bg-gray-200 text-black hover:bg-gray-300' : 'bg-gray-700 text-white hover:bg-gray-600')}`}
                 onClick={() => setThemeMode('system')}
               >
                 System
               </button>
             </div>
             {/* Normal Colour */}
-            <div className="mb-2 text-lg font-semibold text-white">Normal Colour</div>
+            <div className={`mb-2 text-lg font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Normal Colour</div>
             <div className="flex flex-row flex-wrap gap-4 mb-6">
               {(Object.entries(colorVars) as [ThemeKey, typeof colorVars[ThemeKey]][]).map(([key, val]) => (
                 <div key={key} className="flex flex-col items-center">
@@ -1480,12 +1480,12 @@ const SchoolPlanner = () => {
                     onClick={() => handleThemeChange(key, 'normal')}
                     title={themeColors(effectiveMode)[key].label}
                   />
-                  <span className="text-sm mt-1">{themeColors(effectiveMode)[key].label}</span>
+                  <span className={`text-sm mt-1 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{themeColors(effectiveMode)[key].label}</span>
                 </div>
               ))}
             </div>
             {/* Extreme Colour */}
-            <div className="mb-2 text-lg font-semibold text-white">Extreme Colour</div>
+            <div className={`mb-2 text-lg font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Extreme Colour</div>
             <div className="flex flex-row flex-wrap gap-4">
               {(Object.entries(colorVars) as [ThemeKey, typeof colorVars[ThemeKey]][]).map(([key, val]) => (
                 <div key={key} className="flex flex-col items-center">
@@ -1494,7 +1494,7 @@ const SchoolPlanner = () => {
                     onClick={() => handleThemeChange(key, 'extreme')}
                     title={themeColors(effectiveMode)[key].label + ' (Extreme)'}
                   />
-                  <span className="text-sm mt-1">{themeColors(effectiveMode)[key].label}</span>
+                  <span className={`text-sm mt-1 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{themeColors(effectiveMode)[key].label}</span>
                 </div>
               ))}
             </div>
@@ -1508,17 +1508,19 @@ const SchoolPlanner = () => {
           <div className="max-w-7xl mx-auto">
             {/* Header - Conditional based on route */}
             {location.pathname === '/' && (
-              <div className="text-center mb-8">
-                <h1 className="text-4xl font-bold mb-2 text-white">
+              <div className="mb-8 flex items-center">
+                <h1 className={`text-4xl font-bold mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}
+                  style={{textAlign: 'left', width: '100%'}}>
                   {userName ? `${getGreeting()}, ${userName}!` : 'School Planner'}
                 </h1>
-                <p className="text-gray-400">Manage your schedule and subjects</p>
               </div>
             )}
             {location.pathname === '/settings' && (
-              <div className="text-center mb-8">
-                <h1 className="text-4xl font-bold mb-2 text-white">School Planner</h1>
-                <p className="text-gray-400">Manage your schedule and subjects</p>
+              <div className="mb-8 flex items-center">
+                <h1 className={`text-4xl font-bold mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}
+                  style={{textAlign: 'left', width: '100%'}}>
+                  School Planner
+                </h1>
               </div>
             )}
 
