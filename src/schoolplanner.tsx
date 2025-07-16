@@ -1099,11 +1099,36 @@ const SchoolPlanner = () => {
                       teacherName = match[1].trim();
                     }
                   }
+                  // Info fields
+                  const infoFields: Record<string, React.ReactNode> = {
+                    time: (
+                      <div key="time" className="flex items-center gap-1 text-xs opacity-80 mb-1">
+                        <Clock size={12} />
+                        <span>{formatTime(event.dtstart)}{event.dtend && !isNaN(new Date(event.dtend).getTime()) ? ` - ${formatTime(event.dtend ?? event.dtstart)}` : ''}</span>
+                      </div>
+                    ),
+                    location: event.location ? (
+                      <div key="location" className="flex items-center gap-1 text-xs opacity-80 mb-1">
+                        <MapPin size={12} />
+                        <span>{event.location}</span>
+                      </div>
+                    ) : null,
+                    teacher: teacherName ? (
+                      <div key="teacher" className="flex items-center gap-1 text-xs opacity-80 mb-1">
+                        <User size={12} />
+                        <span>{teacherName}</span>
+                      </div>
+                    ) : null,
+                  };
+                  // Show all info on hover/expand, otherwise only enabled fields
+                  const [isHovered, setIsHovered] = React.useState(false);
                   return (
                     <div
                       key={idx}
                       className="rounded-lg p-3 text-white text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
                       style={{ backgroundColor: getEventColour(event.summary) }}
+                      onMouseEnter={() => setHoveredEventIdx(idx)}
+                      onMouseLeave={() => setHoveredEventIdx(null)}
                     >
                       <div className="flex items-center justify-between" style={{ minHeight: 40, alignItems: 'center' }}>
                         <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>
@@ -1113,27 +1138,8 @@ const SchoolPlanner = () => {
                           {getSubjectIcon(event.summary, 24, effectiveMode)}
                         </span>
                       </div>
-                      {teacherName && (
-                        <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
-                          <User size={12} />
-                          <span>{teacherName}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1 text-xs text-white opacity-80 mb-1">
-                        <Clock size={12} />
-                        <span>{formatTime(event.dtstart)}</span>
-                        {event.dtend && !isNaN(new Date(event.dtend).getTime()) && (
-                          <>
-                            <span> - {formatTime(event.dtend ?? event.dtstart)}</span>
-                          </>
-                        )}
-                      </div>
-                      {event.location && (
-                        <div className="flex items-center gap-1 text-xs text-white opacity-80">
-                          <MapPin size={12} />
-                          <span>{event.location}</span>
-                        </div>
-                      )}
+                      {/* Info fields, only show enabled by default, all on hover */}
+                      {(hoveredEventIdx === idx ? infoOrder : enabledFields).map(({ key }) => infoFields[key]).filter(Boolean)}
                     </div>
                   );
                 })}
