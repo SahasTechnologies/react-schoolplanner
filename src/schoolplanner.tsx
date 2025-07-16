@@ -401,26 +401,6 @@ const SchoolPlanner = () => {
     reader.readAsText(file);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    // setDragOver(true); // Removed as per edit hint
-  };
-
-  const handleDragLeave = () => {
-    // setDragOver(false); // Removed as per edit hint
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    // setDragOver(false); // Removed as per edit hint
-    const files = e.dataTransfer.files;
-    if (files.length > 0 && files[0].name.endsWith('.ics')) {
-      processFile(files[0]);
-    } else {
-      setError('Please drop a valid .ics file.');
-    }
-  };
-
   // Clear all localStorage and reset state
   const clearData = () => {
     localStorage.clear(); // Clear everything including theme
