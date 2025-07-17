@@ -17,8 +17,7 @@ import {
   groupAllEventsIntoActualWeeks, 
   insertBreaksBetweenEvents, 
   getTodayOrNextEvents, 
-  isBreakEvent,
-  getNextUpcomingEvent
+  isBreakEvent 
 } from './utils/calendarUtils';
 import WelcomeScreen from './components/WelcomeScreen';
 import Settings from './components/Settings';
@@ -422,34 +421,6 @@ const SchoolPlanner = () => {
     const { dayLabel, events } = getTodayOrNextEvents(weekData);
     // Insert breaks between events for home screen too
     const eventsWithBreaks = insertBreaksBetweenEvents(events);
-
-    // Countdown logic
-    const nextEvent = getNextUpcomingEvent(weekData);
-    const [countdown, setCountdown] = React.useState('');
-    React.useEffect(() => {
-      if (!nextEvent) {
-        setCountdown('No upcoming events');
-        return;
-      }
-      const interval = setInterval(() => {
-        const now = new Date();
-        const diff = new Date(nextEvent.dtstart).getTime() - now.getTime();
-        if (diff <= 0) {
-          setCountdown('Event started!');
-          return;
-        }
-        const hours = Math.floor(diff / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-        let str = '';
-        if (hours > 0) str += `${hours}h `;
-        if (minutes > 0 || hours > 0) str += `${minutes}m `;
-        str += `${seconds}s`;
-        setCountdown(str);
-      }, 1000);
-      return () => clearInterval(interval);
-    }, [nextEvent && nextEvent.dtstart]);
-
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
@@ -487,20 +458,88 @@ const SchoolPlanner = () => {
               </div>
             )}
           </div>
-          {/* Countdown Box */}
-          <div className={`${colors.container} rounded-lg ${colors.border} border p-6 flex flex-col items-center justify-center min-h-[180px]`}>
-            <div className="flex items-center gap-2 mb-2">
-              <span className={`font-semibold text-lg ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Next Event Countdown</span>
-            </div>
-            <div className={`text-3xl font-mono font-bold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{countdown}</div>
-            {nextEvent && (
-              <div className={`mt-4 text-center text-base ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
-                <span className="font-medium">{nextEvent.summary}</span><br/>
-                <span>{nextEvent.dtstart.toLocaleString()}</span>
-              </div>
-            )}
-          </div>
+          {/* Countdown box on the right */}
+          <CountdownBox
+            weekData={weekData}
+            colors={colors}
+            effectiveMode={effectiveMode}
+            getEventColour={getEventColour}
+          />
         </div>
+      </div>
+    );
+  };
+
+  // --- Add CountdownBox component ---
+  const CountdownBox: React.FC<{
+    weekData: WeekData | null;
+    colors: any;
+    effectiveMode: 'light' | 'dark';
+    getEventColour: (title: string) => string;
+  }> = ({ weekData, colors, effectiveMode, getEventColour }) => {
+    const [now, setNow] = useState(new Date());
+    const [nextEvent, setNextEvent] = useState<CalendarEvent | null>(null);
+    const [timeLeft, setTimeLeft] = useState<number | null>(null);
+
+    // Helper to find the next event after now (across all days)
+    function findNextEvent(): CalendarEvent | null {
+      if (!weekData || !weekData.events) return null;
+      const futureEvents = weekData.events
+        .filter(e => new Date(e.dtstart).getTime() > now.getTime())
+        .sort((a, b) => new Date(a.dtstart).getTime() - new Date(b.dtstart).getTime());
+      return futureEvents.length > 0 ? futureEvents[0] : null;
+    }
+
+    // Update nextEvent and timeLeft every second
+    useEffect(() => {
+      setNextEvent(findNextEvent());
+      const interval = setInterval(() => {
+        setNow(new Date());
+      }, 1000);
+      return () => clearInterval(interval);
+      // eslint-disable-next-line
+    }, [weekData]);
+
+    // Update timeLeft whenever now or nextEvent changes
+    useEffect(() => {
+      if (nextEvent) {
+        const diff = new Date(nextEvent.dtstart).getTime() - now.getTime();
+        setTimeLeft(diff > 0 ? diff : 0);
+      } else {
+        setTimeLeft(null);
+      }
+    }, [now, nextEvent]);
+
+    // Format time left as HH:mm:ss or mm:ss
+    function formatCountdown(ms: number | null): string {
+      if (ms === null) return '';
+      if (ms <= 0) return 'Now!';
+      const totalSeconds = Math.floor(ms / 1000);
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      if (hours > 0) {
+        return `${hours}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`;
+      } else {
+        return `${minutes}m ${seconds.toString().padStart(2, '0')}s`;
+      }
+    }
+
+    return (
+      <div className={`${colors.container} rounded-lg ${colors.border} border p-6 flex flex-col items-center justify-center min-h-[200px]`}>
+        <div className="flex items-center gap-2 mb-2">
+          <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
+          <span className={`text-lg font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Next Event Countdown</span>
+        </div>
+        {nextEvent ? (
+          <>
+            <div className="text-3xl font-bold mb-2" style={{ color: getEventColour(nextEvent.summary) }}>{formatCountdown(timeLeft)}</div>
+            <div className={`text-base font-medium mb-1 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{nextEvent.summary}</div>
+            <div className="text-sm opacity-80">at {nextEvent.dtstart ? nextEvent.dtstart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</div>
+          </>
+        ) : (
+          <div className="text-lg text-gray-400">No upcoming events</div>
+        )}
       </div>
     );
   };
