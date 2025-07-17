@@ -208,6 +208,34 @@ const SchoolPlanner = () => {
             events: data.weekData.events.map((e: any) => ({ ...e, dtstart: new Date(e.dtstart), dtend: e.dtend ? new Date(e.dtend) : undefined }))
           });
           localStorage.setItem('weekData', JSON.stringify(data.weekData));
+        } else if (data.subjects && data.subjects.some((s: any) => Array.isArray(s.timings) && s.timings.length > 0)) {
+          // Generate weekData from subjects' timings
+          const allEvents = data.subjects.flatMap((subject: any) =>
+            (subject.timings || []).map((timing: any) => ({
+              summary: subject.name,
+              dtstart: new Date(timing.start),
+              dtend: timing.end ? new Date(timing.end) : undefined,
+              location: timing.location || '',
+              description: timing.description || ''
+            }))
+          );
+          if (allEvents.length > 0) {
+            const allDates = allEvents.map((e: any) => e.dtstart);
+            const minDate = new Date(Math.min(...allDates.map((d: any) => d.getTime())));
+            const maxDate = new Date(Math.max(...allEvents.map((e: any) => (e.dtend ? e.dtend.getTime() : e.dtstart.getTime()))));
+            const weekData = {
+              monday: minDate,
+              friday: maxDate,
+              events: allEvents
+            };
+            setWeekData(weekData);
+            localStorage.setItem('weekData', JSON.stringify({
+              ...weekData,
+              monday: weekData.monday.toISOString(),
+              friday: weekData.friday.toISOString(),
+              events: weekData.events.map((e: any) => ({ ...e, dtstart: e.dtstart.toISOString(), dtend: e.dtend ? e.dtend.toISOString() : undefined }))
+            }));
+          }
         }
         // No error if none of the fields are present
         setWelcomeStep('completed');
