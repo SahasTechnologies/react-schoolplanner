@@ -517,6 +517,9 @@ const SchoolPlanner = () => {
       return soonest;
     }
 
+    // Add state for tab countdown info (move this above all usages)
+    const [tabCountdown, setTabCountdown] = useState<{ time: string; event: string } | null>(null);
+
     useEffect(() => {
       setSearching(true);
       const interval = setInterval(() => {
@@ -530,7 +533,7 @@ const SchoolPlanner = () => {
           setSearching(false);
           if (setTabCountdown) {
             setTabCountdown({
-              time: formatCountdown(diff > 0 ? diff : 0, soonest.event),
+              time: formatCountdown(diff > 0 ? diff : 0),
               event: normalizeSubjectName(soonest.event.summary, true),
             });
           }
@@ -546,7 +549,7 @@ const SchoolPlanner = () => {
     }, [weekData]);
 
     // Format time left as Dd Hh Mm Ss
-    function formatCountdown(ms: number | null, event?: CalendarEvent): string {
+    function formatCountdown(ms: number | null): string {
       if (ms === null) return '';
       if (ms <= 0) return 'Now!';
       const totalSeconds = Math.floor(ms / 1000);
@@ -596,7 +599,7 @@ const SchoolPlanner = () => {
           </div>
         ) : nextEvent && nextEventDate ? (
           <>
-            <div className="text-3xl font-bold mb-2" style={{ color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>{formatCountdown(timeLeft, nextEvent)}</div>
+            <div className="text-3xl font-bold mb-2" style={{ color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>{formatCountdown(timeLeft)}</div>
             <div className="flex items-center gap-2 mb-1">
               <ColoredSubjectIcon summary={nextEvent.summary} />
               <span className="text-base font-medium" style={{ color: getEventColour(nextEvent.summary) }}>{normalizeSubjectName(nextEvent.summary, true)}</span>
