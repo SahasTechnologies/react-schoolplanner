@@ -44,6 +44,8 @@ interface SettingsProps {
   showFirstInfoBeside: boolean;
   setShowFirstInfoBeside: (show: boolean) => void;
   isCalendarPage?: boolean;
+  countdownInTitle: boolean;
+  setCountdownInTitle: (val: boolean) => void;
 }
 
 const Settings: React.FC<SettingsProps> = ({
@@ -72,8 +74,10 @@ const Settings: React.FC<SettingsProps> = ({
   handleToggleInfoShown,
   showFirstInfoBeside,
   setShowFirstInfoBeside,
-  isCalendarPage
-}) => {
+  isCalendarPage,
+  countdownInTitle,
+  setCountdownInTitle
+}: SettingsProps) => {
   const [showNameEditModal, setShowNameEditModal] = React.useState(false);
   const [editUserName, setEditUserName] = React.useState(userName);
 
@@ -208,6 +212,24 @@ const Settings: React.FC<SettingsProps> = ({
         <div className="flex items-center gap-2 mb-4">
           <Home className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
           <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Home</h3>
+        </div>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <Eye className={effectiveMode === 'light' ? 'text-green-600' : 'text-green-400'} size={18} />
+            <div>
+              <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Put countdown in tab title</p>
+              <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Show countdown in browser tab (title bar) so you can always see it. When enabled, the tab will show <span className="font-mono">HH:MM until [next event]</span>. Off by default.</p>
+            </div>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={countdownInTitle}
+              onChange={e => setCountdownInTitle(e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+          </label>
         </div>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

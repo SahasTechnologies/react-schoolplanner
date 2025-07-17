@@ -467,7 +467,7 @@ const SchoolPlanner = () => {
             colors={colors}
             effectiveMode={effectiveMode}
             getEventColour={getEventColour}
-            setTabCountdown={countdownInTitle ? setTabCountdown : undefined}
+            setTabCountdown={tabCountdown ? setTabCountdown : undefined}
           />
         </div>
       </div>
@@ -475,13 +475,14 @@ const SchoolPlanner = () => {
   };
 
   // --- Add CountdownBox component ---
-  const CountdownBox: React.FC<{
+  type CountdownBoxProps = {
     weekData: WeekData | null;
     colors: any;
     effectiveMode: 'light' | 'dark';
     getEventColour: (title: string) => string;
     setTabCountdown?: (info: { time: string; event: string } | null) => void;
-  }> = ({ weekData, colors, effectiveMode, getEventColour, setTabCountdown }) => {
+  };
+  const CountdownBox: React.FC<CountdownBoxProps> = ({ weekData, colors, effectiveMode, getEventColour, setTabCountdown }) => {
     const [nextEvent, setNextEvent] = useState<CalendarEvent | null>(null);
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
     const [nextEventDate, setNextEventDate] = useState<Date | null>(null);
@@ -518,7 +519,7 @@ const SchoolPlanner = () => {
     }
 
     // Add state for tab countdown info (move this above all usages)
-    const [tabCountdown, setTabCountdown] = useState<{ time: string; event: string } | null>(null);
+    // const [tabCountdown, setTabCountdown] = useState<{ time: string; event: string } | null>(null); // Moved to top level
 
     useEffect(() => {
       setSearching(true);
