@@ -5,7 +5,7 @@ import * as React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { 
   Calendar, FileText, Home, BarChart3,
-  Settings as SettingsIcon
+  Settings as SettingsIcon, LoaderCircle
 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { ThemeKey, getColors } from './utils/theme';
@@ -410,6 +410,8 @@ const SchoolPlanner = () => {
         showFirstInfoBeside={showFirstInfoBeside}
         setShowFirstInfoBeside={setShowFirstInfoBeside}
         isCalendarPage={location.pathname === '/calendar'}
+        showCountdownInTitle={showCountdownInTitle}
+        setShowCountdownInTitle={setShowCountdownInTitle}
       />
     );
   };
@@ -465,6 +467,7 @@ const SchoolPlanner = () => {
             colors={colors}
             effectiveMode={effectiveMode}
             getEventColour={getEventColour}
+            showCountdownInTitle={showCountdownInTitle}
           />
         </div>
       </div>
@@ -477,7 +480,8 @@ const SchoolPlanner = () => {
     colors: any;
     effectiveMode: 'light' | 'dark';
     getEventColour: (title: string) => string;
-  }> = ({ weekData, colors, effectiveMode, getEventColour }) => {
+    showCountdownInTitle?: boolean;
+  }> = ({ weekData, colors, effectiveMode, getEventColour, showCountdownInTitle }) => {
     const [nextEvent, setNextEvent] = useState<CalendarEvent | null>(null);
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
     const [nextEventDate, setNextEventDate] = useState<Date | null>(null);
@@ -525,14 +529,29 @@ const SchoolPlanner = () => {
           setNextEventDate(soonest.date);
           const diff = soonest.date.getTime() - now.getTime();
           setTimeLeft(diff > 0 ? diff : 0);
+          // --- Update tab title if enabled ---
+          if (showCountdownInTitle) {
+            const totalSeconds = Math.floor((diff > 0 ? diff : 0) / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const pad = (n: number) => n.toString().padStart(2, '0');
+            const timeStr = `${pad(hours)}:${pad(minutes)}`;
+            document.title = `${timeStr} until ${normalizeSubjectName(soonest.event.summary, true)}`;
+          }
         } else {
           setNextEvent(null);
           setNextEventDate(null);
           setTimeLeft(null);
+          if (showCountdownInTitle) {
+            document.title = 'School Planner';
+          }
+        }
+        if (!showCountdownInTitle) {
+          document.title = 'School Planner';
         }
       }, 1000);
       return () => clearInterval(interval);
-    }, [weekData]);
+    }, [weekData, showCountdownInTitle]);
 
     // Format time left as Dd Hh Mm Ss
     function formatCountdown(ms: number | null): string {
@@ -565,7 +584,12 @@ const SchoolPlanner = () => {
           <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
           <span className={`text-lg font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Next Event Countdown</span>
         </div>
-        {nextEvent && nextEventDate ? (
+        {weekData === null ? (
+          <div className="flex flex-col items-center justify-center py-8">
+            <LoaderCircle className="animate-spin mb-2" size={32} />
+            <span className="text-lg text-gray-400">Searching...</span>
+          </div>
+        ) : nextEvent && nextEventDate ? (
           <>
             <div className="text-3xl font-bold mb-2" style={{ color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>{formatCountdown(timeLeft)}</div>
             <div className="flex items-center gap-2 mb-1">
@@ -575,7 +599,12 @@ const SchoolPlanner = () => {
             <div className="text-sm opacity-80">
               {(() => {
                 const now = new Date();
-                const daysDiff = Math.floor((nextEventDate.setHours(0,0,0,0) - now.setHours(0,0,0,0)) / (1000 * 60 * 60 * 24));
+                // Use copies for day comparison
+                const eventDay = new Date(nextEventDate.getTime());
+                const today = new Date(now.getTime());
+                eventDay.setHours(0,0,0,0);
+                today.setHours(0,0,0,0);
+                const daysDiff = Math.floor((eventDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
                 const timeStr = nextEventDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 if (daysDiff === 1) {
                   return `Tomorrow at ${timeStr}`;
@@ -890,6 +919,21 @@ const SchoolPlanner = () => {
   useEffect(() => {
     localStorage.setItem('showFirstInfoBeside', showFirstInfoBeside ? 'true' : 'false');
   }, [showFirstInfoBeside]);
+
+  // Add state for showCountdownInTitle
+  const [showCountdownInTitle, setShowCountdownInTitle] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('showCountdownInTitle');
+      return saved === 'true';
+    }
+    return false;
+  });
+  // Persist showCountdownInTitle
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('showCountdownInTitle', showCountdownInTitle ? 'true' : 'false');
+    }
+  }, [showCountdownInTitle]);
 
   // Main content routes
   // Only show welcome screen if not completed
