@@ -761,6 +761,47 @@ const SchoolPlanner = () => {
   // Helper to get the correct color set for the current theme and type
   const colors = getColors(theme, themeType, effectiveMode);
 
+  // Dynamically set the body background color to match the theme
+  React.useEffect(() => {
+    // Extract the background color from the colors.background (which may be a Tailwind class or hex)
+    let bg = colors.background;
+    // If it's a Tailwind class like 'bg-[#151a20]', extract the hex
+    const hexMatch = bg.match(/#([0-9a-fA-F]{6,8})/);
+    if (hexMatch) {
+      bg = `#${hexMatch[1]}`;
+    } else if (bg.startsWith('bg-') && bg.includes('-')) {
+      // Try to map Tailwind color class to a CSS variable or fallback
+      // You can extend this mapping as needed
+      const tailwindToHex: Record<string, string> = {
+        'bg-red-950': '#450a0a',
+        'bg-orange-950': '#431407',
+        'bg-yellow-950': '#422006',
+        'bg-green-950': '#052e16',
+        'bg-blue-950': '#172554',
+        'bg-purple-950': '#2e1065',
+        'bg-pink-950': '#500724',
+        'bg-gray-950': '#0a0a0a',
+        'bg-red-100': '#fee2e2',
+        'bg-orange-100': '#ffedd5',
+        'bg-yellow-100': '#fef9c3',
+        'bg-green-100': '#dcfce7',
+        'bg-blue-100': '#dbeafe',
+        'bg-purple-100': '#ede9fe',
+        'bg-pink-100': '#fce7f3',
+        'bg-gray-100': '#f3f4f6',
+        // Add more as needed
+      };
+      bg = tailwindToHex[bg] || '#181e29'; // fallback
+    } else if (bg.startsWith('bg-[')) {
+      // Already handled by hexMatch
+    } else {
+      // fallback
+      bg = '#181e29';
+    }
+    document.body.style.backgroundColor = bg;
+    document.documentElement.style.backgroundColor = bg;
+  }, [colors.background]);
+
   // When setting theme, also set themeType
   function handleThemeChange(key: string, type: 'normal' | 'extreme') {
     setTheme(key as ThemeKey);
