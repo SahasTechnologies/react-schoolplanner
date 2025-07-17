@@ -529,7 +529,6 @@ const SchoolPlanner = () => {
           setSearching(false);
           if (setTabCountdown) {
             setTabCountdown(null);
-            localStorage.removeItem('tabCountdown');
           }
           return;
         }
@@ -547,7 +546,6 @@ const SchoolPlanner = () => {
               event: normalizeSubjectName(soonest.event.summary, true),
             };
             setTabCountdown(info);
-            localStorage.setItem('tabCountdown', JSON.stringify(info));
           }
         } else {
           setNextEvent(null);
@@ -556,7 +554,6 @@ const SchoolPlanner = () => {
           setSearching(false);
           if (setTabCountdown) {
             setTabCountdown(null);
-            localStorage.removeItem('tabCountdown');
           }
         }
       }, 1000);
