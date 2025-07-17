@@ -29,6 +29,7 @@ import { Subject } from './types';
 import Sidebar from './components/Sidebar';
 import SubjectCard from './components/SubjectCard';
 import EventDetailsOverlay from './components/EventDetailsOverlay';
+import { saveAs } from 'file-saver'; // If not present, fallback to manual download
 
 
 
@@ -412,6 +413,9 @@ const SchoolPlanner = () => {
         isCalendarPage={location.pathname === '/calendar'}
         countdownInTitle={countdownInTitle}
         setCountdownInTitle={setCountdownInTitle}
+        exportModalState={exportModalState}
+        setExportModalState={setExportModalState}
+        handleExport={handleExport}
       />
     );
   };
@@ -958,6 +962,96 @@ const SchoolPlanner = () => {
       } catch {}
     }
   }, []);
+
+  // Add state for export modal
+  const [exportModalState, setExportModalState] = useState({
+    show: false,
+    options: {
+      subjects: true,
+      subjectInfo: true,
+      subjectNotes: true,
+      subjectColours: true,
+      subjectIcons: true,
+      name: false,
+    },
+  });
+
+  const handleExport = () => {
+    // Gather export data based on toggles
+    const data: any = {};
+    if (exportModalState.options.subjects) {
+      // Gather subjects with timing and names
+      data.subjects = subjects.map(subject => {
+        // Find all events for this subject
+        const timings = weekData?.events
+          .filter(e => normalizeSubjectName(e.summary, autoNamingEnabled) === normalizeSubjectName(subject.name, autoNamingEnabled))
+          .map(e => ({
+            start: e.dtstart,
+            end: e.dtend,
+            location: e.location,
+            description: e.description,
+          })) || [];
+        return {
+          id: subject.id,
+          name: subject.name,
+          originalName: subject.originalName,
+          timings,
+        };
+      });
+    }
+    if (exportModalState.options.subjectInfo) {
+      // Subject info: for now, just include the subject object
+      data.subjectInfo = subjects.map(subject => ({
+        id: subject.id,
+        name: subject.name,
+        originalName: subject.originalName,
+      }));
+    }
+    if (exportModalState.options.subjectNotes) {
+      // Notes are stored in localStorage as subject_note_{normalizedName}
+      data.subjectNotes = {};
+      subjects.forEach(subject => {
+        const key = `subject_note_${normalizeSubjectName(subject.name, true)}`;
+        const note = localStorage.getItem(key);
+        if (note) data.subjectNotes[subject.name] = note;
+      });
+    }
+    if (exportModalState.options.subjectColours) {
+      data.subjectColours = subjects.map(subject => ({
+        name: subject.name,
+        colour: subject.colour,
+      }));
+    }
+    if (exportModalState.options.subjectIcons) {
+      // Export icon name (normalized subject name)
+      data.subjectIcons = subjects.map(subject => ({
+        name: subject.name,
+        icon: normalizeSubjectName(subject.name, true),
+      }));
+    }
+    if (exportModalState.options.name) {
+      data.name = userName;
+    }
+    // Download as .school file
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const fileName = `${userName || 'schoolplanner'}-export.school`;
+    if (typeof saveAs === 'function') {
+      saveAs(blob, fileName);
+    } else {
+      // Fallback for browsers without file-saver
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 0);
+    }
+    setExportModalState(s => ({ ...s, show: false }));
+  };
 
   // Main content routes
   // Only show welcome screen if not completed

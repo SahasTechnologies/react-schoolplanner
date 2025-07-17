@@ -13,9 +13,22 @@ import {
   Moon, 
   Monitor,
   Home,
-  Calendar
+  Calendar,
+  FileText
 } from 'lucide-react';
 import { ThemeKey, colorVars, themeColors } from '../utils/theme';
+
+interface ExportModalState {
+  show: boolean;
+  options: {
+    subjects: boolean;
+    subjectInfo: boolean;
+    subjectNotes: boolean;
+    subjectColours: boolean;
+    subjectIcons: boolean;
+    name: boolean;
+  };
+}
 
 interface SettingsProps {
   userName: string;
@@ -46,6 +59,9 @@ interface SettingsProps {
   isCalendarPage?: boolean;
   countdownInTitle: boolean;
   setCountdownInTitle: (val: boolean) => void;
+  exportModalState: ExportModalState;
+  setExportModalState: React.Dispatch<React.SetStateAction<ExportModalState>>;
+  handleExport: () => void;
 }
 
 const Settings: React.FC<SettingsProps> = ({
@@ -76,7 +92,10 @@ const Settings: React.FC<SettingsProps> = ({
   setShowFirstInfoBeside,
   isCalendarPage,
   countdownInTitle,
-  setCountdownInTitle
+  setCountdownInTitle,
+  exportModalState,
+  setExportModalState,
+  handleExport
 }: SettingsProps) => {
   const [showNameEditModal, setShowNameEditModal] = React.useState(false);
   const [editUserName, setEditUserName] = React.useState(userName);
@@ -94,7 +113,7 @@ const Settings: React.FC<SettingsProps> = ({
           <User className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
           <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Data</h3>
         </div>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Name</p>
             <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>{userName || <span className="italic">(not set)</span>}</p>
@@ -105,6 +124,20 @@ const Settings: React.FC<SettingsProps> = ({
           >
             <Edit2 size={16} />
             Change Name
+          </button>
+        </div>
+        {/* Export Data Button */}
+        <div className="flex items-center justify-between mt-4">
+          <div>
+            <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Export Data</p>
+            <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Export your calendar and subject data as a .school file</p>
+          </div>
+          <button
+            onClick={() => setExportModalState((prev) => ({ ...prev, show: true }))}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+          >
+            <FileText size={16} />
+            Export
           </button>
         </div>
       </div>
@@ -130,6 +163,51 @@ const Settings: React.FC<SettingsProps> = ({
                 onClick={() => { setUserName(editUserName); setShowNameEditModal(false); }}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
               >Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Export Modal */}
+      {exportModalState.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
+            <h3 className={`text-xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Export Data</h3>
+            <div className="space-y-4 mb-6">
+              <label className="flex items-center gap-3">
+                <input type="checkbox" checked={exportModalState.options.subjects} onChange={e => setExportModalState(s => ({ ...s, options: { ...s.options, subjects: e.target.checked } }))} />
+                <span>Subjects (with timing, original/edited names)</span>
+              </label>
+              <label className="flex items-center gap-3">
+                <input type="checkbox" checked={exportModalState.options.subjectInfo} onChange={e => setExportModalState(s => ({ ...s, options: { ...s.options, subjectInfo: e.target.checked } }))} />
+                <span>Subject Information</span>
+              </label>
+              <label className="flex items-center gap-3">
+                <input type="checkbox" checked={exportModalState.options.subjectNotes} onChange={e => setExportModalState(s => ({ ...s, options: { ...s.options, subjectNotes: e.target.checked } }))} />
+                <span>Subject Notes</span>
+              </label>
+              <label className="flex items-center gap-3">
+                <input type="checkbox" checked={exportModalState.options.subjectColours} onChange={e => setExportModalState(s => ({ ...s, options: { ...s.options, subjectColours: e.target.checked } }))} />
+                <span>Subject Colours</span>
+              </label>
+              <label className="flex items-center gap-3">
+                <input type="checkbox" checked={exportModalState.options.subjectIcons} onChange={e => setExportModalState(s => ({ ...s, options: { ...s.options, subjectIcons: e.target.checked } }))} />
+                <span>Subject Icons</span>
+              </label>
+              <label className="flex items-center gap-3">
+                <input type="checkbox" checked={exportModalState.options.name} onChange={e => setExportModalState(s => ({ ...s, options: { ...s.options, name: e.target.checked } }))} />
+                <span>Name</span>
+              </label>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setExportModalState(s => ({ ...s, show: false }))}
+                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+              >Cancel</button>
+              <button
+                onClick={handleExport}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+              >Export</button>
             </div>
           </div>
         </div>
