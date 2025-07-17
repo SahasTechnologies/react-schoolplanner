@@ -131,3 +131,43 @@ export const getSubjectIcon = (subjectName: string, size: number = 20, mode: 'li
     className: mode === 'light' ? 'text-black' : 'text-white' 
   });
 }; 
+
+// Utility: Export data as Base64-encoded .school file
+export function exportSchoolData(data: any, fileName: string) {
+  const json = JSON.stringify(data, null, 2);
+  const base64 = btoa(unescape(encodeURIComponent(json)));
+  const blob = new Blob([base64], { type: 'text/plain' });
+  if (typeof window !== 'undefined' && typeof window.saveAs === 'function') {
+    window.saveAs(blob, fileName);
+  } else if (typeof window !== 'undefined') {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 0);
+  }
+}
+
+// Utility: Import data from a .school file (Base64-encoded JSON)
+export function importSchoolData(file: File): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const base64 = e.target?.result as string;
+        const json = decodeURIComponent(escape(atob(base64)));
+        const data = JSON.parse(json);
+        resolve(data);
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsText(file);
+  });
+} 

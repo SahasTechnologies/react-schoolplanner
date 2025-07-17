@@ -30,6 +30,7 @@ import Sidebar from './components/Sidebar';
 import SubjectCard from './components/SubjectCard';
 import EventDetailsOverlay from './components/EventDetailsOverlay';
 import { saveAs } from 'file-saver'; // If not present, fallback to manual download
+import { exportSchoolData, importSchoolData } from './utils/subjectUtils';
 
 
 
@@ -416,7 +417,35 @@ const SchoolPlanner = () => {
         exportModalState={exportModalState}
         setExportModalState={setExportModalState}
         handleExport={handleExport}
-      />
+      >
+        <div className="flex items-center justify-between mt-4">
+          <div>
+            <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Import Data</p>
+            <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Import your .school file</p>
+          </div>
+          <button
+            onClick={handleImportClick}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+          >
+            <FileText size={16} />
+            Import
+          </button>
+        </div>
+        {importModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+            <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
+              <h3 className={`text-xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Import Data</h3>
+              <input type="file" accept=".school" ref={importInputRef} onChange={handleImportFile} className="mb-4" />
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setImportModalOpen(false)}
+                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+                >Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </Settings>
     );
   };
 
@@ -652,7 +681,9 @@ const SchoolPlanner = () => {
         fileInputRef={fileInputRef}
         effectiveMode={effectiveMode}
         navigate={navigate}
-      />
+      >
+        <p className="text-lg text-gray-600">Upload ICS or import your .school file.</p>
+      </WelcomeScreen>
     );
   };
 
@@ -977,7 +1008,6 @@ const SchoolPlanner = () => {
   });
 
   const handleExport = () => {
-    // Gather export data based on toggles
     const data: any = {};
     if (exportModalState.options.subjects) {
       data.subjects = subjects.map(subject => {
@@ -1027,26 +1057,31 @@ const SchoolPlanner = () => {
     if (exportModalState.options.name) {
       data.name = userName;
     }
-    // Obfuscate: encode JSON as Base64
-    const json = JSON.stringify(data, null, 2);
-    const base64 = btoa(unescape(encodeURIComponent(json)));
-    const blob = new Blob([base64], { type: 'text/plain' });
     const fileName = `${userName || 'schoolplanner'}-export.school`;
-    if (typeof saveAs === 'function') {
-      saveAs(blob, fileName);
-    } else {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 0);
-    }
+    exportSchoolData(data, fileName);
     setExportModalState(s => ({ ...s, show: false }));
+  };
+
+  // Import modal state
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const importInputRef = useRef<HTMLInputElement>(null);
+  const handleImportClick = () => setImportModalOpen(true);
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const data = await importSchoolData(file);
+      // You can now update state with imported data as needed
+      // For now, just log it:
+      console.log('Imported data:', data);
+      // TODO: Set subjects, weekData, userName, etc. from imported data
+      // setSubjects(data.subjects || []);
+      // setUserName(data.name || '');
+      // ...
+      setImportModalOpen(false);
+    } catch (err) {
+      alert('Failed to import file: ' + err);
+    }
   };
 
   // Main content routes
