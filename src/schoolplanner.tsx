@@ -485,8 +485,8 @@ const SchoolPlanner = () => {
     function findNextEvent(currentNow: Date): CalendarEvent | null {
       if (!weekData || !weekData.events) return null;
       const futureEvents = weekData.events
-        .filter(e => new Date(e.dtstart).getTime() > currentNow.getTime())
-        .sort((a, b) => new Date(a.dtstart).getTime() - new Date(b.dtstart).getTime());
+        .filter((e: CalendarEvent) => new Date(e.dtstart).getTime() > currentNow.getTime())
+        .sort((a: CalendarEvent, b: CalendarEvent) => new Date(a.dtstart).getTime() - new Date(b.dtstart).getTime());
       return futureEvents.length > 0 ? futureEvents[0] : null;
     }
 
