@@ -1261,28 +1261,41 @@ const SchoolPlanner = () => {
 
 // Quote of the Day Widget
 const QuoteOfTheDayWidget: React.FC<{ theme: ThemeKey; themeType: 'normal' | 'extreme'; effectiveMode: 'light' | 'dark' }> = ({ theme, themeType, effectiveMode }) => {
-  const [loading, setLoading] = useState(true);
-  // Use the new quote utils to get the correct URL
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(false);
   const url = getQuoteOfTheDayUrl(theme, themeType, effectiveMode);
+
+  // Timeout fallback: hide spinner after 3 seconds
+  React.useEffect(() => {
+    setLoading(true);
+    setError(false);
+    const timer = setTimeout(() => setLoading(false), 3000);
+    return () => clearTimeout(timer);
+  }, [url]);
+
   return (
     <div className={`${getColors(theme, themeType, effectiveMode).container} rounded-lg ${getColors(theme, themeType, effectiveMode).border} border p-4 mb-4 flex flex-col items-center`}>
       <div className="font-semibold text-lg mb-2" style={{ color: effectiveMode === 'light' ? '#222' : '#fff' }}>Quote of the Day</div>
-      {loading && (
-        <div className="flex flex-col items-center justify-center py-6 w-full">
+      <div className="text-xs mb-2 break-all text-gray-400">URL: {url}</div>
+      {loading && !error && (
+        <div className="flex flex-col items-center justify-center py-4 w-full">
           <LoaderCircle className="animate-spin mb-2" size={32} />
-          <span className="text-gray-400">Loading...</span>
+          <span className="text-gray-400">Loading (max 3s)...</span>
         </div>
+      )}
+      {error && (
+        <div className="text-red-500 text-sm py-2">Failed to load quote widget.</div>
       )}
       <iframe
         title="Quote of the Day"
         src={url}
         width="100%"
         height="120"
-        style={{ border: 'none', borderRadius: '8px', display: loading ? 'none' : 'block' }}
+        style={{ border: '2px solid #888', borderRadius: '8px', background: '#fff', marginTop: 8 }}
         loading="lazy"
         sandbox="allow-scripts allow-same-origin"
-        onLoad={() => setLoading(false)}
-        onError={() => setLoading(false)}
+        onLoad={() => { setLoading(false); setError(false); console.log('Quote iframe loaded:', url); }}
+        onError={() => { setLoading(false); setError(true); console.error('Quote iframe failed:', url); }}
       ></iframe>
     </div>
   );
