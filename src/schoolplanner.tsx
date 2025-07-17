@@ -27,6 +27,7 @@ import ThemeModal from './components/ThemeModal';
 import { Subject } from './types';
 import Sidebar from './components/Sidebar';
 import SubjectCard from './components/SubjectCard';
+import EventDetailsOverlay from './components/EventDetailsOverlay';
 
 
 
@@ -320,6 +321,7 @@ const SchoolPlanner = () => {
                       infoOrder={infoOrder}
                       infoShown={infoShown}
                       showFirstInfoBeside={false} // Always false on calendar page
+                      onClick={() => setSelectedEvent(event)}
                     />
                   ))
                 )}
@@ -450,6 +452,7 @@ const SchoolPlanner = () => {
                     infoOrder={infoOrder}
                     infoShown={infoShown}
                     showFirstInfoBeside={showFirstInfoBeside}
+                    onClick={() => setSelectedEvent(event)}
                   />
                 ))}
               </div>
@@ -703,6 +706,9 @@ const SchoolPlanner = () => {
   const [showInfoPopup, setShowInfoPopup] = useState(false);
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
 
+  // State for event details overlay
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+
   // Save infoOrder and infoShown to localStorage
   useEffect(() => {
     localStorage.setItem('eventInfoOrder', JSON.stringify(infoOrder));
@@ -863,6 +869,15 @@ const SchoolPlanner = () => {
           </div>
         </div>
       </div>
+      {/* Event Details Overlay */}
+      {selectedEvent && (
+        <EventDetailsOverlay
+          event={selectedEvent}
+          onClose={() => setSelectedEvent(null)}
+          colors={colors}
+          effectiveMode={effectiveMode}
+        />
+      )}
     </div>
   );
 };

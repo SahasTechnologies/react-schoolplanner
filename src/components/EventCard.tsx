@@ -13,6 +13,7 @@ interface EventCardProps {
   infoOrder: { key: string; label: string }[];
   infoShown: Record<string, boolean>;
   showFirstInfoBeside: boolean;
+  onClick?: () => void;
 }
 
 const EventCard: React.FC<EventCardProps> = ({
@@ -24,7 +25,8 @@ const EventCard: React.FC<EventCardProps> = ({
   effectiveMode,
   infoOrder,
   infoShown,
-  showFirstInfoBeside
+  showFirstInfoBeside,
+  onClick
 }) => {
   if (isBreakEvent(event)) {
     return (
@@ -106,9 +108,22 @@ const EventCard: React.FC<EventCardProps> = ({
   };
 
   const [expanded, setExpanded] = React.useState(false);
+  const [showAllInfo, setShowAllInfo] = React.useState(false);
+
+  // Keep content mounted until animation finishes
+  React.useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    if (expanded) {
+      setShowAllInfo(true);
+    } else {
+      timeout = setTimeout(() => setShowAllInfo(false), 300); // match transition duration
+    }
+    return () => clearTimeout(timeout);
+  }, [expanded]);
 
   return (
     <div
+      onClick={onClick}
       key={index}
       className={`rounded-lg p-3 text-white text-sm transition-all duration-300 cursor-pointer`}
       style={{ backgroundColor: getEventColour(event.summary) }}
@@ -132,7 +147,10 @@ const EventCard: React.FC<EventCardProps> = ({
           className="overflow-hidden transition-all duration-300"
           style={{ maxHeight: expanded ? 500 : enabledFieldsBelow.length * 40 }}
         >
-          {(expanded ? allFieldsBelow : enabledFieldsBelow).map((item: { key: string; label: string }) => infoFields[item.key]).filter(Boolean)}
+          {(expanded || showAllInfo)
+            ? allFieldsBelow.map((item: { key: string; label: string }) => infoFields[item.key]).filter(Boolean)
+            : enabledFieldsBelow.map((item: { key: string; label: string }) => infoFields[item.key]).filter(Boolean)
+          }
         </div>
       ) : (
         <div>
