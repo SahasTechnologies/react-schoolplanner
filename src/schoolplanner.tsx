@@ -416,11 +416,9 @@ const SchoolPlanner = () => {
         exportModalState={exportModalState}
         setExportModalState={setExportModalState}
         handleExport={handleExport}
-        importModalOpen={importModalOpen}
-        setImportModalOpen={setImportModalOpen}
-        handleImportClick={handleImportClick}
-        handleImportFile={handleImportFile}
-        importInputRef={importInputRef}
+        // Remove old import modal logic, add new props:
+        schoolImportInputRef={schoolImportInputRef}
+        handleSchoolImportFile={handleSchoolImportFile}
       />
     );
   };
@@ -657,6 +655,9 @@ const SchoolPlanner = () => {
         fileInputRef={fileInputRef}
         effectiveMode={effectiveMode}
         navigate={navigate}
+        // Add these props:
+        schoolImportInputRef={schoolImportInputRef}
+        handleSchoolImportFile={handleSchoolImportFile}
       />
     );
   };
@@ -1036,23 +1037,31 @@ const SchoolPlanner = () => {
     setExportModalState(s => ({ ...s, show: false }));
   };
 
-  // Import modal state
-  const [importModalOpen, setImportModalOpen] = useState(false);
-  const importInputRef = React.useRef<HTMLInputElement>(null);
-  const handleImportClick = () => setImportModalOpen(true);
-  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Add a ref for .school import file input
+  const schoolImportInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Centralized .school import handler
+  const handleSchoolImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
       const data = await importSchoolData(file);
-      // You can now update state with imported data as needed
-      // For now, just log it:
-      console.log('Imported data:', data);
-      // TODO: Set subjects, weekData, userName, etc. from imported data
-      // setSubjects(data.subjects || []);
-      // setUserName(data.name || '');
-      // ...
-      setImportModalOpen(false);
+      // Update state from imported data
+      if (data.name) setUserName(data.name);
+      if (data.subjects) setSubjects(data.subjects);
+      if (data.weekData) setWeekData({
+        ...data.weekData,
+        monday: new Date(data.weekData.monday),
+        friday: new Date(data.weekData.friday),
+        events: data.weekData.events.map((e: any) => ({ ...e, dtstart: new Date(e.dtstart), dtend: e.dtend ? new Date(e.dtend) : undefined }))
+      });
+      // Persist to localStorage
+      if (data.name) localStorage.setItem('userName', data.name);
+      if (data.subjects) localStorage.setItem('subjects', JSON.stringify(data.subjects));
+      if (data.weekData) localStorage.setItem('weekData', JSON.stringify(data.weekData));
+      setWelcomeStep('completed');
+      // Optionally navigate to home
+      navigate('/home', { replace: true });
     } catch (err) {
       alert('Failed to import file: ' + err);
     }

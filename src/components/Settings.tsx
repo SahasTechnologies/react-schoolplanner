@@ -62,11 +62,8 @@ interface SettingsProps {
   exportModalState: ExportModalState;
   setExportModalState: React.Dispatch<React.SetStateAction<ExportModalState>>;
   handleExport: () => void;
-  importModalOpen: boolean;
-  setImportModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  handleImportClick: () => void;
-  handleImportFile: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  importInputRef: React.RefObject<HTMLInputElement | null>;
+  schoolImportInputRef: React.RefObject<HTMLInputElement | null>;
+  handleSchoolImportFile: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 const Settings: React.FC<SettingsProps> = ({
@@ -101,11 +98,8 @@ const Settings: React.FC<SettingsProps> = ({
   exportModalState,
   setExportModalState,
   handleExport,
-  importModalOpen,
-  setImportModalOpen,
-  handleImportClick,
-  handleImportFile,
-  importInputRef
+  schoolImportInputRef,
+  handleSchoolImportFile
 }: SettingsProps) => {
   const [showNameEditModal, setShowNameEditModal] = React.useState(false);
   const [editUserName, setEditUserName] = React.useState(userName);
@@ -150,36 +144,30 @@ const Settings: React.FC<SettingsProps> = ({
             Export
           </button>
         </div>
-      </div>
-
-      {/* Import Data Button */}
-      <div className="flex items-center justify-between mt-4">
-        <div>
-          <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Import Data</p>
-          <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Import your .school file</p>
-        </div>
-        <button
-          onClick={handleImportClick}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
-        >
-          <FileText size={16} />
-          Import
-        </button>
-      </div>
-      {importModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
-            <h3 className={`text-xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Import Data</h3>
-            <input type="file" accept=".school" ref={importInputRef} onChange={handleImportFile} className="mb-4" />
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setImportModalOpen(false)}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
-              >Cancel</button>
-            </div>
+        {/* Import Data Button (direct file input, no modal) */}
+        <div className="flex items-center justify-between mt-4">
+          <div>
+            <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Import Data</p>
+            <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Import your .school file</p>
           </div>
+          <>
+            <button
+              onClick={() => schoolImportInputRef.current?.click()}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+            >
+              <FileText size={16} />
+              Import
+            </button>
+            <input
+              ref={schoolImportInputRef}
+              type="file"
+              accept=".school"
+              onChange={handleSchoolImportFile}
+              className="hidden"
+            />
+          </>
         </div>
-      )}
+      </div>
 
       {/* Name Edit Modal */}
       {showNameEditModal && (

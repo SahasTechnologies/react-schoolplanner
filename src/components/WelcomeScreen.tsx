@@ -16,6 +16,8 @@ interface WelcomeScreenProps {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   effectiveMode: 'light' | 'dark';
   navigate: (path: string) => void;
+  schoolImportInputRef: React.RefObject<HTMLInputElement | null>;
+  handleSchoolImportFile: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) => {
@@ -33,7 +35,9 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
     handleFileChange,
     fileInputRef,
     effectiveMode,
-    navigate
+    navigate,
+    schoolImportInputRef,
+    handleSchoolImportFile
   } = props;
 
   if (welcomeStep === 'completed') {
@@ -115,17 +119,32 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
                   className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 mx-auto"
                 >
                   <FileText size={20} />
-                  Choose File
+                  Choose ICS File
                 </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".ics"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                {/* New: Import .school file button */}
+                <button
+                  onClick={() => schoolImportInputRef.current?.click()}
+                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 mx-auto mt-4"
+                >
+                  <FileText size={20} />
+                  Import .school File
+                </button>
+                <input
+                  ref={schoolImportInputRef}
+                  type="file"
+                  accept=".school"
+                  onChange={handleSchoolImportFile}
+                  className="hidden"
+                />
               </div>
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".ics"
-              onChange={handleFileChange}
-              className="hidden"
-            />
           </div>
           {loading && (
             <div className="text-center py-8">
