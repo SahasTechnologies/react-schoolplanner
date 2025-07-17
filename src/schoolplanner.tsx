@@ -30,6 +30,7 @@ import Sidebar from './components/Sidebar';
 import SubjectCard from './components/SubjectCard';
 import EventDetailsOverlay from './components/EventDetailsOverlay';
 import { exportSchoolData, importSchoolData } from './utils/subjectUtils';
+import { getQuoteOfTheDayUrl } from './utils/quoteUtils';
 
 
 
@@ -1266,17 +1267,10 @@ function getIframeTextColor(effectiveMode: 'light' | 'dark') {
 // Quote of the Day Widget
 const QuoteOfTheDayWidget: React.FC<{ theme: ThemeKey; themeType: 'normal' | 'extreme'; effectiveMode: 'light' | 'dark' }> = ({ theme, themeType, effectiveMode }) => {
   const [loading, setLoading] = useState(true);
-  const colors = getColors(theme, themeType, effectiveMode);
-  const textColor = getIframeTextColor(effectiveMode);
-  // Memoize bgColor and url so they don't change on every render
-  const { bgColor, url } = React.useMemo(() => {
-    const hexMatch = colors.container.match(/#([0-9a-fA-F]{6,8})/);
-    const bgColor = hexMatch ? hexMatch[1] : (effectiveMode === 'light' ? 'ffffff' : '181e29');
-    const url = `https://kwize.com/quote-of-the-day/embed/&txt=0&font=&color=${textColor}&background=${bgColor}`;
-    return { bgColor, url };
-  }, [colors.container, textColor, effectiveMode]);
+  // Use the new quote utils to get the correct URL
+  const url = getQuoteOfTheDayUrl(theme, themeType, effectiveMode);
   return (
-    <div className={`${colors.container} rounded-lg ${colors.border} border p-4 mb-4 flex flex-col items-center`}>
+    <div className={`${getColors(theme, themeType, effectiveMode).container} rounded-lg ${getColors(theme, themeType, effectiveMode).border} border p-4 mb-4 flex flex-col items-center`}>
       <div className="font-semibold text-lg mb-2" style={{ color: effectiveMode === 'light' ? '#222' : '#fff' }}>Quote of the Day</div>
       {loading && (
         <div className="flex flex-col items-center justify-center py-6 w-full">
@@ -1289,7 +1283,7 @@ const QuoteOfTheDayWidget: React.FC<{ theme: ThemeKey; themeType: 'normal' | 'ex
         src={url}
         width="100%"
         height="120"
-        style={{ border: 'none', borderRadius: '8px', background: `#${bgColor}`, display: loading ? 'none' : 'block' }}
+        style={{ border: 'none', borderRadius: '8px', display: loading ? 'none' : 'block' }}
         loading="lazy"
         sandbox="allow-scripts allow-same-origin"
         onLoad={() => setLoading(false)}
