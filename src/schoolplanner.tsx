@@ -8,7 +8,7 @@ import {
   Settings as SettingsIcon, LoaderCircle
 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { ThemeKey, getColors } from './utils/theme';
+import { ThemeKey, getColors, colorVars } from './utils/theme';
 import { normalizeSubjectName } from './utils/subjectUtils';
 import { getSubjectIcon } from './utils/subjectUtils';
 import { 
@@ -507,6 +507,8 @@ const SchoolPlanner = () => {
           <Home className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
           <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Home</h2>
         </div>
+        {/* Quote of the Day Widget */}
+        <QuoteOfTheDayWidget theme={theme} themeType={themeType} effectiveMode={effectiveMode} />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className={`${colors.container} rounded-lg ${colors.border} border p-6 col-span-1`}>
             <div className="flex items-center gap-3 mb-4">
@@ -1250,6 +1252,79 @@ const SchoolPlanner = () => {
           subjects={subjects}
         />
       )}
+    </div>
+  );
+};
+
+// Helper to extract hex color from a Tailwind or hex string
+function extractHexColor(bg: string, fallback: string): string {
+  // If it's a Tailwind class like 'bg-[#151a20]', extract the hex
+  const hexMatch = bg.match(/#([0-9a-fA-F]{6,8})/);
+  if (hexMatch) {
+    return `#${hexMatch[1]}`;
+  }
+  // Map Tailwind color classes to hex
+  const tailwindToHex: Record<string, string> = {
+    'bg-red-950': '#450a0a',
+    'bg-orange-950': '#431407',
+    'bg-yellow-950': '#422006',
+    'bg-green-950': '#052e16',
+    'bg-blue-950': '#172554',
+    'bg-purple-950': '#2e1065',
+    'bg-pink-950': '#500724',
+    'bg-gray-950': '#0a0a0a',
+    'bg-red-100': '#fee2e2',
+    'bg-orange-100': '#ffedd5',
+    'bg-yellow-100': '#fef9c3',
+    'bg-green-100': '#dcfce7',
+    'bg-blue-100': '#dbeafe',
+    'bg-purple-100': '#ede9fe',
+    'bg-pink-100': '#fce7f3',
+    'bg-gray-100': '#f3f4f6',
+    // Add more as needed
+  };
+  if (bg in tailwindToHex) return tailwindToHex[bg];
+  // fallback
+  return fallback;
+}
+
+// Helper to get text color for iframe (black for light, white for dark)
+function getIframeTextColor(effectiveMode: 'light' | 'dark') {
+  return effectiveMode === 'light' ? '000000' : 'ffffff';
+}
+
+// Helper to get background color for iframe (from colorVars)
+function getIframeBgColor(theme: ThemeKey, themeType: 'normal' | 'extreme', effectiveMode: 'light' | 'dark') {
+  // Get the colorVars entry for the current theme, type, and mode
+  const colorObj = colorVars[theme][effectiveMode][themeType];
+  // colorObj.background is like 'bg-[#151a20]' or 'bg-blue-100'
+  // Try to extract hex from 'bg-[#151a20]' or fallback to white/dark
+  const hexMatch = colorObj.background.match(/#([0-9a-fA-F]{6,8})/);
+  if (hexMatch) {
+    return hexMatch[1]; // no #
+  }
+  // fallback for Tailwind class names (shouldn't happen if colorVars is consistent)
+  return effectiveMode === 'light' ? 'ffffff' : '181e29';
+}
+
+// Quote of the Day Widget
+const QuoteOfTheDayWidget: React.FC<{ theme: ThemeKey; themeType: 'normal' | 'extreme'; effectiveMode: 'light' | 'dark' }> = ({ theme, themeType, effectiveMode }) => {
+  const textColor = getIframeTextColor(effectiveMode);
+  const bgColor = getIframeBgColor(theme, themeType, effectiveMode);
+  const url = `https://kwize.com/quote-of-the-day/embed/&txt=0&font=&color=${textColor}&background=${bgColor}`;
+  const colors = getColors(theme, themeType, effectiveMode);
+  return (
+    <div className={`${colors.container} rounded-lg ${colors.border} border p-4 mb-4 flex flex-col items-center`}>
+      <div className="font-semibold text-lg mb-2" style={{ color: effectiveMode === 'light' ? '#222' : '#fff' }}>Quote of the Day</div>
+      <iframe
+        title="Quote of the Day"
+        src={url}
+        width="100%"
+        height="120"
+        style={{ border: 'none', borderRadius: '8px', background: `#${bgColor}` }}
+        loading="lazy"
+        sandbox="allow-scripts allow-same-origin"
+      ></iframe>
     </div>
   );
 };
