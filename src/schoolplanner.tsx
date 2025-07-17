@@ -461,7 +461,14 @@ const SchoolPlanner = () => {
               </div>
             )}
           </div>
-          {/* CountdownBox is now rendered globally */}
+          {/* Countdown box on the right */}
+          <CountdownBox
+            weekData={weekData}
+            colors={colors}
+            effectiveMode={effectiveMode}
+            getEventColour={getEventColour}
+            setTabCountdown={setTabCountdown}
+          />
         </div>
       </div>
     );
@@ -525,7 +532,7 @@ const SchoolPlanner = () => {
           setSearching(false);
           if (setTabCountdown) {
             const info = {
-              time: formatCountdown(diff > 0 ? diff : 0),
+              time: formatCountdownForTab(diff > 0 ? diff : 0),
               event: normalizeSubjectName(soonest.event.summary, true),
             };
             setTabCountdown(info);
@@ -545,14 +552,15 @@ const SchoolPlanner = () => {
       return () => clearInterval(interval);
     }, [weekData]);
 
-    // Format time left as HH:MM (for tab)
-    function formatCountdown(ms: number | null): string {
+    // Format time left as HH:MM:SS for tab
+    function formatCountdownForTab(ms: number | null): string {
       if (ms === null) return '';
       if (ms <= 0) return 'Now!';
       const totalSeconds = Math.floor(ms / 1000);
       const hours = Math.floor(totalSeconds / 3600);
       const minutes = Math.floor((totalSeconds % 3600) / 60);
-      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      const seconds = totalSeconds % 60;
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     }
 
     // Custom colored icon
@@ -589,7 +597,7 @@ const SchoolPlanner = () => {
           </div>
         ) : nextEvent && nextEventDate ? (
           <>
-            <div className="text-3xl font-bold mb-2" style={{ color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>{formatCountdown(timeLeft)}</div>
+            <div className="text-3xl font-bold mb-2" style={{ color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>{formatCountdownForTab(timeLeft)}</div>
             <div className="flex items-center gap-2 mb-1">
               <ColoredSubjectIcon summary={nextEvent.summary} />
               <span className="text-base font-medium" style={{ color: getEventColour(nextEvent.summary) }}>{normalizeSubjectName(nextEvent.summary, true)}</span>
@@ -1048,16 +1056,6 @@ const SchoolPlanner = () => {
             )}
           </div>
         </div>
-      </div>
-      {/* Global CountdownBox (hidden except on Home) */}
-      <div style={{ display: location.pathname === '/home' ? 'block' : 'none', position: 'fixed', top: 24, right: 24, zIndex: 50 }}>
-        <CountdownBox
-          weekData={weekData}
-          colors={colors}
-          effectiveMode={effectiveMode}
-          getEventColour={getEventColour}
-          setTabCountdown={setTabCountdown}
-        />
       </div>
       {/* Event Details Overlay */}
       {selectedEvent && (
