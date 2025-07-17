@@ -507,8 +507,6 @@ const SchoolPlanner = () => {
           <Home className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
           <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Home</h2>
         </div>
-        {/* Quote of the Day Widget */}
-        <QuoteOfTheDayWidget theme={theme} themeType={themeType} effectiveMode={effectiveMode} />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className={`${colors.container} rounded-lg ${colors.border} border p-6 col-span-1`}>
             <div className="flex items-center gap-3 mb-4">
@@ -541,16 +539,20 @@ const SchoolPlanner = () => {
             )}
           </div>
           {/* Countdown box on the right */}
-          <CountdownBox
-            searching={countdownSearching}
-            nextEvent={nextEvent}
-            nextEventDate={nextEventDate}
-            timeLeft={timeLeft}
-            formatCountdown={formatCountdownForTab}
-            getEventColour={getEventColour}
-            effectiveMode={effectiveMode}
-            colors={colors}
-          />
+          <div className="flex flex-col gap-6">
+            <CountdownBox
+              searching={countdownSearching}
+              nextEvent={nextEvent}
+              nextEventDate={nextEventDate}
+              timeLeft={timeLeft}
+              formatCountdown={formatCountdownForTab}
+              getEventColour={getEventColour}
+              effectiveMode={effectiveMode}
+              colors={colors}
+            />
+            {/* Quote of the Day Widget below CountdownBox */}
+            <QuoteOfTheDayWidget theme={theme} themeType={themeType} effectiveMode={effectiveMode} />
+          </div>
         </div>
       </div>
     );
@@ -1259,20 +1261,6 @@ const SchoolPlanner = () => {
 // Helper to get text color for iframe (black for light, white for dark)
 function getIframeTextColor(effectiveMode: 'light' | 'dark') {
   return effectiveMode === 'light' ? '000000' : 'ffffff';
-}
-
-// Helper to get background color for iframe (from colorVars)
-function getIframeBgColor(theme: ThemeKey, themeType: 'normal' | 'extreme', effectiveMode: 'light' | 'dark') {
-  // Get the colorVars entry for the current theme, type, and mode
-  const colorObj = colorVars[theme][effectiveMode][themeType];
-  // colorObj.background is like 'bg-[#151a20]' or 'bg-blue-100'
-  // Try to extract hex from 'bg-[#151a20]' or fallback to white/dark
-  const hexMatch = colorObj.background.match(/#([0-9a-fA-F]{6,8})/);
-  if (hexMatch) {
-    return hexMatch[1]; // no #
-  }
-  // fallback for Tailwind class names (shouldn't happen if colorVars is consistent)
-  return effectiveMode === 'light' ? 'ffffff' : '181e29';
 }
 
 // Quote of the Day Widget
