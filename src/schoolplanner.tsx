@@ -410,11 +410,8 @@ const SchoolPlanner = () => {
         showFirstInfoBeside={showFirstInfoBeside}
         setShowFirstInfoBeside={setShowFirstInfoBeside}
         isCalendarPage={location.pathname === '/calendar'}
-        showCountdownInTitle={showCountdownInTitle}
-        setShowCountdownInTitle={val => {
-          setShowCountdownInTitle(val);
-          localStorage.setItem('showCountdownInTitle', val ? 'true' : 'false');
-        }}
+        countdownInTitle={countdownInTitle}
+        setCountdownInTitle={setCountdownInTitle}
       />
     );
   };
@@ -470,6 +467,7 @@ const SchoolPlanner = () => {
             colors={colors}
             effectiveMode={effectiveMode}
             getEventColour={getEventColour}
+            setTabCountdown={countdownInTitle ? setTabCountdown : undefined}
           />
         </div>
       </div>
@@ -482,7 +480,8 @@ const SchoolPlanner = () => {
     colors: any;
     effectiveMode: 'light' | 'dark';
     getEventColour: (title: string) => string;
-  }> = ({ weekData, colors, effectiveMode, getEventColour }) => {
+    setTabCountdown?: (info: { time: string; event: string } | null) => void;
+  }> = ({ weekData, colors, effectiveMode, getEventColour, setTabCountdown }) => {
     const [nextEvent, setNextEvent] = useState<CalendarEvent | null>(null);
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
     const [nextEventDate, setNextEventDate] = useState<Date | null>(null);
@@ -494,9 +493,7 @@ const SchoolPlanner = () => {
       const eventHour = event.dtstart.getHours();
       const eventMinute = event.dtstart.getMinutes();
       const eventSecond = event.dtstart.getSeconds();
-      // Find next occurrence (this week or next)
-      const nowDay = now.getDay();
-      let daysUntil = eventDay - nowDay;
+      let daysUntil = eventDay - now.getDay();
       if (
         daysUntil < 0 ||
         (daysUntil === 0 && (
@@ -513,7 +510,6 @@ const SchoolPlanner = () => {
       return next;
     }
 
-    // Find the soonest next event occurrence
     function findNextRepeatingEvent(now: Date): { event: CalendarEvent; date: Date } | null {
       if (!weekData || !weekData.events) return null;
       const nexts = weekData.events.map((e: CalendarEvent) => ({ event: e, date: getNextOccurrence(e, now) }));
@@ -521,7 +517,6 @@ const SchoolPlanner = () => {
       return soonest;
     }
 
-    // Update every second, and recalculate nextEvent and timeLeft
     useEffect(() => {
       setSearching(true);
       const interval = setInterval(() => {
@@ -533,18 +528,25 @@ const SchoolPlanner = () => {
           const diff = soonest.date.getTime() - now.getTime();
           setTimeLeft(diff > 0 ? diff : 0);
           setSearching(false);
+          if (setTabCountdown) {
+            setTabCountdown({
+              time: formatCountdown(diff > 0 ? diff : 0, soonest.event),
+              event: normalizeSubjectName(soonest.event.summary, true),
+            });
+          }
         } else {
           setNextEvent(null);
           setNextEventDate(null);
           setTimeLeft(null);
           setSearching(false);
+          if (setTabCountdown) setTabCountdown(null);
         }
       }, 1000);
       return () => clearInterval(interval);
     }, [weekData]);
 
     // Format time left as Dd Hh Mm Ss
-    function formatCountdown(ms: number | null): string {
+    function formatCountdown(ms: number | null, event?: CalendarEvent): string {
       if (ms === null) return '';
       if (ms <= 0) return 'Now!';
       const totalSeconds = Math.floor(ms / 1000);
@@ -563,9 +565,22 @@ const SchoolPlanner = () => {
     // Custom colored icon
     function ColoredSubjectIcon({ summary }: { summary: string }) {
       const color = getEventColour(summary);
-      // getSubjectIcon returns a React element, so we clone it with a new color
       const icon = getSubjectIcon(summary, 24, effectiveMode);
       return React.cloneElement(icon, { style: { color } });
+    }
+
+    // Helper for event time string
+    function getEventTimeString(date: Date, event: CalendarEvent) {
+      if (!date) return '';
+      // If the event's dtstart has 0:00 and no dtend, treat as all-day
+      if (
+        event.dtstart.getHours() === 0 &&
+        event.dtstart.getMinutes() === 0 &&
+        (!event.dtend || (event.dtend.getHours() === 0 && event.dtend.getMinutes() === 0))
+      ) {
+        return 'All day';
+      }
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
     return (
@@ -575,13 +590,13 @@ const SchoolPlanner = () => {
           <span className={`text-lg font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Next Event Countdown</span>
         </div>
         {searching ? (
-          <div className="flex flex-col items-center justify-center py-8">
+          <div className="flex flex-col items-center justify-center py-6">
             <LoaderCircle className="animate-spin mb-2" size={32} />
             <span className="text-gray-400">Searching...</span>
           </div>
         ) : nextEvent && nextEventDate ? (
           <>
-            <div className="text-3xl font-bold mb-2" style={{ color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>{formatCountdown(timeLeft)}</div>
+            <div className="text-3xl font-bold mb-2" style={{ color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>{formatCountdown(timeLeft, nextEvent)}</div>
             <div className="flex items-center gap-2 mb-1">
               <ColoredSubjectIcon summary={nextEvent.summary} />
               <span className="text-base font-medium" style={{ color: getEventColour(nextEvent.summary) }}>{normalizeSubjectName(nextEvent.summary, true)}</span>
@@ -589,11 +604,8 @@ const SchoolPlanner = () => {
             <div className="text-sm opacity-80">
               {(() => {
                 const now = new Date();
-                // Don't mutate nextEventDate!
-                const eventDay = new Date(nextEventDate.getFullYear(), nextEventDate.getMonth(), nextEventDate.getDate());
-                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                const daysDiff = Math.floor((eventDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                const timeStr = nextEventDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const daysDiff = Math.floor((nextEventDate.setHours(0,0,0,0) - now.setHours(0,0,0,0)) / (1000 * 60 * 60 * 24));
+                const timeStr = getEventTimeString(nextEventDate, nextEvent);
                 if (daysDiff === 1) {
                   return `Tomorrow at ${timeStr}`;
                 } else if (daysDiff > 1) {
@@ -908,57 +920,24 @@ const SchoolPlanner = () => {
     localStorage.setItem('showFirstInfoBeside', showFirstInfoBeside ? 'true' : 'false');
   }, [showFirstInfoBeside]);
 
-  // --- Countdown in tab title effect ---
+  // Add state for countdown in tab title
+  const [countdownInTitle, setCountdownInTitle] = useState(() => {
+    const saved = localStorage.getItem('countdownInTitle');
+    return saved === 'true';
+  });
+  // Persist countdownInTitle
   useEffect(() => {
-    if (!showCountdownInTitle) {
+    localStorage.setItem('countdownInTitle', countdownInTitle ? 'true' : 'false');
+  }, [countdownInTitle]);
+
+  // Update document.title for countdown in tab title
+  useEffect(() => {
+    if (countdownInTitle && tabCountdown && tabCountdown.time && tabCountdown.event) {
+      document.title = `${tabCountdown.time} until ${tabCountdown.event}`;
+    } else {
       document.title = 'School Planner';
-      return;
     }
-    // Find the soonest next event occurrence (rolling week)
-    if (!weekData || !weekData.events) {
-      document.title = 'School Planner';
-      return;
-    }
-    const now = new Date();
-    function getNextOccurrence(event: CalendarEvent, now: Date): Date {
-      const eventDay = event.dtstart.getDay();
-      const eventHour = event.dtstart.getHours();
-      const eventMinute = event.dtstart.getMinutes();
-      const eventSecond = event.dtstart.getSeconds();
-      const nowDay = now.getDay();
-      let daysUntil = eventDay - nowDay;
-      if (
-        daysUntil < 0 ||
-        (daysUntil === 0 && (
-          eventHour < now.getHours() ||
-          (eventHour === now.getHours() && eventMinute < now.getMinutes()) ||
-          (eventHour === now.getHours() && eventMinute === now.getMinutes() && eventSecond <= now.getSeconds())
-        ))
-      ) {
-        daysUntil += 7;
-      }
-      const next = new Date(now);
-      next.setDate(now.getDate() + daysUntil);
-      next.setHours(eventHour, eventMinute, eventSecond, 0);
-      return next;
-    }
-    const nexts = weekData.events.map((e: CalendarEvent) => ({ event: e, date: getNextOccurrence(e, now) }));
-    const soonest = nexts.reduce((min, curr) => (min === null || curr.date < min.date ? curr : min), null as { event: CalendarEvent; date: Date } | null);
-    if (!soonest) {
-      document.title = 'School Planner';
-      return;
-    }
-    const diff = soonest.date.getTime() - now.getTime();
-    if (diff <= 0) {
-      document.title = 'School Planner';
-      return;
-    }
-    const totalSeconds = Math.floor(diff / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    document.title = `${pad(hours)}:${pad(minutes)} until ${normalizeSubjectName(soonest.event.summary, true)}`;
-  }, [showCountdownInTitle, weekData]);
+  }, [countdownInTitle, tabCountdown]);
 
   // Main content routes
   // Only show welcome screen if not completed

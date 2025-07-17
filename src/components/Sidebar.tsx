@@ -10,7 +10,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ navigate, location, colors, SettingsIcon }) => {
   // Determine overlay for hover based on mode
-  const overlayHover = colors.effectiveMode === 'dark' ? 'hover:bg-white/10' : 'hover:bg-black/10';
+  const overlayHover = colors.effectiveMode === 'dark' ? 'hover:bg-white/20' : 'hover:bg-black/10';
   return (
     <div className={`w-16 ${colors.container} ${colors.border} border-r flex flex-col items-center py-4 fixed top-0 left-0 h-full z-40`}>
       <div className="space-y-4 w-full flex-1">
