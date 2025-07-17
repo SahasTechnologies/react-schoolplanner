@@ -482,21 +482,13 @@ const SchoolPlanner = () => {
     const [nextEvent, setNextEvent] = useState<CalendarEvent | null>(null);
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
-    // Helper to find the next event after now (across all days, but not unreasonably far)
+    // Helper to find the next event after now (across all days, no time limit)
     function findNextEvent(): CalendarEvent | null {
       if (!weekData || !weekData.events) return null;
       const futureEvents = weekData.events
         .filter(e => new Date(e.dtstart).getTime() > now.getTime())
         .sort((a, b) => new Date(a.dtstart).getTime() - new Date(b.dtstart).getTime());
-      // Only consider events within 7 days (604800000 ms)
-      if (futureEvents.length > 0) {
-        const soonest = futureEvents[0];
-        const soonestTime = new Date(soonest.dtstart).getTime();
-        if (soonestTime - now.getTime() < 7 * 24 * 60 * 60 * 1000) {
-          return soonest;
-        }
-      }
-      return null;
+      return futureEvents.length > 0 ? futureEvents[0] : null;
     }
 
     // Update nextEvent and timeLeft every second
@@ -519,19 +511,21 @@ const SchoolPlanner = () => {
       }
     }, [now, nextEvent]);
 
-    // Format time left as HH:mm:ss or mm:ss
+    // Format time left as Dd Hh Mm Ss
     function formatCountdown(ms: number | null): string {
       if (ms === null) return '';
       if (ms <= 0) return 'Now!';
       const totalSeconds = Math.floor(ms / 1000);
-      const hours = Math.floor(totalSeconds / 3600);
+      const days = Math.floor(totalSeconds / 86400);
+      const hours = Math.floor((totalSeconds % 86400) / 3600);
       const minutes = Math.floor((totalSeconds % 3600) / 60);
       const seconds = totalSeconds % 60;
-      if (hours > 0) {
-        return `${hours}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`;
-      } else {
-        return `${minutes}m ${seconds.toString().padStart(2, '0')}s`;
-      }
+      let str = '';
+      if (days > 0) str += `${days}d `;
+      if (hours > 0 || days > 0) str += `${hours}h `;
+      if (minutes > 0 || hours > 0 || days > 0) str += `${minutes}m `;
+      str += `${seconds}s`;
+      return str.trim();
     }
 
     return (
