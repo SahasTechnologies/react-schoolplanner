@@ -1256,38 +1256,6 @@ const SchoolPlanner = () => {
   );
 };
 
-// Helper to extract hex color from a Tailwind or hex string
-function extractHexColor(bg: string, fallback: string): string {
-  // If it's a Tailwind class like 'bg-[#151a20]', extract the hex
-  const hexMatch = bg.match(/#([0-9a-fA-F]{6,8})/);
-  if (hexMatch) {
-    return `#${hexMatch[1]}`;
-  }
-  // Map Tailwind color classes to hex
-  const tailwindToHex: Record<string, string> = {
-    'bg-red-950': '#450a0a',
-    'bg-orange-950': '#431407',
-    'bg-yellow-950': '#422006',
-    'bg-green-950': '#052e16',
-    'bg-blue-950': '#172554',
-    'bg-purple-950': '#2e1065',
-    'bg-pink-950': '#500724',
-    'bg-gray-950': '#0a0a0a',
-    'bg-red-100': '#fee2e2',
-    'bg-orange-100': '#ffedd5',
-    'bg-yellow-100': '#fef9c3',
-    'bg-green-100': '#dcfce7',
-    'bg-blue-100': '#dbeafe',
-    'bg-purple-100': '#ede9fe',
-    'bg-pink-100': '#fce7f3',
-    'bg-gray-100': '#f3f4f6',
-    // Add more as needed
-  };
-  if (bg in tailwindToHex) return tailwindToHex[bg];
-  // fallback
-  return fallback;
-}
-
 // Helper to get text color for iframe (black for light, white for dark)
 function getIframeTextColor(effectiveMode: 'light' | 'dark') {
   return effectiveMode === 'light' ? '000000' : 'ffffff';
