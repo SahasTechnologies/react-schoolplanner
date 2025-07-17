@@ -66,7 +66,7 @@ interface SettingsProps {
   setImportModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   handleImportClick: () => void;
   handleImportFile: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  importInputRef: React.RefObject<HTMLInputElement>;
+  importInputRef: React.RefObject<HTMLInputElement | null>;
 }
 
 const Settings: React.FC<SettingsProps> = ({

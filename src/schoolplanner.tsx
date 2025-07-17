@@ -1039,7 +1039,7 @@ const SchoolPlanner = () => {
 
   // Import modal state
   const [importModalOpen, setImportModalOpen] = useState(false);
-  const importInputRef = useRef<HTMLInputElement>(null);
+  const importInputRef = React.useRef<HTMLInputElement>(null);
   const handleImportClick = () => setImportModalOpen(true);
   const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

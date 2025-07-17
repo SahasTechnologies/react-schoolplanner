@@ -16,26 +16,26 @@ interface WelcomeScreenProps {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   effectiveMode: 'light' | 'dark';
   navigate: (path: string) => void;
-  uploadText?: string;
 }
 
-const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
-  welcomeStep,
-  userName,
-  setUserName,
-  setWelcomeStep,
-  loading,
-  error,
-  dragOver,
-  handleDragOver,
-  handleDragLeave,
-  handleDrop,
-  handleFileChange,
-  fileInputRef,
-  effectiveMode,
-  navigate,
-  uploadText
-}) => {
+const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) => {
+  const {
+    welcomeStep,
+    userName,
+    setUserName,
+    setWelcomeStep,
+    loading,
+    error,
+    dragOver,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    handleFileChange,
+    fileInputRef,
+    effectiveMode,
+    navigate
+  } = props;
+
   if (welcomeStep === 'completed') {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-8">
