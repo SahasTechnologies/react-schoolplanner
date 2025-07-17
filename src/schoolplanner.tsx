@@ -1266,13 +1266,15 @@ function getIframeTextColor(effectiveMode: 'light' | 'dark') {
 // Quote of the Day Widget
 const QuoteOfTheDayWidget: React.FC<{ theme: ThemeKey; themeType: 'normal' | 'extreme'; effectiveMode: 'light' | 'dark' }> = ({ theme, themeType, effectiveMode }) => {
   const [loading, setLoading] = useState(true);
-  const textColor = getIframeTextColor(effectiveMode);
-  // Use the widget container color for the iframe background
   const colors = getColors(theme, themeType, effectiveMode);
-  // Extract hex from colors.container (should be like 'bg-[#151a20]' or similar)
-  const hexMatch = colors.container.match(/#([0-9a-fA-F]{6,8})/);
-  const bgColor = hexMatch ? hexMatch[1] : (effectiveMode === 'light' ? 'ffffff' : '181e29');
-  const url = `https://kwize.com/quote-of-the-day/embed/&txt=0&font=&color=${textColor}&background=${bgColor}`;
+  const textColor = getIframeTextColor(effectiveMode);
+  // Memoize bgColor and url so they don't change on every render
+  const { bgColor, url } = React.useMemo(() => {
+    const hexMatch = colors.container.match(/#([0-9a-fA-F]{6,8})/);
+    const bgColor = hexMatch ? hexMatch[1] : (effectiveMode === 'light' ? 'ffffff' : '181e29');
+    const url = `https://kwize.com/quote-of-the-day/embed/&txt=0&font=&color=${textColor}&background=${bgColor}`;
+    return { bgColor, url };
+  }, [colors.container, textColor, effectiveMode]);
   return (
     <div className={`${colors.container} rounded-lg ${colors.border} border p-4 mb-4 flex flex-col items-center`}>
       <div className="font-semibold text-lg mb-2" style={{ color: effectiveMode === 'light' ? '#222' : '#fff' }}>Quote of the Day</div>
