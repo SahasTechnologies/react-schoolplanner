@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, MapPin, User, Utensils } from 'lucide-react';
+import { Clock, MapPin, User, Utensils, CalendarRange } from 'lucide-react';
 import { CalendarEvent, formatTime } from '../utils/calendarUtils';
 import { normalizeSubjectName, getSubjectIcon } from '../utils/subjectUtils';
 
@@ -87,21 +87,25 @@ const EventCard: React.FC<EventCardProps> = ({
     ) : null,
     period: periodInfo ? (
       <div key="period" className="flex items-center gap-1 text-xs opacity-80 mb-1">
+        <CalendarRange size={12} />
         <span>Period: {periodInfo}</span>
       </div>
     ) : null,
   };
 
   const enabledFields = infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key]);
-  
+  // If showing beside name, remove from below
+  const firstEnabledKey = showFirstInfoBeside ? (infoOrder.find((item: { key: string; label: string }) => infoShown[item.key])?.key) : null;
+  const enabledFieldsBelow = enabledFields.filter((item: { key: string; label: string }) => item.key !== firstEnabledKey);
+
   const getFirstEnabledField = () => {
     if (!showFirstInfoBeside) return null;
     const firstField = infoOrder.find((item: { key: string; label: string }) => infoShown[item.key]);
     if (!firstField) return null;
     const field = infoFields[firstField.key];
     if (!field) return null;
-    // Add left margin for clarity
-    return <span className="ml-3">{field}</span>;
+    // Add left margin for clarity, center vertically
+    return <span className="ml-3 flex items-center">{field}</span>;
   };
 
   return (
@@ -114,17 +118,17 @@ const EventCard: React.FC<EventCardProps> = ({
     >
       <div className="flex items-center justify-between" style={{ minHeight: 40, alignItems: 'center' }}>
         <div className="flex items-center">
-          <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>
+          <span className="font-medium leading-tight flex items-center" style={{ fontSize: '1.1rem' }}>
             {normalizeSubjectName(event.summary, autoNamingEnabled)}
+            {getFirstEnabledField()}
           </span>
-          {getFirstEnabledField()}
         </div>
         <span style={{ opacity: 0.35, display: 'flex', alignItems: 'center' }} className="text-black">
           {getSubjectIcon(event.summary, 24, effectiveMode)}
         </span>
       </div>
       {/* Info fields, only show enabled by default, all on hover */}
-      {(hoveredEventIdx === index ? infoOrder : enabledFields).map((item: { key: string; label: string }) => infoFields[item.key]).filter(Boolean)}
+      {(hoveredEventIdx === index ? infoOrder : enabledFieldsBelow).map((item: { key: string; label: string }) => infoFields[item.key]).filter(Boolean)}
     </div>
   );
 };
