@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { 
-  Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Settings, Edit2, User,
+  Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Edit2, User,
   Sun, Moon, Monitor, GripVertical, Palette,
   Utensils // <-- Add Utensils icon
 } from 'lucide-react';
@@ -23,6 +23,7 @@ import {
   isBreakEvent 
 } from './calendarUtils';
 import WelcomeScreen from './components/WelcomeScreen';
+import Settings from './components/Settings';
 
 
 
@@ -528,183 +529,33 @@ const SchoolPlanner = () => {
 
   const renderSettings = () => {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <Settings className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
-          <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Settings</h2>
-        </div>
-        {/* Data Section */}
-        <div className={`${colors.container} rounded-lg ${colors.border} border p-6 mb-4`}>
-          <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Data</h3>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Name</p>
-              <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>{userName || <span className="italic">(not set)</span>}</p>
-            </div>
-            <button
-              onClick={() => { setEditUserName(userName); setShowNameEditModal(true); }}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
-            >
-              <Edit2 size={16} />
-              Change Name
-            </button>
-          </div>
-        </div>
-        {/* Name Edit Modal */}
-        {showNameEditModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-            <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
-              <h3 className={`text-xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Edit Name</h3>
-              <input
-                type="text"
-                value={editUserName}
-                onChange={e => setEditUserName(e.target.value)}
-                className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6 text-lg ${effectiveMode === 'light' ? 'bg-gray-100 text-black border-gray-300' : 'bg-gray-700 text-white border-gray-600'}`}
-                placeholder="Enter your name"
-              />
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setShowNameEditModal(false)}
-                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
-                >Cancel</button>
-                <button
-                  onClick={() => { setUserName(editUserName); setShowNameEditModal(false); }}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
-                >Save</button>
-              </div>
-            </div>
-          </div>
-        )}
-        {/* Timetable Settings */}
-        <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
-          <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Timetable Settings</h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Clear Timetable Data</p>
-                <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>This will remove all uploaded calendar data and subjects</p>
-              </div>
-              <button
-                onClick={clearData}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
-              >
-                <X size={16} />
-                Clear Data
-              </button>
-            </div>
-            <div className="flex items-center justify-between mt-4 border-t border-gray-700 pt-4">
-              <div>
-                <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Enable Auto-Naming</p>
-                <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Automatically rename subjects based on keywords</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={autoNamingEnabled}
-                  onChange={() => setAutoNamingEnabled(!autoNamingEnabled)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
-          </div>
-        </div>
-        {/* Customise Section */}
-        <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
-          <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Customise</h3>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Theme</p>
-              <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Change the color theme of the app</p>
-            </div>
-            <button
-              onClick={() => setShowThemeModal(true)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${colors.button} text-white`}
-            >
-              <Palette size={18} />
-              Change Theme
-            </button>
-          </div>
-        </div>
-        {/* Info Shown at Start Section */}
-        <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
-          <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Home</h3>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Info Shown at Start</p>
-              <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Choose which info is visible before hover in Today's Schedule</p>
-            </div>
-            <button
-              onClick={() => setShowInfoPopup(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
-            >
-              Edit
-            </button>
-          </div>
-        </div>
-        {/* Info Shown at Start Popup */}
-        {showInfoPopup && (
-          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-            <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
-              <h3 className={`text-xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Info Shown at Start</h3>
-              <div className="space-y-5">
-                {infoOrder.map((item: { key: string; label: string }, idx: number) => (
-                  <div
-                    key={item.key}
-                    className={`flex items-center justify-between gap-4 py-2 px-1 rounded transition-all duration-300 ${draggedIdx === idx ? 'bg-blue-100/20' : ''}`}
-                    draggable
-                    onDragStart={() => handleDragStart(idx)}
-                    onDragOver={e => { e.preventDefault(); handleInfoDragOver(idx); }}
-                    onDragEnd={handleDragEnd}
-                    style={{
-                      transition: 'margin 0.3s, transform 0.3s',
-                      marginTop: infoShown[item.key] && idx !== 0 ? '-12px' : '',
-                      zIndex: draggedIdx === idx ? 10 : 1,
-                    }}
-                  >
-                    <div className="flex items-center gap-2 min-w-[32px]">
-                      <GripVertical className="text-gray-400 cursor-grab" size={20} />
-                    </div>
-                    <span className="flex-1 font-medium text-lg">{item.label}</span>
-                    <label className="relative inline-flex items-center cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={infoShown[item.key]}
-                        onChange={() => handleToggleInfoShown(item.key)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-12 h-7 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-blue-600 transition-colors duration-200 shadow-inner">
-                        <div className="absolute left-0.5 top-0.5 bg-white border border-gray-300 rounded-full h-6 w-6 transition-transform duration-200 peer-checked:translate-x-5 shadow-md"></div>
-                      </div>
-                    </label>
-                  </div>
-                ))}
-              </div>
-              {/* Toggle for first info beside subject name */}
-              <div className="flex items-center justify-between gap-4 py-4 mt-4 border-t border-gray-700">
-                <span className="font-medium text-lg">Show first info beside subject name</span>
-                <label className="relative inline-flex items-center cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={showFirstInfoBeside}
-                    onChange={() => setShowFirstInfoBeside(v => !v)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-12 h-7 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-blue-600 transition-colors duration-200 shadow-inner">
-                    <div className="absolute left-0.5 top-0.5 bg-white border border-gray-300 rounded-full h-6 w-6 transition-transform duration-200 peer-checked:translate-x-5 shadow-md"></div>
-                  </div>
-                </label>
-              </div>
-              <div className="flex justify-end gap-3 mt-6">
-                <button
-                  onClick={() => setShowInfoPopup(false)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
-                >Done</button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      <Settings
+        userName={userName}
+        setUserName={setUserName}
+        clearData={clearData}
+        autoNamingEnabled={autoNamingEnabled}
+        setAutoNamingEnabled={setAutoNamingEnabled}
+        showThemeModal={showThemeModal}
+        setShowThemeModal={setShowThemeModal}
+        theme={theme}
+        themeType={themeType}
+        themeMode={themeMode}
+        setThemeMode={setThemeMode}
+        handleThemeChange={handleThemeChange}
+        effectiveMode={effectiveMode}
+        colors={colors}
+        infoOrder={infoOrder}
+        infoShown={infoShown}
+        showInfoPopup={showInfoPopup}
+        setShowInfoPopup={setShowInfoPopup}
+        draggedIdx={draggedIdx}
+        handleDragStart={handleDragStart}
+        handleInfoDragOver={handleInfoDragOver}
+        handleDragEnd={handleDragEnd}
+        handleToggleInfoShown={handleToggleInfoShown}
+        showFirstInfoBeside={showFirstInfoBeside}
+        setShowFirstInfoBeside={setShowFirstInfoBeside}
+      />
     );
   };
 
@@ -922,9 +773,7 @@ const SchoolPlanner = () => {
     }
   }, []);
 
-  // Add state for name edit modal
-  const [showNameEditModal, setShowNameEditModal] = useState(false);
-  const [editUserName, setEditUserName] = useState(userName);
+
 
   // --- Persist userName to localStorage on change ---
   React.useEffect(() => {
