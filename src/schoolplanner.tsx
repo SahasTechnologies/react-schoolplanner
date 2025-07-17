@@ -461,14 +461,7 @@ const SchoolPlanner = () => {
               </div>
             )}
           </div>
-          {/* Countdown box on the right */}
-          <CountdownBox
-            weekData={weekData}
-            colors={colors}
-            effectiveMode={effectiveMode}
-            getEventColour={getEventColour}
-            setTabCountdown={tabCountdown ? setTabCountdown : undefined}
-          />
+          {/* CountdownBox is now rendered globally */}
         </div>
       </div>
     );
@@ -481,8 +474,9 @@ const SchoolPlanner = () => {
     effectiveMode: 'light' | 'dark';
     getEventColour: (title: string) => string;
     setTabCountdown?: (info: { time: string; event: string } | null) => void;
+    hidden?: boolean;
   };
-  const CountdownBox: React.FC<CountdownBoxProps> = ({ weekData, colors, effectiveMode, getEventColour, setTabCountdown }) => {
+  const CountdownBox: React.FC<CountdownBoxProps> = ({ weekData, colors, effectiveMode, getEventColour, setTabCountdown, hidden }) => {
     const [nextEvent, setNextEvent] = useState<CalendarEvent | null>(null);
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
     const [nextEventDate, setNextEventDate] = useState<Date | null>(null);
@@ -518,9 +512,6 @@ const SchoolPlanner = () => {
       return soonest;
     }
 
-    // Add state for tab countdown info (move this above all usages)
-    // const [tabCountdown, setTabCountdown] = useState<{ time: string; event: string } | null>(null); // Moved to top level
-
     useEffect(() => {
       setSearching(true);
       const interval = setInterval(() => {
@@ -533,37 +524,35 @@ const SchoolPlanner = () => {
           setTimeLeft(diff > 0 ? diff : 0);
           setSearching(false);
           if (setTabCountdown) {
-            setTabCountdown({
+            const info = {
               time: formatCountdown(diff > 0 ? diff : 0),
               event: normalizeSubjectName(soonest.event.summary, true),
-            });
+            };
+            setTabCountdown(info);
+            localStorage.setItem('tabCountdown', JSON.stringify(info));
           }
         } else {
           setNextEvent(null);
           setNextEventDate(null);
           setTimeLeft(null);
           setSearching(false);
-          if (setTabCountdown) setTabCountdown(null);
+          if (setTabCountdown) {
+            setTabCountdown(null);
+            localStorage.removeItem('tabCountdown');
+          }
         }
       }, 1000);
       return () => clearInterval(interval);
     }, [weekData]);
 
-    // Format time left as Dd Hh Mm Ss
+    // Format time left as HH:MM (for tab)
     function formatCountdown(ms: number | null): string {
       if (ms === null) return '';
       if (ms <= 0) return 'Now!';
       const totalSeconds = Math.floor(ms / 1000);
-      const days = Math.floor(totalSeconds / 86400);
-      const hours = Math.floor((totalSeconds % 86400) / 3600);
+      const hours = Math.floor(totalSeconds / 3600);
       const minutes = Math.floor((totalSeconds % 3600) / 60);
-      const seconds = totalSeconds % 60;
-      let str = '';
-      if (days > 0) str += `${days}d `;
-      if (hours > 0 || days > 0) str += `${hours}h `;
-      if (minutes > 0 || hours > 0 || days > 0) str += `${minutes}m `;
-      str += `${seconds}s`;
-      return str.trim();
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
     }
 
     // Custom colored icon
@@ -576,7 +565,6 @@ const SchoolPlanner = () => {
     // Helper for event time string
     function getEventTimeString(date: Date, event: CalendarEvent) {
       if (!date) return '';
-      // If the event's dtstart has 0:00 and no dtend, treat as all-day
       if (
         event.dtstart.getHours() === 0 &&
         event.dtstart.getMinutes() === 0 &&
@@ -587,6 +575,7 @@ const SchoolPlanner = () => {
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
+    if (hidden) return null;
     return (
       <div className={`${colors.container} rounded-lg ${colors.border} border p-6 flex flex-col items-center justify-center h-fit`}>
         <div className="flex items-center gap-2 mb-2">
@@ -946,6 +935,16 @@ const SchoolPlanner = () => {
     }
   }, [countdownInTitle, tabCountdown]);
 
+  // --- Load tabCountdown from localStorage on mount ---
+  useEffect(() => {
+    const saved = localStorage.getItem('tabCountdown');
+    if (saved) {
+      try {
+        setTabCountdown(JSON.parse(saved));
+      } catch {}
+    }
+  }, []);
+
   // Main content routes
   // Only show welcome screen if not completed
   let mainContent = null;
@@ -1000,7 +999,6 @@ const SchoolPlanner = () => {
         effectiveMode={effectiveMode}
         colors={colors}
       />
-
       {/* Main Content */}
       <div className="flex-1 ml-16">
         <div className="container mx-auto px-4 py-8">
@@ -1022,7 +1020,6 @@ const SchoolPlanner = () => {
                 </h1>
               </div>
             )}
-
             {/* Loading State (only for main app after welcome) */}
             {loading && welcomeStep === 'completed' && (
               <div className="text-center py-8">
@@ -1030,7 +1027,6 @@ const SchoolPlanner = () => {
                 <p className="text-gray-400">Processing your calendar...</p>
               </div>
             )}
-
             {/* Error State (only for main app after welcome) */}
             {error && welcomeStep === 'completed' && (
               <div className="bg-red-900/20 border border-red-500 rounded-lg p-4 mb-6">
@@ -1040,10 +1036,8 @@ const SchoolPlanner = () => {
                 </div>
               </div>
             )}
-
             {/* Main Content Routes */}
             {mainContent}
-
             {/* Empty State for Calendar (only if not loading, no error, no data, and on calendar page) */}
             {!loading && !error && !weekData && location.pathname === '/calendar' && (
               <div className="text-center py-16">
@@ -1054,6 +1048,16 @@ const SchoolPlanner = () => {
             )}
           </div>
         </div>
+      </div>
+      {/* Global CountdownBox (hidden except on Home) */}
+      <div style={{ display: location.pathname === '/home' ? 'block' : 'none', position: 'fixed', top: 24, right: 24, zIndex: 50 }}>
+        <CountdownBox
+          weekData={weekData}
+          colors={colors}
+          effectiveMode={effectiveMode}
+          getEventColour={getEventColour}
+          setTabCountdown={setTabCountdown}
+        />
       </div>
       {/* Event Details Overlay */}
       {selectedEvent && (
