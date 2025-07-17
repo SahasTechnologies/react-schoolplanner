@@ -483,33 +483,32 @@ const SchoolPlanner = () => {
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
     // Helper to find the next event after now (across all days, no time limit)
-    function findNextEvent(): CalendarEvent | null {
+    function findNextEvent(currentNow: Date): CalendarEvent | null {
       if (!weekData || !weekData.events) return null;
       const futureEvents = weekData.events
-        .filter(e => new Date(e.dtstart).getTime() > now.getTime())
+        .filter(e => new Date(e.dtstart).getTime() > currentNow.getTime())
         .sort((a, b) => new Date(a.dtstart).getTime() - new Date(b.dtstart).getTime());
       return futureEvents.length > 0 ? futureEvents[0] : null;
     }
 
-    // Update nextEvent and timeLeft every second
+    // Update now every second, and recalculate nextEvent and timeLeft
     useEffect(() => {
-      setNextEvent(findNextEvent());
       const interval = setInterval(() => {
-        setNow(new Date());
+        setNow((prevNow) => {
+          const newNow = new Date();
+          const event = findNextEvent(newNow);
+          setNextEvent(event);
+          if (event) {
+            const diff = new Date(event.dtstart).getTime() - newNow.getTime();
+            setTimeLeft(diff > 0 ? diff : 0);
+          } else {
+            setTimeLeft(null);
+          }
+          return newNow;
+        });
       }, 1000);
       return () => clearInterval(interval);
-      // eslint-disable-next-line
     }, [weekData]);
-
-    // Update timeLeft whenever now or nextEvent changes
-    useEffect(() => {
-      if (nextEvent) {
-        const diff = new Date(nextEvent.dtstart).getTime() - now.getTime();
-        setTimeLeft(diff > 0 ? diff : 0);
-      } else {
-        setTimeLeft(null);
-      }
-    }, [now, nextEvent]);
 
     // Format time left as Dd Hh Mm Ss
     function formatCountdown(ms: number | null): string {
@@ -528,6 +527,14 @@ const SchoolPlanner = () => {
       return str.trim();
     }
 
+    // Custom colored icon
+    function ColoredSubjectIcon({ summary }: { summary: string }) {
+      const color = getEventColour(summary);
+      // getSubjectIcon returns a React element, so we clone it with a new color
+      const icon = getSubjectIcon(summary, 24, effectiveMode);
+      return React.cloneElement(icon, { style: { color } });
+    }
+
     return (
       <div className={`${colors.container} rounded-lg ${colors.border} border p-6 flex flex-col items-center justify-center h-fit`}>
         <div className="flex items-center gap-2 mb-2">
@@ -538,7 +545,7 @@ const SchoolPlanner = () => {
           <>
             <div className="text-3xl font-bold mb-2" style={{ color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>{formatCountdown(timeLeft)}</div>
             <div className="flex items-center gap-2 mb-1">
-              <span style={{ display: 'flex', alignItems: 'center' }}>{getSubjectIcon(nextEvent.summary, 24, effectiveMode)}</span>
+              <ColoredSubjectIcon summary={nextEvent.summary} />
               <span className="text-base font-medium" style={{ color: getEventColour(nextEvent.summary) }}>{normalizeSubjectName(nextEvent.summary, true)}</span>
             </div>
             <div className="text-sm opacity-80">at {nextEvent.dtstart ? nextEvent.dtstart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</div>
