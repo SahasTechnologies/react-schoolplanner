@@ -463,122 +463,121 @@ const SchoolPlanner = () => {
           </div>
           {/* Countdown box on the right */}
           <CountdownBox
-            weekData={weekData}
-            colors={colors}
-            effectiveMode={effectiveMode}
+            searching={countdownSearching}
+            nextEvent={nextEvent}
+            nextEventDate={nextEventDate}
+            timeLeft={timeLeft}
+            formatCountdown={formatCountdownForTab}
             getEventColour={getEventColour}
-            setTabCountdown={setTabCountdown}
+            effectiveMode={effectiveMode}
+            colors={colors}
           />
         </div>
       </div>
     );
   };
 
-  // --- Add CountdownBox component ---
-  type CountdownBoxProps = {
-    weekData: WeekData | null;
-    colors: any;
-    effectiveMode: 'light' | 'dark';
-    getEventColour: (title: string) => string;
-    setTabCountdown?: (info: { time: string; event: string } | null) => void;
-    hidden?: boolean;
-  };
-  const CountdownBox: React.FC<CountdownBoxProps> = ({ weekData, colors, effectiveMode, getEventColour, setTabCountdown, hidden }) => {
-    const [nextEvent, setNextEvent] = useState<CalendarEvent | null>(null);
-    const [timeLeft, setTimeLeft] = useState<number | null>(null);
-    const [nextEventDate, setNextEventDate] = useState<Date | null>(null);
-    const [searching, setSearching] = useState(true);
+  // --- Top-level countdown state ---
+  const [nextEvent, setNextEvent] = useState<CalendarEvent | null>(null);
+  const [nextEventDate, setNextEventDate] = useState<Date | null>(null);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [countdownSearching, setCountdownSearching] = useState(true);
 
-    // Helper: get next occurrence of an event after now, treating week as repeating
-    function getNextOccurrence(event: CalendarEvent, now: Date): Date {
-      const eventDay = event.dtstart.getDay(); // 0=Sun, 1=Mon, ...
-      const eventHour = event.dtstart.getHours();
-      const eventMinute = event.dtstart.getMinutes();
-      const eventSecond = event.dtstart.getSeconds();
-      let daysUntil = eventDay - now.getDay();
-      if (
-        daysUntil < 0 ||
-        (daysUntil === 0 && (
-          eventHour < now.getHours() ||
-          (eventHour === now.getHours() && eventMinute < now.getMinutes()) ||
-          (eventHour === now.getHours() && eventMinute === now.getMinutes() && eventSecond <= now.getSeconds())
-        ))
-      ) {
-        daysUntil += 7;
-      }
-      const next = new Date(now);
-      next.setDate(now.getDate() + daysUntil);
-      next.setHours(eventHour, eventMinute, eventSecond, 0);
-      return next;
+  // Helper: get next occurrence of an event after now, treating week as repeating
+  function getNextOccurrence(event: CalendarEvent, now: Date): Date {
+    const eventDay = event.dtstart.getDay(); // 0=Sun, 1=Mon, ...
+    const eventHour = event.dtstart.getHours();
+    const eventMinute = event.dtstart.getMinutes();
+    const eventSecond = event.dtstart.getSeconds();
+    let daysUntil = eventDay - now.getDay();
+    if (
+      daysUntil < 0 ||
+      (daysUntil === 0 && (
+        eventHour < now.getHours() ||
+        (eventHour === now.getHours() && eventMinute < now.getMinutes()) ||
+        (eventHour === now.getHours() && eventMinute === now.getMinutes() && eventSecond <= now.getSeconds())
+      ))
+    ) {
+      daysUntil += 7;
     }
+    const next = new Date(now);
+    next.setDate(now.getDate() + daysUntil);
+    next.setHours(eventHour, eventMinute, eventSecond, 0);
+    return next;
+  }
 
-    function findNextRepeatingEvent(now: Date): { event: CalendarEvent; date: Date } | null {
-      if (!weekData || !weekData.events) return null;
-      const nexts = weekData.events.map((e: CalendarEvent) => ({ event: e, date: getNextOccurrence(e, now) }));
-      const soonest = nexts.reduce((min, curr) => (min === null || curr.date < min.date ? curr : min), null as { event: CalendarEvent; date: Date } | null);
-      return soonest;
+  function findNextRepeatingEvent(now: Date): { event: CalendarEvent; date: Date } | null {
+    if (!weekData || !weekData.events || weekData.events.length === 0) return null;
+    const nexts = weekData.events.map((e: CalendarEvent) => ({ event: e, date: getNextOccurrence(e, now) }));
+    const soonest = nexts.reduce((min, curr) => (min === null || curr.date < min.date ? curr : min), null as { event: CalendarEvent; date: Date } | null);
+    return soonest;
+  }
+
+  // --- Unified countdown effect ---
+  useEffect(() => {
+    if (!weekData || !weekData.events || weekData.events.length === 0) {
+      setNextEvent(null);
+      setNextEventDate(null);
+      setTimeLeft(null);
+      setCountdownSearching(false);
+      setTabCountdown(null);
+      return;
     }
-
-    useEffect(() => {
-      // If no weekData or no events, immediately stop searching
-      if (!weekData || !weekData.events || weekData.events.length === 0) {
+    setCountdownSearching(true);
+    const interval = setInterval(() => {
+      const now = new Date();
+      const soonest = findNextRepeatingEvent(now);
+      if (soonest) {
+        setNextEvent(soonest.event);
+        setNextEventDate(soonest.date);
+        const diff = soonest.date.getTime() - now.getTime();
+        setTimeLeft(diff > 0 ? diff : 0);
+        setCountdownSearching(false);
+        const info = {
+          time: formatCountdownForTab(diff > 0 ? diff : 0),
+          event: normalizeSubjectName(soonest.event.summary, true),
+        };
+        setTabCountdown(info);
+      } else {
         setNextEvent(null);
         setNextEventDate(null);
         setTimeLeft(null);
-        setSearching(false);
-        if (setTabCountdown) {
-          setTabCountdown(null);
-        }
-        return;
+        setCountdownSearching(false);
+        setTabCountdown(null);
       }
-      setSearching(true);
-      const interval = setInterval(() => {
-        const now = new Date();
-        const soonest = findNextRepeatingEvent(now);
-        if (soonest) {
-          setNextEvent(soonest.event);
-          setNextEventDate(soonest.date);
-          const diff = soonest.date.getTime() - now.getTime();
-          setTimeLeft(diff > 0 ? diff : 0);
-          setSearching(false);
-          if (setTabCountdown) {
-            const info = {
-              time: formatCountdownForTab(diff > 0 ? diff : 0),
-              event: normalizeSubjectName(soonest.event.summary, true),
-            };
-            setTabCountdown(info);
-          }
-        } else {
-          setNextEvent(null);
-          setNextEventDate(null);
-          setTimeLeft(null);
-          setSearching(false);
-          if (setTabCountdown) {
-            setTabCountdown(null);
-          }
-        }
-      }, 1000);
-      return () => clearInterval(interval);
-    }, [weekData, setTabCountdown]);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [weekData]);
 
-    // Format time left as HH:MM:SS for tab
-    function formatCountdownForTab(ms: number | null): string {
-      if (ms === null) return '';
-      if (ms <= 0) return 'Now!';
-      const totalSeconds = Math.floor(ms / 1000);
-      const hours = Math.floor(totalSeconds / 3600);
-      const minutes = Math.floor((totalSeconds % 3600) / 60);
-      const seconds = totalSeconds % 60;
-      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    }
+  // Format time left as HH:MM:SS for tab and widget
+  function formatCountdownForTab(ms: number | null): string {
+    if (ms === null) return '';
+    if (ms <= 0) return 'Now!';
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }
 
+  // Make CountdownBox a pure display component
+  type CountdownBoxProps = {
+    searching: boolean;
+    nextEvent: CalendarEvent | null;
+    nextEventDate: Date | null;
+    timeLeft: number | null;
+    formatCountdown: (ms: number | null) => string;
+    getEventColour: (title: string) => string;
+    effectiveMode: 'light' | 'dark';
+    colors: any;
+  };
+  const CountdownBox: React.FC<CountdownBoxProps> = ({ searching, nextEvent, nextEventDate, timeLeft, formatCountdown, getEventColour, effectiveMode, colors }) => {
     // Custom colored icon
     function ColoredSubjectIcon({ summary }: { summary: string }) {
       const color = getEventColour(summary);
       const icon = getSubjectIcon(summary, 24, effectiveMode);
       return React.cloneElement(icon, { style: { color } });
     }
-
     // Helper for event time string
     function getEventTimeString(date: Date, event: CalendarEvent) {
       if (!date) return '';
@@ -591,8 +590,6 @@ const SchoolPlanner = () => {
       }
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
-
-    if (hidden) return null;
     return (
       <div className={`${colors.container} rounded-lg ${colors.border} border p-6 flex flex-col items-center justify-center h-fit`}>
         <div className="flex items-center gap-2 mb-2">
@@ -606,7 +603,7 @@ const SchoolPlanner = () => {
           </div>
         ) : nextEvent && nextEventDate ? (
           <>
-            <div className="text-3xl font-bold mb-2" style={{ color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>{formatCountdownForTab(timeLeft)}</div>
+            <div className="text-3xl font-bold mb-2" style={{ color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>{formatCountdown(timeLeft)}</div>
             <div className="flex items-center gap-2 mb-1">
               <ColoredSubjectIcon summary={nextEvent.summary} />
               <span className="text-base font-medium" style={{ color: getEventColour(nextEvent.summary) }}>{normalizeSubjectName(nextEvent.summary, true)}</span>
