@@ -522,6 +522,17 @@ const SchoolPlanner = () => {
     useEffect(() => {
       setSearching(true);
       const interval = setInterval(() => {
+        if (!weekData || !weekData.events || weekData.events.length === 0) {
+          setNextEvent(null);
+          setNextEventDate(null);
+          setTimeLeft(null);
+          setSearching(false);
+          if (setTabCountdown) {
+            setTabCountdown(null);
+            localStorage.removeItem('tabCountdown');
+          }
+          return;
+        }
         const now = new Date();
         const soonest = findNextRepeatingEvent(now);
         if (soonest) {
@@ -550,7 +561,7 @@ const SchoolPlanner = () => {
         }
       }, 1000);
       return () => clearInterval(interval);
-    }, [weekData]);
+    }, [weekData, setTabCountdown]);
 
     // Format time left as HH:MM:SS for tab
     function formatCountdownForTab(ms: number | null): string {
