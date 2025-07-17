@@ -16,6 +16,7 @@ interface WelcomeScreenProps {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   effectiveMode: 'light' | 'dark';
   navigate: (path: string) => void;
+  uploadText?: string;
 }
 
 const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
@@ -32,7 +33,8 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   handleFileChange,
   fileInputRef,
   effectiveMode,
-  navigate
+  navigate,
+  uploadText
 }) => {
   if (welcomeStep === 'completed') {
     return (
