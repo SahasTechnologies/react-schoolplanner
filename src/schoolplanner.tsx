@@ -186,7 +186,7 @@ const SchoolPlanner = () => {
           setLoading(false);
           return;
         }
-        // Remove the restriction that at least one of name, subjects, or weekData must be present
+        // Only update fields present in the file, leave others unchanged
         if (data.name) {
           setUserName(data.name);
           localStorage.setItem('userName', data.name);
