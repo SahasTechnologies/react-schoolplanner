@@ -10,6 +10,7 @@ import {
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { ThemeKey, getColors } from './utils/theme';
 import { normalizeSubjectName } from './utils/subjectUtils';
+import { getSubjectIcon } from './utils/subjectUtils';
 import { 
   CalendarEvent, 
   WeekData, 
@@ -481,13 +482,21 @@ const SchoolPlanner = () => {
     const [nextEvent, setNextEvent] = useState<CalendarEvent | null>(null);
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
-    // Helper to find the next event after now (across all days)
+    // Helper to find the next event after now (across all days, but not unreasonably far)
     function findNextEvent(): CalendarEvent | null {
       if (!weekData || !weekData.events) return null;
       const futureEvents = weekData.events
         .filter(e => new Date(e.dtstart).getTime() > now.getTime())
         .sort((a, b) => new Date(a.dtstart).getTime() - new Date(b.dtstart).getTime());
-      return futureEvents.length > 0 ? futureEvents[0] : null;
+      // Only consider events within 7 days (604800000 ms)
+      if (futureEvents.length > 0) {
+        const soonest = futureEvents[0];
+        const soonestTime = new Date(soonest.dtstart).getTime();
+        if (soonestTime - now.getTime() < 7 * 24 * 60 * 60 * 1000) {
+          return soonest;
+        }
+      }
+      return null;
     }
 
     // Update nextEvent and timeLeft every second
@@ -526,15 +535,18 @@ const SchoolPlanner = () => {
     }
 
     return (
-      <div className={`${colors.container} rounded-lg ${colors.border} border p-6 flex flex-col items-center justify-center min-h-[200px]`}>
+      <div className={`${colors.container} rounded-lg ${colors.border} border p-6 flex flex-col items-center justify-center h-fit`}>
         <div className="flex items-center gap-2 mb-2">
           <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
           <span className={`text-lg font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Next Event Countdown</span>
         </div>
         {nextEvent ? (
           <>
-            <div className="text-3xl font-bold mb-2" style={{ color: getEventColour(nextEvent.summary) }}>{formatCountdown(timeLeft)}</div>
-            <div className={`text-base font-medium mb-1 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{nextEvent.summary}</div>
+            <div className="text-3xl font-bold mb-2" style={{ color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>{formatCountdown(timeLeft)}</div>
+            <div className="flex items-center gap-2 mb-1">
+              <span style={{ display: 'flex', alignItems: 'center' }}>{getSubjectIcon(nextEvent.summary, 24, effectiveMode)}</span>
+              <span className="text-base font-medium" style={{ color: getEventColour(nextEvent.summary) }}>{normalizeSubjectName(nextEvent.summary, true)}</span>
+            </div>
             <div className="text-sm opacity-80">at {nextEvent.dtstart ? nextEvent.dtstart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</div>
           </>
         ) : (
