@@ -657,7 +657,6 @@ const SchoolPlanner = () => {
         fileInputRef={fileInputRef}
         effectiveMode={effectiveMode}
         navigate={navigate}
-        uploadText="Upload ICS or import your .school file."
       />
     );
   };
