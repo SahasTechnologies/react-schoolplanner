@@ -520,18 +520,19 @@ const SchoolPlanner = () => {
     }
 
     useEffect(() => {
+      // If no weekData or no events, immediately stop searching
+      if (!weekData || !weekData.events || weekData.events.length === 0) {
+        setNextEvent(null);
+        setNextEventDate(null);
+        setTimeLeft(null);
+        setSearching(false);
+        if (setTabCountdown) {
+          setTabCountdown(null);
+        }
+        return;
+      }
       setSearching(true);
       const interval = setInterval(() => {
-        if (!weekData || !weekData.events || weekData.events.length === 0) {
-          setNextEvent(null);
-          setNextEventDate(null);
-          setTimeLeft(null);
-          setSearching(false);
-          if (setTabCountdown) {
-            setTabCountdown(null);
-          }
-          return;
-        }
         const now = new Date();
         const soonest = findNextRepeatingEvent(now);
         if (soonest) {
