@@ -89,17 +89,20 @@ const EventCard: React.FC<EventCardProps> = ({
     ) : null,
   };
 
+  // All possible info fields (in order)
+  const allFields = infoOrder.map((item: { key: string; label: string }) => ({ key: item.key, node: infoFields[item.key] })).filter(f => f.node);
+  // Enabled info fields (in order)
   const enabledFields = infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key]);
-  // Find the first enabled info field key
-  const firstEnabledKey = showFirstInfoBeside ? (infoOrder.find((item: { key: string; label: string }) => infoShown[item.key])?.key) : null;
+  const firstEnabledKey = showFirstInfoBeside ? (enabledFields[0]?.key) : null;
   const enabledFieldsBelow = enabledFields.filter((item: { key: string; label: string }) => item.key !== firstEnabledKey);
+  const allFieldsBelow = infoOrder.filter((item: { key: string; label: string }) => item.key !== firstEnabledKey);
 
   // Get the first enabled info field node
   const getFirstEnabledFieldNode = () => {
     if (!showFirstInfoBeside || !firstEnabledKey) return null;
     const field = infoFields[firstEnabledKey];
     if (!field) return null;
-    return <span className="ml-3 flex items-center">{field}</span>;
+    return <span className="ml-3 flex items-center font-medium">{field}</span>;
   };
 
   const [expanded, setExpanded] = React.useState(false);
@@ -112,9 +115,9 @@ const EventCard: React.FC<EventCardProps> = ({
       onMouseEnter={() => { if (showFirstInfoBeside) setExpanded(true); }}
       onMouseLeave={() => { if (showFirstInfoBeside) setExpanded(false); }}
     >
-      <div className="flex items-center justify-between" style={{ minHeight: 40 }}>
-        <div className="flex items-center">
-          <span className="font-medium leading-tight flex items-center" style={{ fontSize: '1.1rem' }}>
+      <div className="flex items-center justify-between min-h-[40px]">
+        <div className="flex items-center min-h-[40px]">
+          <span className="font-medium leading-tight flex items-center min-h-[40px]" style={{ fontSize: '1.1rem' }}>
             {normalizeSubjectName(event.summary, autoNamingEnabled)}
             {getFirstEnabledFieldNode()}
           </span>
@@ -123,17 +126,17 @@ const EventCard: React.FC<EventCardProps> = ({
           {getSubjectIcon(event.summary, 24, effectiveMode)}
         </span>
       </div>
-      {/* Info fields: on home page, show the rest on hover; on calendar page, always show all below */}
+      {/* Info fields: on home page, show enabled by default, all on hover; on calendar page, always show all below */}
       {showFirstInfoBeside ? (
         <div
           className="overflow-hidden transition-all duration-300"
-          style={{ maxHeight: expanded ? 500 : 0 }}
+          style={{ maxHeight: expanded ? 500 : enabledFieldsBelow.length * 40 }}
         >
-          {enabledFieldsBelow.map((item: { key: string; label: string }) => infoFields[item.key]).filter(Boolean)}
+          {(expanded ? allFieldsBelow : enabledFieldsBelow).map((item: { key: string; label: string }) => infoFields[item.key]).filter(Boolean)}
         </div>
       ) : (
         <div>
-          {enabledFields.map((item: { key: string; label: string }) => infoFields[item.key]).filter(Boolean)}
+          {allFields.map(f => f.node)}
         </div>
       )}
     </div>
