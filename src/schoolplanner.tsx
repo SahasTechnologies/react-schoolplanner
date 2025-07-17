@@ -414,8 +414,6 @@ const SchoolPlanner = () => {
 
 
   // Add state to track which event is hovered for expand/collapse
-  const [hoveredEventIdx, setHoveredEventIdx] = useState<number | null>(null);
-
   // In renderHome, insert breaks for the day's events
   const renderHome = () => {
     const { dayLabel, events } = getTodayOrNextEvents(weekData);

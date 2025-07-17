@@ -10,7 +10,6 @@ interface EventCardProps {
   getEventColour: (title: string) => string;
   autoNamingEnabled: boolean;
   effectiveMode: 'light' | 'dark';
-  setHoveredEventIdx: (index: number | null) => void;
   infoOrder: { key: string; label: string }[];
   infoShown: Record<string, boolean>;
   showFirstInfoBeside: boolean;
@@ -23,7 +22,6 @@ const EventCard: React.FC<EventCardProps> = ({
   getEventColour,
   autoNamingEnabled,
   effectiveMode,
-  setHoveredEventIdx,
   infoOrder,
   infoShown,
   showFirstInfoBeside
@@ -113,8 +111,8 @@ const EventCard: React.FC<EventCardProps> = ({
       key={index}
       className={`rounded-lg p-3 text-white text-sm transition-all duration-300 cursor-pointer`}
       style={{ backgroundColor: getEventColour(event.summary) }}
-      onMouseEnter={() => { setHoveredEventIdx(index); if (showFirstInfoBeside) setExpanded(true); }}
-      onMouseLeave={() => { setHoveredEventIdx(null); if (showFirstInfoBeside) setExpanded(false); }}
+      onMouseEnter={() => { if (showFirstInfoBeside) setExpanded(true); }}
+      onMouseLeave={() => { if (showFirstInfoBeside) setExpanded(false); }}
     >
       <div className="flex items-center justify-between" style={{ minHeight: 40, alignItems: 'center' }}>
         <div className="flex items-center">
