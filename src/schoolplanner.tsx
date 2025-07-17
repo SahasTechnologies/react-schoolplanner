@@ -27,6 +27,7 @@ import ThemeModal from './components/ThemeModal';
 import { Subject } from './types';
 import Sidebar from './components/Sidebar';
 import SubjectCard from './components/SubjectCard';
+import Home from './components/Home';
 
 
 
@@ -310,7 +311,7 @@ const SchoolPlanner = () => {
                 ) : (
                   dayEventsWithBreaks[index].map((event, eventIndex) => (
                     <EventCard
-                      key={eventIndex}
+                        key={eventIndex}
                       event={event}
                       index={eventIndex}
                       isBreakEvent={isBreakEvent}
@@ -418,54 +419,10 @@ const SchoolPlanner = () => {
   const [hoveredEventIdx, setHoveredEventIdx] = useState<number | null>(null);
 
   // In renderHome, insert breaks for the day's events
-  const renderHome = () => {
-    const { dayLabel, events } = getTodayOrNextEvents(weekData);
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <Home className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
-          <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Home</h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className={`${colors.container} rounded-lg ${colors.border} border p-6 col-span-1`}>
-            <div className="flex items-center gap-3 mb-4">
-              <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
-              <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{dayLabel ? `${dayLabel}'s Schedule` : 'No Schedule'}</h3>
-            </div>
-            {events.length === 0 ? (
-              <div className="text-center text-gray-500 py-8">
-                <Calendar size={32} className="mx-auto mb-2 opacity-50" />
-                <p>No events</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {events.map((event, idx) => (
-                  <EventCard
-                    key={idx}
-                    event={event}
-                    index={idx}
-                    isBreakEvent={isBreakEvent}
-                    getEventColour={getEventColour}
-                    autoNamingEnabled={autoNamingEnabled}
-                    effectiveMode={effectiveMode}
-                    hoveredEventIdx={hoveredEventIdx}
-                    setHoveredEventIdx={setHoveredEventIdx}
-                    infoOrder={infoOrder}
-                    infoShown={infoShown}
-                    showFirstInfoBeside={showFirstInfoBeside}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-          {/* Right half intentionally left empty for now, or you can add a placeholder */}
-        </div>
-      </div>
-    );
-  };
+  // Remove the renderHome function
 
   const renderWelcomeScreen = () => {
-    return (
+      return (
       <WelcomeScreen
         welcomeStep={welcomeStep}
         userName={userName}
@@ -768,10 +725,26 @@ const SchoolPlanner = () => {
       </Routes>
     );
   } else {
+    const { dayLabel, events } = getTodayOrNextEvents(weekData);
     mainContent = (
       <Routes>
         <Route path="/" element={<Navigate to="/home" replace />} />
-        <Route path="/home" element={renderHome()} />
+        <Route path="/home" element={
+          <Home
+            dayLabel={dayLabel}
+            events={events}
+            colors={colors}
+            effectiveMode={effectiveMode}
+            isBreakEvent={isBreakEvent}
+            getEventColour={getEventColour}
+            autoNamingEnabled={autoNamingEnabled}
+            hoveredEventIdx={hoveredEventIdx}
+            setHoveredEventIdx={setHoveredEventIdx}
+            infoOrder={infoOrder}
+            infoShown={infoShown}
+            showFirstInfoBeside={showFirstInfoBeside}
+          />
+        } />
         <Route path="/calendar" element={renderWeekView()} />
         <Route path="/markbook" element={renderMarkbook()} />
         <Route path="/settings" element={renderSettings()} />
