@@ -317,8 +317,6 @@ const SchoolPlanner = () => {
                       getEventColour={getEventColour}
                       autoNamingEnabled={autoNamingEnabled}
                       effectiveMode={effectiveMode}
-                      hoveredEventIdx={hoveredEventIdx}
-                      setHoveredEventIdx={setHoveredEventIdx}
                       infoOrder={infoOrder}
                       infoShown={infoShown}
                       showFirstInfoBeside={false} // Always false on calendar page
@@ -451,8 +449,6 @@ const SchoolPlanner = () => {
                     getEventColour={getEventColour}
                     autoNamingEnabled={autoNamingEnabled}
                     effectiveMode={effectiveMode}
-                    hoveredEventIdx={hoveredEventIdx}
-                    setHoveredEventIdx={setHoveredEventIdx}
                     infoOrder={infoOrder}
                     infoShown={infoShown}
                     showFirstInfoBeside={showFirstInfoBeside}

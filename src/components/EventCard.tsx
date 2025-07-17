@@ -10,7 +10,6 @@ interface EventCardProps {
   getEventColour: (title: string) => string;
   autoNamingEnabled: boolean;
   effectiveMode: 'light' | 'dark';
-  hoveredEventIdx: number | null;
   setHoveredEventIdx: (index: number | null) => void;
   infoOrder: { key: string; label: string }[];
   infoShown: Record<string, boolean>;
@@ -24,7 +23,6 @@ const EventCard: React.FC<EventCardProps> = ({
   getEventColour,
   autoNamingEnabled,
   effectiveMode,
-  hoveredEventIdx,
   setHoveredEventIdx,
   infoOrder,
   infoShown,
