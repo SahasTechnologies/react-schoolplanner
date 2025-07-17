@@ -98,7 +98,10 @@ const EventCard: React.FC<EventCardProps> = ({
     if (!showFirstInfoBeside) return null;
     const firstField = infoOrder.find((item: { key: string; label: string }) => infoShown[item.key]);
     if (!firstField) return null;
-    return infoFields[firstField.key];
+    const field = infoFields[firstField.key];
+    if (!field) return null;
+    // Add left margin for clarity
+    return <span className="ml-3">{field}</span>;
   };
 
   return (

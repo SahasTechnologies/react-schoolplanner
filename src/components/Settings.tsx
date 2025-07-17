@@ -240,8 +240,6 @@ const Settings: React.FC<SettingsProps> = ({
                   onDragOver={(e: React.DragEvent) => { e.preventDefault(); handleInfoDragOver(idx); }}
                   onDragEnd={handleDragEnd}
                   style={{
-                    transition: 'margin 0.3s, transform 0.3s',
-                    marginTop: infoShown[item.key] && idx !== 0 ? '-12px' : '',
                     zIndex: draggedIdx === idx ? 10 : 1,
                   }}
                 >
@@ -257,7 +255,7 @@ const Settings: React.FC<SettingsProps> = ({
                       className="sr-only peer"
                     />
                     <div className="w-12 h-7 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-blue-600 transition-colors duration-200 shadow-inner flex items-center relative">
-                      <span className="absolute left-0.5 top-0.5 transition-transform duration-200 h-6 w-6 rounded-full bg-white border border-gray-300 shadow-md peer-checked:translate-x-5 peer-checked:border-blue-500" style={{boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)'}}></span>
+                      <span className="absolute left-0.5 top-0.5 transition-transform duration-200 h-6 w-6 rounded-full bg-white border border-gray-300 shadow-md peer-checked:translate-x-[20px] peer-checked:border-blue-500" style={{boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)'}}></span>
                     </div>
                   </label>
                 </div>
@@ -274,7 +272,7 @@ const Settings: React.FC<SettingsProps> = ({
                   className="sr-only peer"
                 />
                 <div className="w-12 h-7 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-blue-600 transition-colors duration-200 shadow-inner flex items-center relative">
-                  <span className="absolute left-0.5 top-0.5 transition-transform duration-200 h-6 w-6 rounded-full bg-white border border-gray-300 shadow-md peer-checked:translate-x-5 peer-checked:border-blue-500" style={{boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)'}}></span>
+                  <span className="absolute left-0.5 top-0.5 transition-transform duration-200 h-6 w-6 rounded-full bg-white border border-gray-300 shadow-md peer-checked:translate-x-[20px] peer-checked:border-blue-500" style={{boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)'}}></span>
                 </div>
               </label>
             </div>
