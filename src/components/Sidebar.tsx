@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Home, BarChart3 } from 'lucide-react';
+import { Calendar, Home as HomeIcon, BarChart3 } from 'lucide-react';
 
 interface SidebarProps {
   navigate: (path: string) => void;
@@ -17,7 +17,7 @@ const Sidebar: React.FC<SidebarProps> = ({ navigate, location, colors, SettingsI
           className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${location.pathname === '/home' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 hover:bg-gray-700`}`}
           title="Home"
         >
-          <Home size={20} className={colors.icon} />
+          <HomeIcon size={20} className={colors.icon} />
         </button>
         <button
           onClick={() => navigate('/calendar')}
