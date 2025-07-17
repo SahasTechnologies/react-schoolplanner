@@ -90,17 +90,15 @@ const EventCard: React.FC<EventCardProps> = ({
   };
 
   const enabledFields = infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key]);
-  // If showing beside name, remove from below
+  // Find the first enabled info field key
   const firstEnabledKey = showFirstInfoBeside ? (infoOrder.find((item: { key: string; label: string }) => infoShown[item.key])?.key) : null;
   const enabledFieldsBelow = enabledFields.filter((item: { key: string; label: string }) => item.key !== firstEnabledKey);
 
-  const getFirstEnabledField = () => {
-    if (!showFirstInfoBeside) return null;
-    const firstField = infoOrder.find((item: { key: string; label: string }) => infoShown[item.key]);
-    if (!firstField) return null;
-    const field = infoFields[firstField.key];
+  // Get the first enabled info field node
+  const getFirstEnabledFieldNode = () => {
+    if (!showFirstInfoBeside || !firstEnabledKey) return null;
+    const field = infoFields[firstEnabledKey];
     if (!field) return null;
-    // Add left margin for clarity, center vertically
     return <span className="ml-3 flex items-center">{field}</span>;
   };
 
@@ -114,30 +112,28 @@ const EventCard: React.FC<EventCardProps> = ({
       onMouseEnter={() => { if (showFirstInfoBeside) setExpanded(true); }}
       onMouseLeave={() => { if (showFirstInfoBeside) setExpanded(false); }}
     >
-      <div className="flex items-center justify-between" style={{ minHeight: 40, alignItems: 'center' }}>
+      <div className="flex items-center justify-between" style={{ minHeight: 40 }}>
         <div className="flex items-center">
           <span className="font-medium leading-tight flex items-center" style={{ fontSize: '1.1rem' }}>
             {normalizeSubjectName(event.summary, autoNamingEnabled)}
-            {getFirstEnabledField()}
+            {getFirstEnabledFieldNode()}
           </span>
         </div>
         <span style={{ opacity: 0.35, display: 'flex', alignItems: 'center' }} className="text-black">
           {getSubjectIcon(event.summary, 24, effectiveMode)}
         </span>
       </div>
-      {/* Info fields: animate vertical expansion on home page, always show on calendar page */}
+      {/* Info fields: on home page, show the rest on hover; on calendar page, always show all below */}
       {showFirstInfoBeside ? (
         <div
           className="overflow-hidden transition-all duration-300"
           style={{ maxHeight: expanded ? 500 : 0 }}
         >
-          {infoOrder.map((item: { key: string; label: string }) =>
-            enabledFieldsBelow.find((f: { key: string }) => f.key === item.key) && infoFields[item.key]
-          ).filter(Boolean)}
+          {enabledFieldsBelow.map((item: { key: string; label: string }) => infoFields[item.key]).filter(Boolean)}
         </div>
       ) : (
         <div>
-          {infoOrder.map((item: { key: string; label: string }) => infoFields[item.key]).filter(Boolean)}
+          {enabledFields.map((item: { key: string; label: string }) => infoFields[item.key]).filter(Boolean)}
         </div>
       )}
     </div>
