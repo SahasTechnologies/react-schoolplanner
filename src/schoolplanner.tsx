@@ -4,24 +4,21 @@
 import * as React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { 
-  Calendar, FileText, Home, BarChart3,
+  Calendar, FileText, Home as HomeIcon, BarChart3,
   Settings as SettingsIcon
 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { ThemeKey, getColors } from './utils/theme';
 import { normalizeSubjectName } from './utils/subjectUtils';
 import { 
-  CalendarEvent, 
   WeekData, 
   parseICS, 
   groupAllEventsIntoActualWeeks, 
-  insertBreaksBetweenEvents, 
   getTodayOrNextEvents, 
   isBreakEvent 
 } from './utils/calendarUtils';
 import WelcomeScreen from './components/WelcomeScreen';
 import Settings from './components/Settings';
-import EventCard from './components/EventCard';
 import SubjectEditModal from './components/SubjectEditModal';
 import ThemeModal from './components/ThemeModal';
 import { Subject } from './types';
