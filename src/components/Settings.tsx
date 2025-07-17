@@ -1,21 +1,19 @@
 import React from 'react';
-import {
-  Settings as SettingsIcon,
-  Edit2,
-  X,
-  Palette,
-  GripVertical,
-  User,
-  Database,
-  Trash2,
-  Smartphone,
-  Eye,
-  Sun,
-  Moon,
+import { 
+  Settings as SettingsIcon, 
+  Edit2, 
+  X, 
+  Palette, 
+  GripVertical, 
+  User, 
+  Trash2, 
+  Smartphone, 
+  Eye, 
+  Sun, 
+  Moon, 
   Monitor,
   Home,
-  Calendar,
-  BarChart3
+  Calendar
 } from 'lucide-react';
 import { ThemeKey, colorVars, themeColors } from '../theme';
 
