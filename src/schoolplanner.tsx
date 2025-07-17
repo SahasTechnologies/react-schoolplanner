@@ -478,7 +478,6 @@ const SchoolPlanner = () => {
     effectiveMode: 'light' | 'dark';
     getEventColour: (title: string) => string;
   }> = ({ weekData, colors, effectiveMode, getEventColour }) => {
-    const [now, setNow] = useState(new Date());
     const [nextEvent, setNextEvent] = useState<CalendarEvent | null>(null);
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
@@ -491,21 +490,18 @@ const SchoolPlanner = () => {
       return futureEvents.length > 0 ? futureEvents[0] : null;
     }
 
-    // Update now every second, and recalculate nextEvent and timeLeft
+    // Update every second, and recalculate nextEvent and timeLeft
     useEffect(() => {
       const interval = setInterval(() => {
-        setNow((prevNow) => {
-          const newNow = new Date();
-          const event = findNextEvent(newNow);
-          setNextEvent(event);
-          if (event) {
-            const diff = new Date(event.dtstart).getTime() - newNow.getTime();
-            setTimeLeft(diff > 0 ? diff : 0);
-          } else {
-            setTimeLeft(null);
-          }
-          return newNow;
-        });
+        const newNow = new Date();
+        const event = findNextEvent(newNow);
+        setNextEvent(event);
+        if (event) {
+          const diff = new Date(event.dtstart).getTime() - newNow.getTime();
+          setTimeLeft(diff > 0 ? diff : 0);
+        } else {
+          setTimeLeft(null);
+        }
       }, 1000);
       return () => clearInterval(interval);
     }, [weekData]);
