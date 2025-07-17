@@ -17,7 +17,8 @@ import {
   groupAllEventsIntoActualWeeks, 
   insertBreaksBetweenEvents, 
   getTodayOrNextEvents, 
-  isBreakEvent 
+  isBreakEvent,
+  getNextUpcomingEvent
 } from './utils/calendarUtils';
 import WelcomeScreen from './components/WelcomeScreen';
 import Settings from './components/Settings';
@@ -421,6 +422,34 @@ const SchoolPlanner = () => {
     const { dayLabel, events } = getTodayOrNextEvents(weekData);
     // Insert breaks between events for home screen too
     const eventsWithBreaks = insertBreaksBetweenEvents(events);
+
+    // Countdown logic
+    const nextEvent = getNextUpcomingEvent(weekData);
+    const [countdown, setCountdown] = React.useState('');
+    React.useEffect(() => {
+      if (!nextEvent) {
+        setCountdown('No upcoming events');
+        return;
+      }
+      const interval = setInterval(() => {
+        const now = new Date();
+        const diff = new Date(nextEvent.dtstart).getTime() - now.getTime();
+        if (diff <= 0) {
+          setCountdown('Event started!');
+          return;
+        }
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        let str = '';
+        if (hours > 0) str += `${hours}h `;
+        if (minutes > 0 || hours > 0) str += `${minutes}m `;
+        str += `${seconds}s`;
+        setCountdown(str);
+      }, 1000);
+      return () => clearInterval(interval);
+    }, [nextEvent && nextEvent.dtstart]);
+
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
@@ -458,7 +487,19 @@ const SchoolPlanner = () => {
               </div>
             )}
           </div>
-          {/* Right half intentionally left empty for now, or you can add a placeholder */}
+          {/* Countdown Box */}
+          <div className={`${colors.container} rounded-lg ${colors.border} border p-6 flex flex-col items-center justify-center min-h-[180px]`}>
+            <div className="flex items-center gap-2 mb-2">
+              <span className={`font-semibold text-lg ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Next Event Countdown</span>
+            </div>
+            <div className={`text-3xl font-mono font-bold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{countdown}</div>
+            {nextEvent && (
+              <div className={`mt-4 text-center text-base ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
+                <span className="font-medium">{nextEvent.summary}</span><br/>
+                <span>{nextEvent.dtstart.toLocaleString()}</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
