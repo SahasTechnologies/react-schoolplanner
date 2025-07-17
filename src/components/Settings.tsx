@@ -234,7 +234,7 @@ const Settings: React.FC<SettingsProps> = ({
               {infoOrder.map((item: { key: string; label: string }, idx: number) => (
                 <div
                   key={item.key}
-                  className={`flex items-center justify-between gap-4 py-2 px-1 rounded transition-all duration-300 ${draggedIdx === idx ? 'bg-blue-100/20' : ''}`}
+                  className={`flex items-center justify-between gap-6 py-2 px-2 rounded transition-all duration-300 ${draggedIdx === idx ? 'bg-blue-100/20' : ''}`}
                   draggable
                   onDragStart={() => handleDragStart(idx)}
                   onDragOver={(e: React.DragEvent) => { e.preventDefault(); handleInfoDragOver(idx); }}
@@ -245,19 +245,19 @@ const Settings: React.FC<SettingsProps> = ({
                     zIndex: draggedIdx === idx ? 10 : 1,
                   }}
                 >
-                  <div className="flex items-center gap-2 min-w-[32px]">
+                  <div className="flex items-center justify-center min-w-[32px] h-8">
                     <GripVertical className="text-gray-400 cursor-grab" size={20} />
                   </div>
-                  <span className="flex-1 font-medium text-lg">{item.label}</span>
-                  <label className="relative inline-flex items-center cursor-pointer select-none">
+                  <span className="flex-1 font-medium text-lg flex items-center h-8">{item.label}</span>
+                  <label className="relative inline-flex items-center cursor-pointer select-none h-8">
                     <input
                       type="checkbox"
                       checked={infoShown[item.key]}
                       onChange={() => handleToggleInfoShown(item.key)}
                       className="sr-only peer"
                     />
-                    <div className="w-12 h-7 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-blue-600 transition-colors duration-200 shadow-inner">
-                      <div className="absolute left-0.5 top-0.5 bg-white border border-gray-300 rounded-full h-6 w-6 transition-transform duration-200 peer-checked:translate-x-5 shadow-md"></div>
+                    <div className="w-12 h-7 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-blue-600 transition-colors duration-200 shadow-inner flex items-center relative">
+                      <span className="absolute left-0.5 top-0.5 transition-transform duration-200 h-6 w-6 rounded-full bg-white border border-gray-300 shadow-md peer-checked:translate-x-5 peer-checked:border-blue-500" style={{boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)'}}></span>
                     </div>
                   </label>
                 </div>
@@ -265,16 +265,16 @@ const Settings: React.FC<SettingsProps> = ({
             </div>
             {/* Toggle for first info beside subject name */}
             <div className="flex items-center justify-between gap-4 py-4 mt-4 border-t border-gray-700">
-              <span className="font-medium text-lg">Show first info beside subject name</span>
-              <label className="relative inline-flex items-center cursor-pointer select-none">
+              <span className="font-medium text-lg flex items-center h-8">Show first info beside subject name</span>
+              <label className="relative inline-flex items-center cursor-pointer select-none h-8">
                 <input
                   type="checkbox"
                   checked={showFirstInfoBeside}
                   onChange={(e) => setShowFirstInfoBeside(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-12 h-7 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-blue-600 transition-colors duration-200 shadow-inner">
-                  <div className="absolute left-0.5 top-0.5 bg-white border border-gray-300 rounded-full h-6 w-6 transition-transform duration-200 peer-checked:translate-x-5 shadow-md"></div>
+                <div className="w-12 h-7 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-blue-600 transition-colors duration-200 shadow-inner flex items-center relative">
+                  <span className="absolute left-0.5 top-0.5 transition-transform duration-200 h-6 w-6 rounded-full bg-white border border-gray-300 shadow-md peer-checked:translate-x-5 peer-checked:border-blue-500" style={{boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)'}}></span>
                 </div>
               </label>
             </div>

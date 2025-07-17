@@ -420,6 +420,8 @@ const SchoolPlanner = () => {
   // In renderHome, insert breaks for the day's events
   const renderHome = () => {
     const { dayLabel, events } = getTodayOrNextEvents(weekData);
+    // Insert breaks between events for home screen too
+    const eventsWithBreaks = insertBreaksBetweenEvents(events);
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
@@ -432,14 +434,14 @@ const SchoolPlanner = () => {
               <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
               <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{dayLabel ? `${dayLabel}'s Schedule` : 'No Schedule'}</h3>
             </div>
-            {events.length === 0 ? (
+            {eventsWithBreaks.length === 0 ? (
               <div className="text-center text-gray-500 py-8">
                 <Calendar size={32} className="mx-auto mb-2 opacity-50" />
                 <p>No events</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {events.map((event, idx) => (
+                {eventsWithBreaks.map((event, idx) => (
                   <EventCard
                     key={idx}
                     event={event}
