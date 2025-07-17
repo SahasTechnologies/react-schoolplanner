@@ -411,7 +411,10 @@ const SchoolPlanner = () => {
         setShowFirstInfoBeside={setShowFirstInfoBeside}
         isCalendarPage={location.pathname === '/calendar'}
         showCountdownInTitle={showCountdownInTitle}
-        setShowCountdownInTitle={setShowCountdownInTitle}
+        setShowCountdownInTitle={val => {
+          setShowCountdownInTitle(val);
+          localStorage.setItem('showCountdownInTitle', val ? 'true' : 'false');
+        }}
       />
     );
   };
@@ -467,7 +470,6 @@ const SchoolPlanner = () => {
             colors={colors}
             effectiveMode={effectiveMode}
             getEventColour={getEventColour}
-            showCountdownInTitle={showCountdownInTitle}
           />
         </div>
       </div>
@@ -480,11 +482,11 @@ const SchoolPlanner = () => {
     colors: any;
     effectiveMode: 'light' | 'dark';
     getEventColour: (title: string) => string;
-    showCountdownInTitle?: boolean;
-  }> = ({ weekData, colors, effectiveMode, getEventColour, showCountdownInTitle }) => {
+  }> = ({ weekData, colors, effectiveMode, getEventColour }) => {
     const [nextEvent, setNextEvent] = useState<CalendarEvent | null>(null);
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
     const [nextEventDate, setNextEventDate] = useState<Date | null>(null);
+    const [searching, setSearching] = useState(true);
 
     // Helper: get next occurrence of an event after now, treating week as repeating
     function getNextOccurrence(event: CalendarEvent, now: Date): Date {
@@ -521,6 +523,7 @@ const SchoolPlanner = () => {
 
     // Update every second, and recalculate nextEvent and timeLeft
     useEffect(() => {
+      setSearching(true);
       const interval = setInterval(() => {
         const now = new Date();
         const soonest = findNextRepeatingEvent(now);
@@ -529,29 +532,16 @@ const SchoolPlanner = () => {
           setNextEventDate(soonest.date);
           const diff = soonest.date.getTime() - now.getTime();
           setTimeLeft(diff > 0 ? diff : 0);
-          // --- Update tab title if enabled ---
-          if (showCountdownInTitle) {
-            const totalSeconds = Math.floor((diff > 0 ? diff : 0) / 1000);
-            const hours = Math.floor(totalSeconds / 3600);
-            const minutes = Math.floor((totalSeconds % 3600) / 60);
-            const pad = (n: number) => n.toString().padStart(2, '0');
-            const timeStr = `${pad(hours)}:${pad(minutes)}`;
-            document.title = `${timeStr} until ${normalizeSubjectName(soonest.event.summary, true)}`;
-          }
+          setSearching(false);
         } else {
           setNextEvent(null);
           setNextEventDate(null);
           setTimeLeft(null);
-          if (showCountdownInTitle) {
-            document.title = 'School Planner';
-          }
-        }
-        if (!showCountdownInTitle) {
-          document.title = 'School Planner';
+          setSearching(false);
         }
       }, 1000);
       return () => clearInterval(interval);
-    }, [weekData, showCountdownInTitle]);
+    }, [weekData]);
 
     // Format time left as Dd Hh Mm Ss
     function formatCountdown(ms: number | null): string {
@@ -584,10 +574,10 @@ const SchoolPlanner = () => {
           <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
           <span className={`text-lg font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Next Event Countdown</span>
         </div>
-        {weekData === null ? (
+        {searching ? (
           <div className="flex flex-col items-center justify-center py-8">
             <LoaderCircle className="animate-spin mb-2" size={32} />
-            <span className="text-lg text-gray-400">Searching...</span>
+            <span className="text-gray-400">Searching...</span>
           </div>
         ) : nextEvent && nextEventDate ? (
           <>
@@ -599,11 +589,9 @@ const SchoolPlanner = () => {
             <div className="text-sm opacity-80">
               {(() => {
                 const now = new Date();
-                // Use copies for day comparison
-                const eventDay = new Date(nextEventDate.getTime());
-                const today = new Date(now.getTime());
-                eventDay.setHours(0,0,0,0);
-                today.setHours(0,0,0,0);
+                // Don't mutate nextEventDate!
+                const eventDay = new Date(nextEventDate.getFullYear(), nextEventDate.getMonth(), nextEventDate.getDate());
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
                 const daysDiff = Math.floor((eventDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
                 const timeStr = nextEventDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 if (daysDiff === 1) {
@@ -920,20 +908,57 @@ const SchoolPlanner = () => {
     localStorage.setItem('showFirstInfoBeside', showFirstInfoBeside ? 'true' : 'false');
   }, [showFirstInfoBeside]);
 
-  // Add state for showCountdownInTitle
-  const [showCountdownInTitle, setShowCountdownInTitle] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('showCountdownInTitle');
-      return saved === 'true';
-    }
-    return false;
-  });
-  // Persist showCountdownInTitle
+  // --- Countdown in tab title effect ---
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('showCountdownInTitle', showCountdownInTitle ? 'true' : 'false');
+    if (!showCountdownInTitle) {
+      document.title = 'School Planner';
+      return;
     }
-  }, [showCountdownInTitle]);
+    // Find the soonest next event occurrence (rolling week)
+    if (!weekData || !weekData.events) {
+      document.title = 'School Planner';
+      return;
+    }
+    const now = new Date();
+    function getNextOccurrence(event: CalendarEvent, now: Date): Date {
+      const eventDay = event.dtstart.getDay();
+      const eventHour = event.dtstart.getHours();
+      const eventMinute = event.dtstart.getMinutes();
+      const eventSecond = event.dtstart.getSeconds();
+      const nowDay = now.getDay();
+      let daysUntil = eventDay - nowDay;
+      if (
+        daysUntil < 0 ||
+        (daysUntil === 0 && (
+          eventHour < now.getHours() ||
+          (eventHour === now.getHours() && eventMinute < now.getMinutes()) ||
+          (eventHour === now.getHours() && eventMinute === now.getMinutes() && eventSecond <= now.getSeconds())
+        ))
+      ) {
+        daysUntil += 7;
+      }
+      const next = new Date(now);
+      next.setDate(now.getDate() + daysUntil);
+      next.setHours(eventHour, eventMinute, eventSecond, 0);
+      return next;
+    }
+    const nexts = weekData.events.map((e: CalendarEvent) => ({ event: e, date: getNextOccurrence(e, now) }));
+    const soonest = nexts.reduce((min, curr) => (min === null || curr.date < min.date ? curr : min), null as { event: CalendarEvent; date: Date } | null);
+    if (!soonest) {
+      document.title = 'School Planner';
+      return;
+    }
+    const diff = soonest.date.getTime() - now.getTime();
+    if (diff <= 0) {
+      document.title = 'School Planner';
+      return;
+    }
+    const totalSeconds = Math.floor(diff / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    document.title = `${pad(hours)}:${pad(minutes)} until ${normalizeSubjectName(soonest.event.summary, true)}`;
+  }, [showCountdownInTitle, weekData]);
 
   // Main content routes
   // Only show welcome screen if not completed
