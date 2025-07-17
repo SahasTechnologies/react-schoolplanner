@@ -2,31 +2,38 @@ import React, { useEffect, useState } from 'react';
 import { X, Clock, MapPin, User, CalendarRange } from 'lucide-react';
 import { CalendarEvent, formatTime } from '../utils/calendarUtils';
 import { getSubjectIcon, normalizeSubjectName } from '../utils/subjectUtils';
+import { Subject } from '../types';
 
 interface EventDetailsOverlayProps {
   event: CalendarEvent;
   onClose: () => void;
   colors: any;
   effectiveMode: 'light' | 'dark';
+  subjects: Subject[];
 }
 
-const getNoteKey = (event: CalendarEvent) => {
-  return `event_note_${event.summary}_${event.dtstart?.toISOString?.()}`;
+const getNoteKey = (subjectName: string) => {
+  return `subject_note_${subjectName}`;
 };
 
-const EventDetailsOverlay: React.FC<EventDetailsOverlayProps> = ({ event, onClose, colors, effectiveMode }) => {
+const EventDetailsOverlay: React.FC<EventDetailsOverlayProps> = ({ event, onClose, colors, effectiveMode, subjects }) => {
+  const normalizedName = normalizeSubjectName(event.summary, true);
+  const subject = subjects.find(s => normalizeSubjectName(s.name, true) === normalizedName);
+  const subjectColor = subject ? subject.colour : colors.button;
+  const subjectIcon = getSubjectIcon(event.summary, 48, effectiveMode);
+
   const [note, setNote] = useState('');
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem(getNoteKey(event));
+    const saved = localStorage.getItem(getNoteKey(normalizedName));
     if (saved !== null) setNote(saved);
     setShow(true);
-  }, [event]);
+  }, [normalizedName]);
 
   const handleNoteChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setNote(e.target.value);
-    localStorage.setItem(getNoteKey(event), e.target.value);
+    localStorage.setItem(getNoteKey(normalizedName), e.target.value);
   };
 
   // Info fields (same as EventCard)
@@ -65,10 +72,6 @@ const EventDetailsOverlay: React.FC<EventDetailsOverlayProps> = ({ event, onClos
     ) : null },
   ].filter(f => f.node);
 
-  // Subject color and icon
-  const subjectColor = event.colour || colors.button;
-  const subjectIcon = getSubjectIcon(event.summary, 48, effectiveMode);
-
   // Slide animation
   const sidebarClass = `h-full w-full max-w-sm p-6 flex flex-col shadow-2xl ${colors.container} ${colors.border} fixed right-0 top-0 transition-transform duration-200 z-50`;
 
@@ -84,7 +87,6 @@ const EventDetailsOverlay: React.FC<EventDetailsOverlayProps> = ({ event, onClos
           minWidth: 340,
           maxWidth: 400,
           transform: show ? 'translateX(0)' : 'translateX(100%)',
-          // No borderLeft
         }}
         onClick={e => e.stopPropagation()}
       >

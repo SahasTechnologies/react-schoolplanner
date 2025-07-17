@@ -876,6 +876,7 @@ const SchoolPlanner = () => {
           onClose={() => setSelectedEvent(null)}
           colors={colors}
           effectiveMode={effectiveMode}
+          subjects={subjects}
         />
       )}
     </div>
