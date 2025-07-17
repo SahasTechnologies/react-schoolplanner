@@ -4,13 +4,12 @@
 import * as React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { 
-  Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Edit2, User,
-  Sun, Moon, Monitor, Settings as SettingsIcon,
-  Utensils // <-- Add Utensils icon
+  Calendar, FileText, Home, BarChart3, Edit2,
+  Settings as SettingsIcon
 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { ThemeKey, colorVars, themeColors, getColors } from './theme';
-import { normalizeSubjectName, getSubjectIcon } from './subjectUtils';
+import { ThemeKey, colorVars, themeColors, getColors } from './utils/theme';
+import { normalizeSubjectName, getSubjectIcon } from './utils/subjectUtils';
 import { 
   CalendarEvent, 
   WeekData, 
@@ -21,18 +20,18 @@ import {
   formatTime, 
   getTodayOrNextEvents, 
   isBreakEvent 
-} from './calendarUtils';
+} from './utils/calendarUtils';
 import WelcomeScreen from './components/WelcomeScreen';
 import Settings from './components/Settings';
+import EventCard from './components/EventCard';
+import SubjectEditModal from './components/SubjectEditModal';
+import ThemeModal from './components/ThemeModal';
+import { Subject } from './types';
+import Sidebar from './components/Sidebar';
 
 
 
-interface Subject {
-  id: string; // Unique ID for the subject
-  name: string; // Display name, can be edited
-  originalName?: string; // Original name from ICS file
-  colour: string; // Changed to Australian English 'colour'
-}
+
 
 
 
@@ -311,97 +310,22 @@ const SchoolPlanner = () => {
                     <p>No events</p>
                   </div>
                 ) : (
-                  dayEventsWithBreaks[index].map((event, eventIndex) => {
-                    if (event.isBreak) {
-                      return (
-                        <div
-                          key={`break-${eventIndex}`}
-                          className="rounded-lg p-3 flex items-center justify-between text-sm font-semibold opacity-80"
-                          style={{ 
-                            backgroundColor: effectiveMode === 'light' ? 'transparent' : 'transparent', 
-                            color: effectiveMode === 'light' ? '#000' : '#fff',
-                            border: '1px dashed #888',
-                            borderWidth: 1,
-                            minHeight: 40
-                          }}
-                        >
-                          <div className="flex-1 text-left flex items-center" style={{justifyContent: 'flex-start'}}>
-                            Break
-                            <span className="text-xs ml-2 opacity-60">{formatTime(event.dtstart)} - {formatTime(event.dtend ?? event.dtstart)}</span>
-                          </div>
-                          <Utensils size={20} className={effectiveMode === 'light' ? 'text-black' : 'text-white'} />
-                        </div>
-                      );
-                    }
-                    // ... existing code for normal event ...
-                    let teacherName = '';
-                    let periodInfo = '';
-                    if (event.description) {
-                      const teacherMatch = event.description.match(/Teacher:\s*([^\n\r]+?)(?:\s*Period:|$)/i);
-                      if (teacherMatch) {
-                        teacherName = teacherMatch[1].trim();
-                      }
-                      const periodMatch = event.description.match(/Period:\s*([^\n\r]+?)(?:\s*$|\s*Teacher:|$)/i);
-                      if (periodMatch) {
-                        periodInfo = periodMatch[1].trim();
-                      }
-                    }
-                    const infoFields: Record<string, React.ReactNode> = {
-                      time: (
-                        <div key="time" className="flex items-center gap-1 text-xs opacity-80 mb-1">
-                          <Clock size={12} />
-                          <span>{formatTime(event.dtstart)}{event.dtend && !isNaN(new Date(event.dtend).getTime()) ? ` - ${formatTime(event.dtend ?? event.dtstart)}` : ''}</span>
-                        </div>
-                      ),
-                      location: event.location ? (
-                        <div key="location" className="flex items-center gap-1 text-xs opacity-80 mb-1">
-                          <MapPin size={12} />
-                          <span>{event.location}</span>
-                        </div>
-                      ) : null,
-                      teacher: teacherName ? (
-                        <div key="teacher" className="flex items-center gap-1 text-xs opacity-80 mb-1">
-                          <User size={12} />
-                          <span>{teacherName}</span>
-                        </div>
-                      ) : null,
-                      period: periodInfo ? (
-                        <div key="period" className="flex items-center gap-1 text-xs opacity-80 mb-1">
-                          <span>Period: {periodInfo}</span>
-                        </div>
-                      ) : null,
-                    };
-                    const enabledFields = infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key]);
-                    const getFirstEnabledField = () => {
-                      if (!showFirstInfoBeside) return null;
-                      const firstField = infoOrder.find((item: { key: string; label: string }) => infoShown[item.key]);
-                      if (!firstField) return null;
-                      return infoFields[firstField.key];
-                    };
-                    return (
-                      <div
-                        key={eventIndex}
-                        className="rounded-lg p-3 text-white text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
-                        style={{ backgroundColor: getEventColour(event.summary) }}
-                        onMouseEnter={() => setHoveredEventIdx(eventIndex)}
-                        onMouseLeave={() => setHoveredEventIdx(null)}
-                      >
-                        <div className="flex items-center justify-between" style={{ minHeight: 40, alignItems: 'center' }}>
-                          <div className="flex items-center">
-                          <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>
-                            {normalizeSubjectName(event.summary, autoNamingEnabled)}
-                          </span>
-                            {getFirstEnabledField()}
-                          </div>
-                          <span style={{ opacity: 0.35, display: 'flex', alignItems: 'center' }} className="text-black">
-                            {getSubjectIcon(event.summary, 24, effectiveMode)}
-                          </span>
-                        </div>
-                        {/* Info fields, only show enabled by default, all on hover */}
-                        {(hoveredEventIdx === eventIndex ? infoOrder : enabledFields).map((item: { key: string; label: string }) => infoFields[item.key]).filter(Boolean)}
-                      </div>
-                    );
-                  })
+                  dayEventsWithBreaks[index].map((event, eventIndex) => (
+                    <EventCard
+                      key={eventIndex}
+                      event={event}
+                      index={eventIndex}
+                      isBreakEvent={isBreakEvent}
+                      getEventColour={getEventColour}
+                      autoNamingEnabled={autoNamingEnabled}
+                      effectiveMode={effectiveMode}
+                      hoveredEventIdx={hoveredEventIdx}
+                      setHoveredEventIdx={setHoveredEventIdx}
+                      infoOrder={infoOrder}
+                      infoShown={infoShown}
+                      showFirstInfoBeside={showFirstInfoBeside}
+                    />
+                  ))
                 )}
               </div>
             </div>
@@ -452,77 +376,19 @@ const SchoolPlanner = () => {
           )}
         </div>
 
-        {/* Subject Edit Modal */}
-        {showSubjectEditModal && selectedSubjectForEdit && (
-          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-            <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
-              <h3 className={`text-xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Edit Subject</h3>
-              <p className={`text-gray-400 text-sm mb-4 ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Original Name: <span className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{selectedSubjectForEdit.originalName || selectedSubjectForEdit.name}</span></p> {/* Changed original name */}
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="subjectName" className={`block ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-300'} text-sm font-medium mb-1`}>Subject Name</label>
-                  <input
-                    id="subjectName"
-                    type="text"
-                    value={editName}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditName(e.target.value)}
-                    className="w-full bg-gray-700 text-white px-3 py-2 rounded-md border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="subjectColour" className={`block ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-300'} text-sm font-medium mb-2`}>Subject Colour</label> {/* Changed to 'subjectColour' */}
-                  <div className="grid grid-cols-6 gap-2 mb-4"> {/* Colour palette */}
-                    {defaultColours.map((colour, index) => (
-                      <button
-                        key={index}
-                        className={`w-8 h-8 rounded-full border-2 ${editColour === colour ? 'border-blue-400' : 'border-gray-600'} transition-all duration-200 hover:scale-110`}
-                        style={{ backgroundColor: colour }}
-                        onClick={() => setEditColour(colour)}
-                        title={colour}
-                      ></button>
-                    ))}
-                    {/* Custom Colour Button */}
-                    <button
-                      className={`w-8 h-8 rounded-full border-2 ${editColour && !defaultColours.includes(editColour) ? 'border-blue-400' : 'border-gray-600'} flex items-center justify-center transition-all duration-200 hover:scale-110`}
-                      style={{ background: 'linear-gradient(to right, #FF0000, #FF7F00, #FFFF00, #00FF00, #0000FF, #4B0082, #9400D3)' }}
-                      onClick={() => customColourInputRef.current?.click()}
-                      title="Choose Custom Colour"
-                    >
-                      <Edit2 size={16} className="text-white" />
-                    </button>
-                    <input
-                      ref={customColourInputRef}
-                      type="color"
-                      value={editColour}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditColour(e.target.value)}
-                      className="hidden" // Hide the native input
-                    />
-                  </div>
-                  {/* Display currently selected custom colour if it's not in default palette */}
-                  {!defaultColours.includes(editColour) && (
-                    <div className="flex items-center gap-2 text-gray-300 text-sm mt-2">
-                      Selected: <div className="w-5 h-5 rounded-full border border-gray-600" style={{ backgroundColor: editColour }}></div> {editColour}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="mt-6 flex justify-end gap-3">
-                <button
-                  onClick={cancelSubjectEdit}
-                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={saveSubjectEdit}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
-                >
-                  Save Changes
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <SubjectEditModal
+          showSubjectEditModal={showSubjectEditModal}
+          selectedSubjectForEdit={selectedSubjectForEdit}
+          editName={editName}
+          setEditName={setEditName}
+          editColour={editColour}
+          setEditColour={setEditColour}
+          saveSubjectEdit={saveSubjectEdit}
+          cancelSubjectEdit={cancelSubjectEdit}
+          effectiveMode={effectiveMode}
+          colors={colors}
+          defaultColours={defaultColours}
+        />
       </div>
     );
   };
@@ -586,97 +452,22 @@ const SchoolPlanner = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {events.map((event, idx) => {
-                  if (isBreakEvent(event)) {
-                    return (
-                      <div
-                        key={`break-${idx}`}
-                        className="rounded-lg p-3 flex items-center justify-between text-sm font-semibold opacity-80"
-                        style={{ 
-                          backgroundColor: effectiveMode === 'light' ? 'transparent' : 'transparent', 
-                          color: effectiveMode === 'light' ? '#000' : '#fff',
-                          border: '1px dashed #888',
-                          borderWidth: 1,
-                          minHeight: 40
-                        }}
-                      >
-                        <div className="flex-1 text-left flex items-center" style={{justifyContent: 'flex-start'}}>
-                          Break
-                          <span className="text-xs ml-2 opacity-60">{formatTime(event.dtstart)} - {formatTime(event.dtend ?? event.dtstart)}</span>
-                        </div>
-                        <Utensils size={20} className={effectiveMode === 'light' ? 'text-black' : 'text-white'} />
-                      </div>
-                    );
-                  }
-                  // ... existing code for normal event ...
-                  let teacherName = '';
-                  let periodInfo = '';
-                  if (event.description) {
-                    const teacherMatch = event.description.match(/Teacher:\s*([^\n\r]+?)(?:\s*Period:|$)/i);
-                    if (teacherMatch) {
-                      teacherName = teacherMatch[1].trim();
-                    }
-                    const periodMatch = event.description.match(/Period:\s*([^\n\r]+?)(?:\s*$|\s*Teacher:|$)/i);
-                    if (periodMatch) {
-                      periodInfo = periodMatch[1].trim();
-                    }
-                  }
-                  const infoFields: Record<string, React.ReactNode> = {
-                    time: (
-                      <div key="time" className="flex items-center gap-1 text-xs opacity-80 mb-1">
-                        <Clock size={12} />
-                        <span>{formatTime(event.dtstart)}{event.dtend && !isNaN(new Date(event.dtend).getTime()) ? ` - ${formatTime(event.dtend ?? event.dtstart)}` : ''}</span>
-                      </div>
-                    ),
-                    location: event.location ? (
-                      <div key="location" className="flex items-center gap-1 text-xs opacity-80 mb-1">
-                        <MapPin size={12} />
-                        <span>{event.location}</span>
-                      </div>
-                    ) : null,
-                    teacher: teacherName ? (
-                      <div key="teacher" className="flex items-center gap-1 text-xs opacity-80 mb-1">
-                        <User size={12} />
-                        <span>{teacherName}</span>
-                      </div>
-                    ) : null,
-                    period: periodInfo ? (
-                      <div key="period" className="flex items-center gap-1 text-xs opacity-80 mb-1">
-                        <span>Period: {periodInfo}</span>
-                      </div>
-                    ) : null,
-                  };
-                  const enabledFields = infoOrder.filter((o: { key: string; label: string }) => infoShown[o.key]);
-                  const getFirstEnabledField = () => {
-                    if (!showFirstInfoBeside) return null;
-                    const firstField = infoOrder.find((item: { key: string; label: string }) => infoShown[item.key]);
-                    if (!firstField) return null;
-                    return infoFields[firstField.key];
-                  };
-                  return (
-                    <div
-                      key={idx}
-                      className="rounded-lg p-3 text-white text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
-                      style={{ backgroundColor: getEventColour(event.summary) }}
-                      onMouseEnter={() => setHoveredEventIdx(idx)}
-                      onMouseLeave={() => setHoveredEventIdx(null)}
-                    >
-                      <div className="flex items-center justify-between" style={{ minHeight: 40, alignItems: 'center' }}>
-                        <div className="flex items-center">
-                        <span className="font-medium leading-tight" style={{ fontSize: '1.1rem' }}>
-                          {normalizeSubjectName(event.summary, autoNamingEnabled)}
-                        </span>
-                          {getFirstEnabledField()}
-                        </div>
-                        <span style={{ opacity: 0.35, display: 'flex', alignItems: 'center' }} className="text-black">
-                          {getSubjectIcon(event.summary, 24, effectiveMode)}
-                        </span>
-                      </div>
-                      {/* Info fields, only show enabled by default, all on hover */}
-                      {(hoveredEventIdx === idx ? infoOrder : enabledFields).map((item: { key: string; label: string }) => infoFields[item.key]).filter(Boolean)}
-                    </div>
-                  );
-                })}
+                {events.map((event, idx) => (
+                  <EventCard
+                    key={idx}
+                    event={event}
+                    index={idx}
+                    isBreakEvent={isBreakEvent}
+                    getEventColour={getEventColour}
+                    autoNamingEnabled={autoNamingEnabled}
+                    effectiveMode={effectiveMode}
+                    hoveredEventIdx={hoveredEventIdx}
+                    setHoveredEventIdx={setHoveredEventIdx}
+                    infoOrder={infoOrder}
+                    infoShown={infoShown}
+                    showFirstInfoBeside={showFirstInfoBeside}
+                  />
+                ))}
               </div>
             )}
           </div>
@@ -1016,115 +807,23 @@ const SchoolPlanner = () => {
   return (
     <div className={`min-h-screen ${colors.background} text-white flex font-inter`}>
       {/* Sidebar */}
-      <div className={`w-16 ${colors.container} ${colors.border} border-r flex flex-col items-center py-4 fixed top-0 left-0 h-full z-40`}>
-        <div className="space-y-4 w-full flex-1"> {/* Added w-full here for centering */}
-          {/* Sidebar buttons here */}
-          <button
-            onClick={() => navigate('/home')}
-            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${location.pathname === '/home' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 hover:bg-gray-700`}`}
-            title="Home"
-          >
-            <Home size={20} className={colors.icon} />
-          </button>
-          <button
-            onClick={() => navigate('/calendar')}
-            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${location.pathname === '/calendar' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 hover:bg-gray-700`}`}
-            title="Calendar"
-          >
-            <Calendar size={20} className={colors.icon} />
-          </button>
-          <button
-            onClick={() => navigate('/markbook')}
-            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${location.pathname === '/markbook' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 hover:bg-gray-700`}`}
-            title="Markbook"
-          >
-            <BarChart3 size={20} className={colors.icon} />
-          </button>
-          <button
-            onClick={() => navigate('/settings')}
-            className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${location.pathname === '/settings' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 hover:bg-gray-700`}`}
-            title="Settings"
-          >
-            <SettingsIcon size={20} className={colors.icon} />
-          </button>
-        </div>
-      </div>
-      {/* Theme Modal */}
-      {showThemeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30"> {/* Lowered opacity */}
-          <div className={`rounded-xl p-8 shadow-2xl border-2 ${colors.container} ${colors.border} w-full max-w-xs mx-4`}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className={`text-lg font-bold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Choose Theme</h3>
-              <button onClick={() => setShowThemeModal(false)} className={`${effectiveMode === 'light' ? 'text-black' : 'text-white'} opacity-60 hover:opacity-100`}><X size={20} /></button>
-            </div>
-            {/* Theme Mode Toggle */}
-            <div className="mb-6 flex flex-row items-center justify-center">
-              <div className={`relative flex ${effectiveMode === 'light' ? 'bg-white' : 'bg-gray-800'} rounded-full w-44 h-12 px-3 gap-x-2 py-2 transition-colors duration-200`}>
-                {/* Toggle thumb */}
-                <div
-                  className={`absolute top-2 left-3 h-8 w-12 rounded-full transition-all duration-200 shadow-md ${themeMode === 'light' ? 'translate-x-0 bg-white' : themeMode === 'dark' ? 'translate-x-28 bg-gray-900' : 'translate-x-14 bg-gray-300 dark:bg-gray-800'}`}
-                  style={{ zIndex: 1 }}
-                />
-                {/* Light */}
-                <button
-                  className={`relative flex-1 flex flex-col items-center justify-center z-10 rounded-full transition-colors duration-200 ${themeMode === 'light' ? (effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400') : (effectiveMode === 'light' ? 'text-black' : 'text-white')} mx-1`}
-                  style={{ height: '40px' }}
-                  onClick={() => setThemeMode('light')}
-                >
-                  <Sun size={20} />
-                  <span className="text-xs font-medium">Light</span>
-                </button>
-                {/* System */}
-                <button
-                  className={`relative flex-1 flex flex-col items-center justify-center z-10 rounded-full transition-colors duration-200 ${themeMode === 'system' ? (effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400') : (effectiveMode === 'light' ? 'text-black' : 'text-white')} mx-1`}
-                  style={{ height: '40px' }}
-                  onClick={() => setThemeMode('system')}
-                >
-                  <Monitor size={20} />
-                  <span className="text-xs font-medium">System</span>
-                </button>
-                {/* Dark */}
-                <button
-                  className={`relative flex-1 flex flex-col items-center justify-center z-10 rounded-full transition-colors duration-200 ${themeMode === 'dark' ? (effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400') : (effectiveMode === 'light' ? 'text-black' : 'text-white')} mx-1`}
-                  style={{ height: '40px' }}
-                  onClick={() => setThemeMode('dark')}
-                >
-                  <Moon size={20} />
-                  <span className="text-xs font-medium">Dark</span>
-                </button>
-              </div>
-            </div>
-            {/* Normal Colour */}
-            <div className={`mb-2 text-lg font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Normal Colour</div>
-            <div className="flex flex-row flex-wrap gap-4 mb-6">
-              {(Object.entries(colorVars) as [ThemeKey, typeof colorVars[ThemeKey]][]).map(([key, val]) => (
-                <div key={key} className="flex flex-col items-center">
-                  <button
-                    className={`w-10 h-10 rounded-full border-2 ${(theme === key && themeType === 'normal') ? themeColors(effectiveMode)[key].borderAccent : 'border-gray-600'} ${val[effectiveMode].normal.swatch}`}
-                    onClick={() => handleThemeChange(key, 'normal')}
-                    title={themeColors(effectiveMode)[key].label}
-                  />
-                  <span className={`text-sm mt-1 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{themeColors(effectiveMode)[key].label}</span>
-                </div>
-              ))}
-            </div>
-            {/* Extreme Colour */}
-            <div className={`mb-2 text-lg font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Extreme Colour</div>
-            <div className="flex flex-row flex-wrap gap-4">
-              {(Object.entries(colorVars) as [ThemeKey, typeof colorVars[ThemeKey]][]).map(([key, val]) => (
-                <div key={key} className="flex flex-col items-center">
-                  <button
-                    className={`w-10 h-10 rounded-full border-2 ${(theme === key && themeType === 'extreme') ? themeColors(effectiveMode)[key].borderAccent : 'border-gray-600'} ${val[effectiveMode].extreme.swatch}`}
-                    onClick={() => handleThemeChange(key, 'extreme')}
-                    title={themeColors(effectiveMode)[key].label + ' (Extreme)'}
-                  />
-                  <span className={`text-sm mt-1 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{themeColors(effectiveMode)[key].label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      <Sidebar
+        navigate={navigate}
+        location={location}
+        colors={colors}
+        SettingsIcon={SettingsIcon}
+      />
+      <ThemeModal
+        showThemeModal={showThemeModal}
+        setShowThemeModal={setShowThemeModal}
+        theme={theme}
+        themeType={themeType}
+        themeMode={themeMode}
+        setThemeMode={setThemeMode}
+        handleThemeChange={handleThemeChange}
+        effectiveMode={effectiveMode}
+        colors={colors}
+      />
 
       {/* Main Content */}
       <div className="flex-1 ml-16">
