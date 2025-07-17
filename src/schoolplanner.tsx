@@ -1259,11 +1259,6 @@ const SchoolPlanner = () => {
   );
 };
 
-// Helper to get text color for iframe (black for light, white for dark)
-function getIframeTextColor(effectiveMode: 'light' | 'dark') {
-  return effectiveMode === 'light' ? '000000' : 'ffffff';
-}
-
 // Quote of the Day Widget
 const QuoteOfTheDayWidget: React.FC<{ theme: ThemeKey; themeType: 'normal' | 'extreme'; effectiveMode: 'light' | 'dark' }> = ({ theme, themeType, effectiveMode }) => {
   const [loading, setLoading] = useState(true);
