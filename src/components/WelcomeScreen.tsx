@@ -12,11 +12,10 @@ interface WelcomeScreenProps {
   handleDragOver: (e: React.DragEvent) => void;
   handleDragLeave: () => void;
   handleDrop: (e: React.DragEvent) => void;
-  handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleFileInput: (e: React.ChangeEvent<HTMLInputElement> | File | null) => void;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   effectiveMode: 'light' | 'dark';
   navigate: (path: string) => void;
-  handleFileInput: (e: React.ChangeEvent<HTMLInputElement> | File | null) => void;
 }
 
 const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) => {
@@ -31,10 +30,10 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
     handleDragOver,
     handleDragLeave,
     handleDrop,
-    handleFileChange,
+    handleFileInput,
     fileInputRef,
     effectiveMode,
-    navigate,
+    navigate
   } = props;
 
   if (welcomeStep === 'completed') {
@@ -122,7 +121,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
                   ref={fileInputRef}
                   type="file"
                   accept=".ics,.school"
-                  onChange={handleFileChange}
+                  onChange={handleFileInput}
                   className="hidden"
                 />
               </div>
