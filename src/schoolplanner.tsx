@@ -192,8 +192,13 @@ const SchoolPlanner = () => {
           localStorage.setItem('userName', data.name);
         }
         if (data.subjects) {
-          setSubjects(data.subjects);
-          localStorage.setItem('subjects', JSON.stringify(data.subjects));
+          // Ensure every subject has a colour (assign random if missing)
+          const patchedSubjects = data.subjects.map((subject: any) => ({
+            ...subject,
+            colour: subject.colour || (subject.name && (data.subjectColours || []).find((sc: any) => sc.name === subject.name)?.colour) || generateRandomColour()
+          }));
+          setSubjects(patchedSubjects);
+          localStorage.setItem('subjects', JSON.stringify(patchedSubjects));
         }
         if (data.weekData) {
           setWeekData({
@@ -1020,19 +1025,10 @@ const SchoolPlanner = () => {
     const data: any = {};
     if (exportModalState.options.subjects) {
       data.subjects = subjects.map(subject => {
-        const timings = weekData?.events
-          .filter(e => normalizeSubjectName(e.summary, autoNamingEnabled) === normalizeSubjectName(subject.name, autoNamingEnabled))
-          .map(e => ({
-            start: e.dtstart,
-            end: e.dtend,
-            location: e.location,
-            description: e.description,
-          })) || [];
+        // Always include colour in export
         return {
-          id: subject.id,
-          name: subject.name,
-          originalName: subject.originalName,
-          timings,
+          ...subject,
+          colour: subject.colour || generateRandomColour(),
         };
       });
     }
