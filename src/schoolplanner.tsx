@@ -480,26 +480,54 @@ const SchoolPlanner = () => {
   }> = ({ weekData, colors, effectiveMode, getEventColour }) => {
     const [nextEvent, setNextEvent] = useState<CalendarEvent | null>(null);
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
+    const [nextEventDate, setNextEventDate] = useState<Date | null>(null);
 
-    // Helper to find the next event after now (across all days, no time limit)
-    function findNextEvent(currentNow: Date): CalendarEvent | null {
+    // Helper: get next occurrence of an event after now, treating week as repeating
+    function getNextOccurrence(event: CalendarEvent, now: Date): Date {
+      const eventDay = event.dtstart.getDay(); // 0=Sun, 1=Mon, ...
+      const eventHour = event.dtstart.getHours();
+      const eventMinute = event.dtstart.getMinutes();
+      const eventSecond = event.dtstart.getSeconds();
+      // Find next occurrence (this week or next)
+      const nowDay = now.getDay();
+      let daysUntil = eventDay - nowDay;
+      if (
+        daysUntil < 0 ||
+        (daysUntil === 0 && (
+          eventHour < now.getHours() ||
+          (eventHour === now.getHours() && eventMinute < now.getMinutes()) ||
+          (eventHour === now.getHours() && eventMinute === now.getMinutes() && eventSecond <= now.getSeconds())
+        ))
+      ) {
+        daysUntil += 7;
+      }
+      const next = new Date(now);
+      next.setDate(now.getDate() + daysUntil);
+      next.setHours(eventHour, eventMinute, eventSecond, 0);
+      return next;
+    }
+
+    // Find the soonest next event occurrence
+    function findNextRepeatingEvent(now: Date): { event: CalendarEvent; date: Date } | null {
       if (!weekData || !weekData.events) return null;
-      const futureEvents = weekData.events
-        .filter((e: CalendarEvent) => new Date(e.dtstart).getTime() > currentNow.getTime())
-        .sort((a: CalendarEvent, b: CalendarEvent) => new Date(a.dtstart).getTime() - new Date(b.dtstart).getTime());
-      return futureEvents.length > 0 ? futureEvents[0] : null;
+      const nexts = weekData.events.map((e: CalendarEvent) => ({ event: e, date: getNextOccurrence(e, now) }));
+      const soonest = nexts.reduce((min, curr) => (min === null || curr.date < min.date ? curr : min), null as { event: CalendarEvent; date: Date } | null);
+      return soonest;
     }
 
     // Update every second, and recalculate nextEvent and timeLeft
     useEffect(() => {
       const interval = setInterval(() => {
-        const newNow = new Date();
-        const event = findNextEvent(newNow);
-        setNextEvent(event);
-        if (event) {
-          const diff = new Date(event.dtstart).getTime() - newNow.getTime();
+        const now = new Date();
+        const soonest = findNextRepeatingEvent(now);
+        if (soonest) {
+          setNextEvent(soonest.event);
+          setNextEventDate(soonest.date);
+          const diff = soonest.date.getTime() - now.getTime();
           setTimeLeft(diff > 0 ? diff : 0);
         } else {
+          setNextEvent(null);
+          setNextEventDate(null);
           setTimeLeft(null);
         }
       }, 1000);
@@ -537,14 +565,14 @@ const SchoolPlanner = () => {
           <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
           <span className={`text-lg font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Next Event Countdown</span>
         </div>
-        {nextEvent ? (
+        {nextEvent && nextEventDate ? (
           <>
             <div className="text-3xl font-bold mb-2" style={{ color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>{formatCountdown(timeLeft)}</div>
             <div className="flex items-center gap-2 mb-1">
               <ColoredSubjectIcon summary={nextEvent.summary} />
               <span className="text-base font-medium" style={{ color: getEventColour(nextEvent.summary) }}>{normalizeSubjectName(nextEvent.summary, true)}</span>
             </div>
-            <div className="text-sm opacity-80">at {nextEvent.dtstart ? nextEvent.dtstart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</div>
+            <div className="text-sm opacity-80">at {nextEventDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
           </>
         ) : (
           <div className="text-lg text-gray-400">No upcoming events</div>
