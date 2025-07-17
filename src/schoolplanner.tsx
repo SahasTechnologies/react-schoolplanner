@@ -172,24 +172,39 @@ const SchoolPlanner = () => {
         };
         reader.readAsText(file);
       } else if (file.name.endsWith('.school')) {
-        // .school import logic
-        const data = await importSchoolData(file);
-        if (!data || !data.name || !data.subjects || !data.weekData) {
-          setError('Invalid .school file: missing required data.');
+        // .school import logic (now supports partial data)
+        let data;
+        try {
+          data = await importSchoolData(file);
+        } catch (err) {
+          setError('Invalid .school file: not valid JSON.');
           setLoading(false);
           return;
         }
-        setUserName(data.name);
-        setSubjects(data.subjects);
-        setWeekData({
-          ...data.weekData,
-          monday: new Date(data.weekData.monday),
-          friday: new Date(data.weekData.friday),
-          events: data.weekData.events.map((e: any) => ({ ...e, dtstart: new Date(e.dtstart), dtend: e.dtend ? new Date(e.dtend) : undefined }))
-        });
-        localStorage.setItem('userName', data.name);
-        localStorage.setItem('subjects', JSON.stringify(data.subjects));
-        localStorage.setItem('weekData', JSON.stringify(data.weekData));
+        if (!data || typeof data !== 'object') {
+          setError('Invalid .school file: not a valid object.');
+          setLoading(false);
+          return;
+        }
+        // Remove the restriction that at least one of name, subjects, or weekData must be present
+        if (data.name) {
+          setUserName(data.name);
+          localStorage.setItem('userName', data.name);
+        }
+        if (data.subjects) {
+          setSubjects(data.subjects);
+          localStorage.setItem('subjects', JSON.stringify(data.subjects));
+        }
+        if (data.weekData) {
+          setWeekData({
+            ...data.weekData,
+            monday: new Date(data.weekData.monday),
+            friday: new Date(data.weekData.friday),
+            events: data.weekData.events.map((e: any) => ({ ...e, dtstart: new Date(e.dtstart), dtend: e.dtend ? new Date(e.dtend) : undefined }))
+          });
+          localStorage.setItem('weekData', JSON.stringify(data.weekData));
+        }
+        // No error if none of the fields are present
         setWelcomeStep('completed');
         navigate('/home', { replace: true });
         setLoading(false);
