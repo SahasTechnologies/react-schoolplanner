@@ -873,6 +873,9 @@ const SchoolPlanner = () => {
   // State for event details overlay
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
+  // Add state for tab countdown info (for tab title)
+  const [tabCountdown, setTabCountdown] = useState<{ time: string; event: string } | null>(null);
+
   // Save infoOrder and infoShown to localStorage
   useEffect(() => {
     localStorage.setItem('eventInfoOrder', JSON.stringify(infoOrder));
