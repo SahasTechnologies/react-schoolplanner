@@ -108,13 +108,15 @@ const EventCard: React.FC<EventCardProps> = ({
     return <span className="ml-3 flex items-center">{field}</span>;
   };
 
+  const [expanded, setExpanded] = React.useState(false);
+
   return (
     <div
       key={index}
-      className={`rounded-lg p-3 text-white text-sm transition-all duration-300 cursor-pointer ${showFirstInfoBeside ? 'hover:shadow-2xl hover:scale-105' : ''}`}
+      className={`rounded-lg p-3 text-white text-sm transition-all duration-300 cursor-pointer`}
       style={{ backgroundColor: getEventColour(event.summary) }}
-      onMouseEnter={() => setHoveredEventIdx(index)}
-      onMouseLeave={() => setHoveredEventIdx(null)}
+      onMouseEnter={() => { setHoveredEventIdx(index); if (showFirstInfoBeside) setExpanded(true); }}
+      onMouseLeave={() => { setHoveredEventIdx(null); if (showFirstInfoBeside) setExpanded(false); }}
     >
       <div className="flex items-center justify-between" style={{ minHeight: 40, alignItems: 'center' }}>
         <div className="flex items-center">
@@ -127,8 +129,21 @@ const EventCard: React.FC<EventCardProps> = ({
           {getSubjectIcon(event.summary, 24, effectiveMode)}
         </span>
       </div>
-      {/* Info fields, only show enabled by default, all on hover */}
-      {(hoveredEventIdx === index ? infoOrder : enabledFieldsBelow).map((item: { key: string; label: string }) => infoFields[item.key]).filter(Boolean)}
+      {/* Info fields: animate vertical expansion on home page, always show on calendar page */}
+      {showFirstInfoBeside ? (
+        <div
+          className="overflow-hidden transition-all duration-300"
+          style={{ maxHeight: expanded ? 500 : 0 }}
+        >
+          {infoOrder.map((item: { key: string; label: string }) =>
+            enabledFieldsBelow.find((f: { key: string }) => f.key === item.key) && infoFields[item.key]
+          ).filter(Boolean)}
+        </div>
+      ) : (
+        <div>
+          {infoOrder.map((item: { key: string; label: string }) => infoFields[item.key]).filter(Boolean)}
+        </div>
+      )}
     </div>
   );
 };
