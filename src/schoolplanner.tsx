@@ -321,7 +321,7 @@ const SchoolPlanner = () => {
                       setHoveredEventIdx={setHoveredEventIdx}
                       infoOrder={infoOrder}
                       infoShown={infoShown}
-                      showFirstInfoBeside={showFirstInfoBeside}
+                      showFirstInfoBeside={false} // Always false on calendar page
                     />
                   ))
                 )}
@@ -408,6 +408,7 @@ const SchoolPlanner = () => {
         handleToggleInfoShown={handleToggleInfoShown}
         showFirstInfoBeside={showFirstInfoBeside}
         setShowFirstInfoBeside={setShowFirstInfoBeside}
+        isCalendarPage={location.pathname === '/calendar'}
       />
     );
   };

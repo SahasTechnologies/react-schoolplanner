@@ -43,6 +43,7 @@ interface SettingsProps {
   handleToggleInfoShown: (key: string) => void;
   showFirstInfoBeside: boolean;
   setShowFirstInfoBeside: (show: boolean) => void;
+  isCalendarPage?: boolean;
 }
 
 const Settings: React.FC<SettingsProps> = ({
@@ -70,7 +71,8 @@ const Settings: React.FC<SettingsProps> = ({
   handleDragEnd,
   handleToggleInfoShown,
   showFirstInfoBeside,
-  setShowFirstInfoBeside
+  setShowFirstInfoBeside,
+  isCalendarPage
 }) => {
   const [showNameEditModal, setShowNameEditModal] = React.useState(false);
   const [editUserName, setEditUserName] = React.useState(userName);
@@ -247,16 +249,14 @@ const Settings: React.FC<SettingsProps> = ({
                     <GripVertical className="text-gray-400 cursor-grab" size={20} />
                   </div>
                   <span className="flex-1 font-medium text-lg flex items-center h-8">{item.label}</span>
-                  <label className="relative inline-flex items-center cursor-pointer select-none h-8">
+                  <label className="relative inline-flex items-center cursor-pointer">
                     <input
                       type="checkbox"
                       checked={infoShown[item.key]}
                       onChange={() => handleToggleInfoShown(item.key)}
                       className="sr-only peer"
                     />
-                    <div className="w-12 h-7 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-blue-600 transition-colors duration-200 shadow-inner flex items-center relative">
-                      <span className="absolute left-0.5 top-0.5 transition-transform duration-200 h-6 w-6 rounded-full bg-white border border-gray-300 shadow-md peer-checked:translate-x-full peer-checked:left-[calc(100%-1.75rem)] peer-checked:border-blue-500" style={{boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)'}}></span>
-                    </div>
+                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                   </label>
                 </div>
               ))}
@@ -264,16 +264,15 @@ const Settings: React.FC<SettingsProps> = ({
             {/* Toggle for first info beside subject name */}
             <div className="flex items-center justify-between gap-4 py-4 mt-4 border-t border-gray-700">
               <span className="font-medium text-lg flex items-center h-8">Show first info beside subject name</span>
-              <label className="relative inline-flex items-center cursor-pointer select-none h-8">
+              <label className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={showFirstInfoBeside}
-                  onChange={(e) => setShowFirstInfoBeside(e.target.checked)}
+                  checked={isCalendarPage ? false : showFirstInfoBeside}
+                  onChange={(e) => !isCalendarPage && setShowFirstInfoBeside(e.target.checked)}
                   className="sr-only peer"
+                  disabled={isCalendarPage}
                 />
-                <div className="w-12 h-7 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-blue-600 transition-colors duration-200 shadow-inner flex items-center relative">
-                  <span className="absolute left-0.5 top-0.5 transition-transform duration-200 h-6 w-6 rounded-full bg-white border border-gray-300 shadow-md peer-checked:translate-x-full peer-checked:left-[calc(100%-1.75rem)] peer-checked:border-blue-500" style={{boxShadow: '0 2px 8px 0 rgba(0,0,0,0.10)'}}></span>
-                </div>
+                <div className={`w-11 h-6 ${isCalendarPage ? 'bg-gray-400' : 'bg-gray-600'} peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all ${isCalendarPage ? '' : 'peer-checked:bg-blue-600'}`}></div>
               </label>
             </div>
             <div className="flex justify-end gap-3 mt-6">

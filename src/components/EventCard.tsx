@@ -111,7 +111,7 @@ const EventCard: React.FC<EventCardProps> = ({
   return (
     <div
       key={index}
-      className="rounded-lg p-3 text-white text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] cursor-pointer"
+      className={`rounded-lg p-3 text-white text-sm transition-all duration-300 cursor-pointer ${showFirstInfoBeside ? 'hover:shadow-2xl hover:scale-105' : ''}`}
       style={{ backgroundColor: getEventColour(event.summary) }}
       onMouseEnter={() => setHoveredEventIdx(index)}
       onMouseLeave={() => setHoveredEventIdx(null)}
