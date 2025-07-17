@@ -112,7 +112,7 @@ const EventCard: React.FC<EventCardProps> = ({
 
   // Keep content mounted until animation finishes
   React.useEffect(() => {
-    let timeout: NodeJS.Timeout;
+    let timeout: ReturnType<typeof setTimeout>;
     if (expanded) {
       setShowAllInfo(true);
     } else {
