@@ -12,7 +12,7 @@ import {
   Sun, 
   Moon, 
   Monitor,
-  Home as HomeIcon,
+  Home,
   Calendar
 } from 'lucide-react';
 import { ThemeKey, colorVars, themeColors } from '../utils/theme';
@@ -204,7 +204,7 @@ const Settings: React.FC<SettingsProps> = ({
       {/* Info Shown at Start Section */}
       <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
         <div className="flex items-center gap-2 mb-4">
-          <HomeIcon className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
+          <Home className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
           <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Home</h3>
         </div>
         <div className="flex items-center justify-between">
