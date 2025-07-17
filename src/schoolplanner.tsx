@@ -62,6 +62,7 @@ const SchoolPlanner = () => {
 
   // Remove enhanced biweekly schedule and pattern logic
 
+  // Remove old .ics and .school handlers, use one for both
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Default colours for the palette
@@ -103,97 +104,119 @@ const SchoolPlanner = () => {
 
 
 
-  const processFile = (file: File) => {
+  // Centralized file handler for both .ics and .school
+  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement> | File | null) => {
+    let file: File | null = null;
+    if ('target' in (e as any) && (e as React.ChangeEvent<HTMLInputElement>).target.files) {
+      file = (e as React.ChangeEvent<HTMLInputElement>).target.files?.[0] || null;
+    } else if (e instanceof File) {
+      file = e;
+    }
+    if (!file) return;
     setLoading(true);
     setError('');
-
-    const reader = new FileReader();
-    reader.onload = (e: ProgressEvent<FileReader>) => {
-      try {
-        const icsContent = e.target?.result as string;
-        const allRawEvents = parseICS(icsContent);
-        const allActualWeeks = groupAllEventsIntoActualWeeks(allRawEvents);
-
-        if (allActualWeeks.length === 0) {
-          setError('No valid Monday-Friday schedules with events found in the calendar file.');
-          setWelcomeStep('upload_ics');
-          setLoading(false);
-          return;
-        }
-
-        // Find the week with the most events (instead of the first full week)
-        let bestWeek: WeekData | null = null;
-        let maxEvents = 0;
-        for (const week of allActualWeeks) {
-          if (week.events.length > maxEvents) {
-            bestWeek = week;
-            maxEvents = week.events.length;
-          }
-        }
-
-        if (bestWeek) {
-          setWeekData(bestWeek);
-        } else {
-          setError('No Monday-Friday week with events found.');
-          setWelcomeStep('upload_ics');
-          setLoading(false);
-          return;
-        }
-
-        setWelcomeStep('completed');
-
-        // Extract and combine subjects from ALL events (not just the first week)
-        const subjectMap = new Map<string, Subject>();
-
-        allRawEvents.forEach(event => {
-          const normalizedName = normalizeSubjectName(event.summary, autoNamingEnabled);
-          if (normalizedName) {
-            if (!subjectMap.has(normalizedName)) {
-              subjectMap.set(normalizedName, {
-                id: crypto.randomUUID(),
-                name: normalizedName,
-                originalName: event.summary,
-                colour: generateRandomColour() // Changed to 'colour'
-              });
+    try {
+      if (file.name.endsWith('.ics')) {
+        // ICS logic (old processFile)
+        const reader = new FileReader();
+        reader.onload = (ev: ProgressEvent<FileReader>) => {
+          try {
+            const icsContent = ev.target?.result as string;
+            const allRawEvents = parseICS(icsContent);
+            const allActualWeeks = groupAllEventsIntoActualWeeks(allRawEvents);
+            if (allActualWeeks.length === 0) {
+              setError('No valid Monday-Friday schedules with events found in the calendar file.');
+              setWelcomeStep('upload_ics');
+              setLoading(false);
+              return;
             }
+            let bestWeek: WeekData | null = null;
+            let maxEvents = 0;
+            for (const week of allActualWeeks) {
+              if (week.events.length > maxEvents) {
+                bestWeek = week;
+                maxEvents = week.events.length;
+              }
+            }
+            if (bestWeek) {
+              setWeekData(bestWeek);
+            } else {
+              setError('No Monday-Friday week with events found.');
+              setWelcomeStep('upload_ics');
+              setLoading(false);
+              return;
+            }
+            setWelcomeStep('completed');
+            // Extract and combine subjects from ALL events (not just the first week)
+            const subjectMap = new Map<string, Subject>();
+            allRawEvents.forEach(event => {
+              const normalizedName = normalizeSubjectName(event.summary, autoNamingEnabled);
+              if (normalizedName) {
+                if (!subjectMap.has(normalizedName)) {
+                  subjectMap.set(normalizedName, {
+                    id: crypto.randomUUID(),
+                    name: normalizedName,
+                    originalName: event.summary,
+                    colour: generateRandomColour()
+                  });
+                }
+              }
+            });
+            setSubjects(Array.from(subjectMap.values()));
+          } catch (err) {
+            setError('Error processing file: ' + (err as Error).message);
+            setLoading(false);
+          } finally {
+            setLoading(false);
           }
+        };
+        reader.readAsText(file);
+      } else if (file.name.endsWith('.school')) {
+        // .school import logic
+        const data = await importSchoolData(file);
+        if (!data || !data.name || !data.subjects || !data.weekData) {
+          setError('Invalid .school file: missing required data.');
+          setLoading(false);
+          return;
+        }
+        setUserName(data.name);
+        setSubjects(data.subjects);
+        setWeekData({
+          ...data.weekData,
+          monday: new Date(data.weekData.monday),
+          friday: new Date(data.weekData.friday),
+          events: data.weekData.events.map((e: any) => ({ ...e, dtstart: new Date(e.dtstart), dtend: e.dtend ? new Date(e.dtend) : undefined }))
         });
-
-        setSubjects(Array.from(subjectMap.values()));
-
-      } catch (err) {
-        setError('Error processing file: ' + (err as Error).message);
-        setLoading(false); // Ensure loading is reset on error
-      } finally {
+        localStorage.setItem('userName', data.name);
+        localStorage.setItem('subjects', JSON.stringify(data.subjects));
+        localStorage.setItem('weekData', JSON.stringify(data.weekData));
+        setWelcomeStep('completed');
+        navigate('/home', { replace: true });
+        setLoading(false);
+      } else {
+        setError('Unsupported file type. Please upload a .ics or .school file.');
         setLoading(false);
       }
-    };
-    reader.readAsText(file);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      processFile(e.target.files[0]);
+    } catch (err) {
+      setError('Failed to import file: ' + err);
+      setLoading(false);
     }
   };
 
+  // Drag and drop handler for both file types
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(true);
   };
-
-  const handleDragLeave = () => {
-    setDragOver(false);
-  };
-
+  const handleDragLeave = () => setDragOver(false);
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
     const files = e.dataTransfer.files;
-    if (files.length > 0 && files[0].name.endsWith('.ics')) {
-      processFile(files[0]);
+    if (files.length > 0) {
+      handleFileInput(files[0]);
     } else {
-      setError('Please drop a valid .ics file.');
+      setError('Please drop a valid .ics or .school file.');
     }
   };
 
@@ -416,9 +439,8 @@ const SchoolPlanner = () => {
         exportModalState={exportModalState}
         setExportModalState={setExportModalState}
         handleExport={handleExport}
-        // Remove old import modal logic, add new props:
-        schoolImportInputRef={schoolImportInputRef}
-        handleSchoolImportFile={handleSchoolImportFile}
+        fileInputRef={fileInputRef}
+        handleFileInput={handleFileInput}
       />
     );
   };
@@ -651,13 +673,10 @@ const SchoolPlanner = () => {
         handleDragOver={handleDragOver}
         handleDragLeave={handleDragLeave}
         handleDrop={handleDrop}
-        handleFileChange={handleFileChange}
+        handleFileInput={handleFileInput}
         fileInputRef={fileInputRef}
         effectiveMode={effectiveMode}
         navigate={navigate}
-        // Add these props:
-        schoolImportInputRef={schoolImportInputRef}
-        handleSchoolImportFile={handleSchoolImportFile}
       />
     );
   };
@@ -1035,36 +1054,6 @@ const SchoolPlanner = () => {
     const fileName = `${userName || 'schoolplanner'}-export.school`;
     exportSchoolData(data, fileName);
     setExportModalState(s => ({ ...s, show: false }));
-  };
-
-  // Add a ref for .school import file input
-  const schoolImportInputRef = React.useRef<HTMLInputElement>(null);
-
-  // Centralized .school import handler
-  const handleSchoolImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const data = await importSchoolData(file);
-      // Update state from imported data
-      if (data.name) setUserName(data.name);
-      if (data.subjects) setSubjects(data.subjects);
-      if (data.weekData) setWeekData({
-        ...data.weekData,
-        monday: new Date(data.weekData.monday),
-        friday: new Date(data.weekData.friday),
-        events: data.weekData.events.map((e: any) => ({ ...e, dtstart: new Date(e.dtstart), dtend: e.dtend ? new Date(e.dtend) : undefined }))
-      });
-      // Persist to localStorage
-      if (data.name) localStorage.setItem('userName', data.name);
-      if (data.subjects) localStorage.setItem('subjects', JSON.stringify(data.subjects));
-      if (data.weekData) localStorage.setItem('weekData', JSON.stringify(data.weekData));
-      setWelcomeStep('completed');
-      // Optionally navigate to home
-      navigate('/home', { replace: true });
-    } catch (err) {
-      alert('Failed to import file: ' + err);
-    }
   };
 
   // Main content routes

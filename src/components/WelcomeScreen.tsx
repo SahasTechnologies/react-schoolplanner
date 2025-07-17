@@ -16,8 +16,7 @@ interface WelcomeScreenProps {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   effectiveMode: 'light' | 'dark';
   navigate: (path: string) => void;
-  schoolImportInputRef: React.RefObject<HTMLInputElement | null>;
-  handleSchoolImportFile: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleFileInput: (e: React.ChangeEvent<HTMLInputElement> | File | null) => void;
 }
 
 const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) => {
@@ -36,8 +35,6 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
     fileInputRef,
     effectiveMode,
     navigate,
-    schoolImportInputRef,
-    handleSchoolImportFile
   } = props;
 
   if (welcomeStep === 'completed') {
@@ -93,8 +90,8 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
     case 'upload_ics':
       return (
         <div className="flex flex-col items-center justify-center h-full text-center p-8">
-          <h2 className={`text-3xl font-bold mb-6 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Upload Your Timetable</h2>
-          <p className={`mb-4 text-base ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>Upload ICS or import your .school file.</p>
+          <h2 className={`text-3xl font-bold mb-6 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Upload or Import Your Timetable</h2>
+          <p className={`mb-4 text-base ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>Upload an ICS calendar or import your .school file.</p>
           <div
             className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 w-full max-w-lg ${
               dragOver
@@ -110,37 +107,22 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
             <div className="flex flex-col items-center gap-4">
               <Upload size={48} className={effectiveMode === 'light' ? 'text-gray-400' : 'text-gray-400'} />
               <div>
-                <p className={`text-lg font-medium mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Upload ICS Calendar File</p>
+                <p className={`text-lg font-medium mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Upload or Import File</p>
                 <p className={`text-sm mb-4 ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>
-                  Drag and drop your .ics file here or click to browse
+                  Drag and drop your <b>.ics</b> or <b>.school</b> file here or click to browse
                 </p>
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 mx-auto"
                 >
                   <FileText size={20} />
-                  Choose ICS File
+                  Upload or Import
                 </button>
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".ics"
+                  accept=".ics,.school"
                   onChange={handleFileChange}
-                  className="hidden"
-                />
-                {/* New: Import .school file button */}
-                <button
-                  onClick={() => schoolImportInputRef.current?.click()}
-                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 mx-auto mt-4"
-                >
-                  <FileText size={20} />
-                  Import .school File
-                </button>
-                <input
-                  ref={schoolImportInputRef}
-                  type="file"
-                  accept=".school"
-                  onChange={handleSchoolImportFile}
                   className="hidden"
                 />
               </div>

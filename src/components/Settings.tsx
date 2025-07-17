@@ -62,8 +62,8 @@ interface SettingsProps {
   exportModalState: ExportModalState;
   setExportModalState: React.Dispatch<React.SetStateAction<ExportModalState>>;
   handleExport: () => void;
-  schoolImportInputRef: React.RefObject<HTMLInputElement | null>;
-  handleSchoolImportFile: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleFileInput: (e: React.ChangeEvent<HTMLInputElement> | File | null) => void;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
 }
 
 const Settings: React.FC<SettingsProps> = ({
@@ -98,8 +98,8 @@ const Settings: React.FC<SettingsProps> = ({
   exportModalState,
   setExportModalState,
   handleExport,
-  schoolImportInputRef,
-  handleSchoolImportFile
+  handleFileInput,
+  fileInputRef
 }: SettingsProps) => {
   const [showNameEditModal, setShowNameEditModal] = React.useState(false);
   const [editUserName, setEditUserName] = React.useState(userName);
@@ -148,21 +148,21 @@ const Settings: React.FC<SettingsProps> = ({
         <div className="flex items-center justify-between mt-4">
           <div>
             <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Import Data</p>
-            <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Import your .school file</p>
+            <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Import your .ics or .school file</p>
           </div>
           <>
             <button
-              onClick={() => schoolImportInputRef.current?.click()}
+              onClick={() => fileInputRef.current?.click()}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
             >
               <FileText size={16} />
               Import
             </button>
             <input
-              ref={schoolImportInputRef}
+              ref={fileInputRef}
               type="file"
-              accept=".school"
-              onChange={handleSchoolImportFile}
+              accept=".ics,.school"
+              onChange={handleFileInput}
               className="hidden"
             />
           </>
