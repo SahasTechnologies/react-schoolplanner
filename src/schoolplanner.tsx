@@ -4,20 +4,18 @@
 import * as React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { 
-  Calendar, FileText, Home, BarChart3, Edit2,
+  Calendar, FileText, Home, BarChart3,
   Settings as SettingsIcon
 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { ThemeKey, colorVars, themeColors, getColors } from './utils/theme';
-import { normalizeSubjectName, getSubjectIcon } from './utils/subjectUtils';
+import { ThemeKey, getColors } from './utils/theme';
+import { normalizeSubjectName } from './utils/subjectUtils';
 import { 
   CalendarEvent, 
   WeekData, 
-  hexToRgba, 
   parseICS, 
   groupAllEventsIntoActualWeeks, 
   insertBreaksBetweenEvents, 
-  formatTime, 
   getTodayOrNextEvents, 
   isBreakEvent 
 } from './utils/calendarUtils';
@@ -62,7 +60,6 @@ const SchoolPlanner = () => {
   // Remove enhanced biweekly schedule and pattern logic
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const customColourInputRef = useRef<HTMLInputElement>(null); // Ref for hidden colour input
 
   // Default colours for the palette
   const defaultColours = [
