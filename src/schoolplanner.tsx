@@ -572,7 +572,21 @@ const SchoolPlanner = () => {
               <ColoredSubjectIcon summary={nextEvent.summary} />
               <span className="text-base font-medium" style={{ color: getEventColour(nextEvent.summary) }}>{normalizeSubjectName(nextEvent.summary, true)}</span>
             </div>
-            <div className="text-sm opacity-80">at {nextEventDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+            <div className="text-sm opacity-80">
+              {(() => {
+                const now = new Date();
+                const daysDiff = Math.floor((nextEventDate.setHours(0,0,0,0) - now.setHours(0,0,0,0)) / (1000 * 60 * 60 * 24));
+                const timeStr = nextEventDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                if (daysDiff === 1) {
+                  return `Tomorrow at ${timeStr}`;
+                } else if (daysDiff > 1) {
+                  const dayName = nextEventDate.toLocaleDateString(undefined, { weekday: 'long' });
+                  return `On ${dayName} at ${timeStr}`;
+                } else {
+                  return `at ${timeStr}`;
+                }
+              })()}
+            </div>
           </>
         ) : (
           <div className="text-lg text-gray-400">No upcoming events</div>
