@@ -1,5 +1,22 @@
 import React from 'react';
-import { Settings, Edit2, X, Palette, GripVertical } from 'lucide-react';
+import {
+  Settings as SettingsIcon,
+  Edit2,
+  X,
+  Palette,
+  GripVertical,
+  User,
+  Database,
+  Trash2,
+  Smartphone,
+  Eye,
+  Sun,
+  Moon,
+  Monitor,
+  Home,
+  Calendar,
+  BarChart3
+} from 'lucide-react';
 import { ThemeKey, colorVars, themeColors } from '../theme';
 
 interface SettingsProps {
@@ -63,13 +80,16 @@ const Settings: React.FC<SettingsProps> = ({
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Settings className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
+        <SettingsIcon className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
         <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Settings</h2>
       </div>
-      
+
       {/* Data Section */}
       <div className={`${colors.container} rounded-lg ${colors.border} border p-6 mb-4`}>
-        <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Data</h3>
+        <div className="flex items-center gap-2 mb-4">
+          <User className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
+          <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Data</h3>
+        </div>
         <div className="flex items-center justify-between">
           <div>
             <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Name</p>
@@ -113,12 +133,18 @@ const Settings: React.FC<SettingsProps> = ({
 
       {/* Timetable Settings */}
       <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
-        <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Timetable Settings</h3>
+        <div className="flex items-center gap-2 mb-4">
+          <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
+          <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Timetable Settings</h3>
+        </div>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <div>
-              <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Clear Timetable Data</p>
-              <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>This will remove all uploaded calendar data and subjects</p>
+            <div className="flex items-center gap-3">
+              <Trash2 className={effectiveMode === 'light' ? 'text-red-600' : 'text-red-400'} size={18} />
+              <div>
+                <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Clear Timetable Data</p>
+                <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>This will remove all uploaded calendar data and subjects</p>
+              </div>
             </div>
             <button
               onClick={clearData}
@@ -129,15 +155,18 @@ const Settings: React.FC<SettingsProps> = ({
             </button>
           </div>
           <div className="flex items-center justify-between mt-4 border-t border-gray-700 pt-4">
-            <div>
-              <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Enable Auto-Naming</p>
-              <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Automatically rename subjects based on keywords</p>
+            <div className="flex items-center gap-3">
+              <Smartphone className={effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400'} size={18} />
+              <div>
+                <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Enable Auto-Naming</p>
+                <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Automatically rename subjects based on keywords</p>
+              </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
                 checked={autoNamingEnabled}
-                onChange={() => setAutoNamingEnabled(!autoNamingEnabled)}
+                onChange={(e) => setAutoNamingEnabled(e.target.checked)}
                 className="sr-only peer"
               />
               <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
@@ -148,11 +177,21 @@ const Settings: React.FC<SettingsProps> = ({
 
       {/* Customise Section */}
       <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
-        <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Customise</h3>
+        <div className="flex items-center gap-2 mb-4">
+          <Palette className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
+          <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Customise</h3>
+        </div>
         <div className="flex items-center justify-between">
-          <div>
-            <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Theme</p>
-            <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Change the color theme of the app</p>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              {themeMode === 'light' && <Sun className={effectiveMode === 'light' ? 'text-yellow-600' : 'text-yellow-400'} size={18} />}
+              {themeMode === 'dark' && <Moon className={effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400'} size={18} />}
+              {themeMode === 'system' && <Monitor className={effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} size={18} />}
+            </div>
+            <div>
+              <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Theme</p>
+              <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Change the color theme of the app</p>
+            </div>
           </div>
           <button
             onClick={() => setShowThemeModal(true)}
@@ -166,16 +205,23 @@ const Settings: React.FC<SettingsProps> = ({
 
       {/* Info Shown at Start Section */}
       <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
-        <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Home</h3>
+        <div className="flex items-center gap-2 mb-4">
+          <Home className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
+          <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Home</h3>
+        </div>
         <div className="flex items-center justify-between">
-          <div>
-            <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Info Shown at Start</p>
-            <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Choose which info is visible before hover in Today's Schedule</p>
+          <div className="flex items-center gap-3">
+            <Eye className={effectiveMode === 'light' ? 'text-green-600' : 'text-green-400'} size={18} />
+            <div>
+              <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Info Shown at Start</p>
+              <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Choose which info is visible before hover in Today's Schedule</p>
+            </div>
           </div>
           <button
             onClick={() => setShowInfoPopup(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
           >
+            <Edit2 size={16} />
             Edit
           </button>
         </div>
@@ -226,7 +272,7 @@ const Settings: React.FC<SettingsProps> = ({
                 <input
                   type="checkbox"
                   checked={showFirstInfoBeside}
-                  onChange={() => setShowFirstInfoBeside((v: boolean) => !v)}
+                  onChange={(e) => setShowFirstInfoBeside(e.target.checked)}
                   className="sr-only peer"
                 />
                 <div className="w-12 h-7 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:bg-blue-600 transition-colors duration-200 shadow-inner">
@@ -266,6 +312,7 @@ const Settings: React.FC<SettingsProps> = ({
                   style={{ height: '40px' }}
                   onClick={() => setThemeMode('light')}
                 >
+                  <Sun size={20} />
                   <span className="text-xs font-medium">Light</span>
                 </button>
                 {/* System */}
@@ -274,6 +321,7 @@ const Settings: React.FC<SettingsProps> = ({
                   style={{ height: '40px' }}
                   onClick={() => setThemeMode('system')}
                 >
+                  <Monitor size={20} />
                   <span className="text-xs font-medium">System</span>
                 </button>
                 {/* Dark */}
@@ -282,6 +330,7 @@ const Settings: React.FC<SettingsProps> = ({
                   style={{ height: '40px' }}
                   onClick={() => setThemeMode('dark')}
                 >
+                  <Moon size={20} />
                   <span className="text-xs font-medium">Dark</span>
                 </button>
               </div>

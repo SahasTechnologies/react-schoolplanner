@@ -5,7 +5,7 @@ import * as React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { 
   Calendar, FileText, Clock, MapPin, X, Home, BarChart3, Edit2, User,
-  Sun, Moon, Monitor, GripVertical, Palette,
+  Sun, Moon, Monitor, Settings as SettingsIcon,
   Utensils // <-- Add Utensils icon
 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
@@ -1045,7 +1045,7 @@ const SchoolPlanner = () => {
             className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${location.pathname === '/settings' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 hover:bg-gray-700`}`}
             title="Settings"
           >
-            <Settings size={20} className={colors.icon} />
+            <SettingsIcon size={20} className={colors.icon} />
           </button>
         </div>
       </div>
