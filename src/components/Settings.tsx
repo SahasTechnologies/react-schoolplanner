@@ -15,7 +15,7 @@ import {
   Home,
   Calendar
 } from 'lucide-react';
-import { ThemeKey, colorVars, themeColors } from '../theme';
+import { ThemeKey, colorVars, themeColors } from '../utils/theme';
 
 interface SettingsProps {
   userName: string;

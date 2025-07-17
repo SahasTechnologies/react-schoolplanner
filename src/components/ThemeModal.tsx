@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, Sun, Moon, Monitor } from 'lucide-react';
-import { ThemeKey, colorVars, themeColors } from '../theme';
+import { ThemeKey, colorVars, themeColors } from '../utils/theme';
 
 interface ThemeModalProps {
   showThemeModal: boolean;

@@ -1,8 +1,7 @@
 import React from 'react';
 import { Clock, MapPin, User, Utensils } from 'lucide-react';
-import { CalendarEvent } from '../calendarUtils';
-import { normalizeSubjectName, getSubjectIcon } from '../subjectUtils';
-import { formatTime } from '../calendarUtils';
+import { CalendarEvent, formatTime } from '../utils/calendarUtils';
+import { normalizeSubjectName, getSubjectIcon } from '../utils/subjectUtils';
 
 interface EventCardProps {
   event: CalendarEvent;

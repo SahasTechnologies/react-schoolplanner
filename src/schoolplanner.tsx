@@ -28,6 +28,7 @@ import SubjectEditModal from './components/SubjectEditModal';
 import ThemeModal from './components/ThemeModal';
 import { Subject } from './types';
 import Sidebar from './components/Sidebar';
+import SubjectCard from './components/SubjectCard';
 
 
 
@@ -354,24 +355,13 @@ const SchoolPlanner = () => {
             </div>
           ) : (
             subjects.map((subject: Subject) => (
-              <div key={subject.id} className={`${colors.container} rounded-lg ${colors.border} border p-4`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {getSubjectIcon(subject.name, 20, effectiveMode)}
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: hexToRgba(subject.colour, 0.95) }}
-                    />
-                    <span className={`font-medium capitalize ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{subject.name}</span>
-                  </div>
-                  <button
-                    onClick={() => startEditingSubject(subject)}
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
-                    <Edit2 size={16} />
-                  </button>
-                </div>
-              </div>
+              <SubjectCard
+                key={subject.id}
+                subject={subject}
+                effectiveMode={effectiveMode}
+                colors={colors}
+                onEdit={startEditingSubject}
+              />
             ))
           )}
         </div>
