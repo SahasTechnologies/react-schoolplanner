@@ -129,8 +129,8 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
           </div>
           {loading && (
             <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
-              <p className={effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}>Processing your calendar...</p>
+              <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${effectiveMode === 'light' ? 'border-black' : 'border-blue-400'} mx-auto mb-4`}></div>
+              <p className={`${effectiveMode === 'light' ? 'text-black' : 'text-gray-400'}`}>Processing your calendar...</p>
             </div>
           )}
           {error && (

@@ -92,6 +92,10 @@ const SchoolPlanner = () => {
 
 
   const getEventColour = (title: string): string => { // Changed to 'getEventColour'
+    // Handle break events specially
+    if (title === 'Break') {
+      return effectiveMode === 'light' ? '#6b7280' : '#9ca3af'; // Gray color for breaks
+    }
     const normalizedTitle = normalizeSubjectName(title, autoNamingEnabled);
     const subject = subjects.find((s: Subject) => normalizeSubjectName(s.name, autoNamingEnabled) === normalizedTitle);
     return subject ? subject.colour : generateRandomColour(); // Changed to 'subject.colour'
@@ -590,7 +594,16 @@ const SchoolPlanner = () => {
 
   function findNextRepeatingEvent(now: Date): { event: CalendarEvent; date: Date } | null {
     if (!weekData || !weekData.events || weekData.events.length === 0) return null;
-    const nexts = weekData.events.map((e: CalendarEvent) => ({ event: e, date: getNextOccurrence(e, now) }));
+    
+    // Get all events and insert breaks
+    const eventsWithBreaks = insertBreaksBetweenEvents(weekData.events);
+    
+    // Calculate next occurrence for all events (including breaks)
+    const nexts = eventsWithBreaks.map((e: CalendarEvent & { isBreak?: boolean }) => ({ 
+      event: e, 
+      date: getNextOccurrence(e, now) 
+    }));
+    
     const soonest = nexts.reduce((min, curr) => (min === null || curr.date < min.date ? curr : min), null as { event: CalendarEvent; date: Date } | null);
     return soonest;
   }
@@ -680,17 +693,17 @@ const SchoolPlanner = () => {
         </div>
         {searching ? (
           <div className="flex flex-col items-center justify-center py-6">
-            <LoaderCircle className="animate-spin mb-2" size={32} />
-            <span className="text-gray-400">Searching...</span>
+            <LoaderCircle className={`animate-spin mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`} size={32} />
+            <span className={`${effectiveMode === 'light' ? 'text-black' : 'text-gray-400'}`}>Searching...</span>
           </div>
         ) : nextEvent && nextEventDate ? (
           <>
-            <div className="text-3xl font-bold mb-2" style={{ color: '#fff', textShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>{formatCountdown(timeLeft)}</div>
+            <div className={`text-4xl font-bold mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`} style={effectiveMode === 'light' ? {} : { textShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>{formatCountdown(timeLeft)}</div>
             <div className="flex items-center gap-2 mb-1">
               <ColoredSubjectIcon summary={nextEvent.summary} />
               <span className="text-base font-medium" style={{ color: getEventColour(nextEvent.summary) }}>{normalizeSubjectName(nextEvent.summary, true)}</span>
             </div>
-            <div className="text-sm opacity-80">
+            <div className={`text-sm ${effectiveMode === 'light' ? 'text-black opacity-80' : 'text-white opacity-80'}`}>
               {(() => {
                 const now = new Date();
                 const daysDiff = Math.floor((nextEventDate.setHours(0,0,0,0) - now.setHours(0,0,0,0)) / (1000 * 60 * 60 * 24));
@@ -707,7 +720,7 @@ const SchoolPlanner = () => {
             </div>
           </>
         ) : (
-          <div className="text-lg text-gray-400">No upcoming events</div>
+          <div className={`text-lg ${effectiveMode === 'light' ? 'text-black' : 'text-gray-400'}`}>No upcoming events</div>
         )}
       </div>
     );
@@ -1223,8 +1236,8 @@ const SchoolPlanner = () => {
             {/* Loading State (only for main app after welcome) */}
             {loading && welcomeStep === 'completed' && (
               <div className="text-center py-8">
-                <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${colors.spin} mx-auto mb-4`}></div>
-                <p className="text-gray-400">Processing your calendar...</p>
+                <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${effectiveMode === 'light' ? 'border-black' : colors.spin} mx-auto mb-4`}></div>
+                <p className={`${effectiveMode === 'light' ? 'text-black' : 'text-gray-400'}`}>Processing your calendar...</p>
               </div>
             )}
             {/* Error State (only for main app after welcome) */}
@@ -1274,8 +1287,8 @@ const QuoteOfTheDayWidget: React.FC<{ theme: ThemeKey; themeType: 'normal' | 'ex
       <div className="font-semibold text-lg mb-2" style={{ color: effectiveMode === 'light' ? '#222' : '#fff' }}>Quote of the Day</div>
       {loading && !error && (
         <div className="flex flex-col items-center justify-center py-4 w-full">
-          <LoaderCircle className="animate-spin mb-2" size={32} />
-          <span className="text-gray-400">Loading...</span>
+          <LoaderCircle className={`animate-spin mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`} size={32} />
+          <span className={`${effectiveMode === 'light' ? 'text-black' : 'text-gray-400'}`}>Loading...</span>
         </div>
       )}
       {error && (

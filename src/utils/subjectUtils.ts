@@ -2,7 +2,7 @@ import React from 'react';
 import { 
   Calculator, FlaskConical, Palette, Music, Globe, Dumbbell, Languages, Code2, Brain, Mic2, 
   Users, BookOpen, PenLine, BookUser, Briefcase, HeartHandshake, Library, BookMarked, Star, 
-  GraduationCap, Bot, Book
+  GraduationCap, Bot, Book, Utensils
 } from 'lucide-react';
 
 // Map for specific subject renames
@@ -96,6 +96,7 @@ export const subjectIconMap: Record<string, React.ComponentType<any>> = {
   'BHOPE': GraduationCap,
   'Commerce': Briefcase,
   'Robotics': Bot,
+  'Break': Utensils,
 };
 
 // Helper to normalize subject names for grouping and renaming
