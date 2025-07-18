@@ -578,7 +578,8 @@ const SchoolPlanner = () => {
       ) {
         return 'All day';
       }
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      // Use the original event time, not the calculated next occurrence date
+      return event.dtstart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
     return (
       <div className={`${colors.container} rounded-lg ${colors.border} border p-6 flex flex-col items-center justify-center h-fit`}>
