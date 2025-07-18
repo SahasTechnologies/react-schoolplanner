@@ -16,7 +16,8 @@ import {
   Calendar,
   FileText,
   Wifi,
-  WifiOff
+  WifiOff,
+  LoaderCircle
 } from 'lucide-react';
 import { ThemeKey, colorVars, themeColors } from '../utils/theme';
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported, getServiceWorkerStatus, checkCacheStatus } from '../utils/cacheUtils';
@@ -113,9 +114,12 @@ const Settings: React.FC<SettingsProps> = ({
   const [serviceWorkerSupported] = React.useState(isServiceWorkerSupported());
   const [cacheStatus, setCacheStatus] = React.useState<{ hasCache: boolean; cacheSize: number }>({ hasCache: false, cacheSize: 0 });
   const [swStatus, setSwStatus] = React.useState<'registered' | 'not-registered' | 'not-supported'>('not-registered');
+  const [isCachingLoading, setIsCachingLoading] = React.useState(false);
 
   // Handle offline caching toggle
   const handleOfflineCachingToggle = async (enabled: boolean) => {
+    setIsCachingLoading(true);
+    
     if (enabled) {
       // Enable offline caching
       const success = await registerServiceWorker();
@@ -127,11 +131,13 @@ const Settings: React.FC<SettingsProps> = ({
           const cache = await checkCacheStatus();
           setSwStatus(status);
           setCacheStatus(cache);
+          setIsCachingLoading(false);
         }, 1000);
       } else {
         // Show error or revert toggle
         console.error('Failed to enable offline caching');
         alert('Failed to enable offline caching. Please try again.');
+        setIsCachingLoading(false);
       }
     } else {
       // Disable offline caching
@@ -140,6 +146,7 @@ const Settings: React.FC<SettingsProps> = ({
       setOfflineCachingEnabled(false);
       setSwStatus('not-registered');
       setCacheStatus({ hasCache: false, cacheSize: 0 });
+      setIsCachingLoading(false);
     }
   };
 
@@ -235,16 +242,22 @@ const Settings: React.FC<SettingsProps> = ({
               </p>
             </div>
           </div>
-          <label className={`relative inline-flex items-center cursor-pointer ${!serviceWorkerSupported ? 'opacity-50' : ''}`}>
-            <input
-              type="checkbox"
-              checked={offlineCachingEnabled}
-              onChange={(e) => serviceWorkerSupported && handleOfflineCachingToggle(e.target.checked)}
-              className="sr-only peer"
-              disabled={!serviceWorkerSupported}
-            />
-            <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-          </label>
+          {isCachingLoading ? (
+            <div className="flex items-center justify-center w-11 h-6">
+              <LoaderCircle className={`animate-spin ${effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400'}`} size={20} />
+            </div>
+          ) : (
+            <label className={`relative inline-flex items-center cursor-pointer ${!serviceWorkerSupported ? 'opacity-50' : ''}`}>
+              <input
+                type="checkbox"
+                checked={offlineCachingEnabled}
+                onChange={(e) => serviceWorkerSupported && handleOfflineCachingToggle(e.target.checked)}
+                className="sr-only peer"
+                disabled={!serviceWorkerSupported}
+              />
+              <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+          )}
         </div>
       </div>
 
