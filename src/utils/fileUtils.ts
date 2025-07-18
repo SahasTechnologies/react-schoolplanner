@@ -118,8 +118,7 @@ export const processICSFile = async (
 
 // Process .school file
 export const processSchoolFile = async (
-  file: File,
-  autoNamingEnabled: boolean
+  file: File
 ): Promise<FileProcessingResult> => {
   try {
     const data = await importSchoolData(file);
@@ -216,7 +215,7 @@ export const processFile = async (
   if (file.name.endsWith('.ics')) {
     return await processICSFile(file, autoNamingEnabled);
   } else if (file.name.endsWith('.school')) {
-    return await processSchoolFile(file, autoNamingEnabled);
+    return await processSchoolFile(file);
   } else {
     return {
       weekData: null,

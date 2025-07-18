@@ -27,7 +27,7 @@ import { Subject } from './types';
 import Sidebar from './components/Sidebar';
 import SubjectCard from './components/SubjectCard';
 import EventDetailsOverlay from './components/EventDetailsOverlay';
-import { processFile, exportData, generateRandomColour } from './utils/fileUtils.ts';
+import { processFile, exportData, generateRandomColour, defaultColours } from './utils/fileUtils.ts';
 import { getQuoteOfTheDayUrl } from './utils/quoteUtils.ts';
 
 
