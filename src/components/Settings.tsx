@@ -4,22 +4,16 @@ import {
   Edit2, 
   X, 
   Palette, 
-  GripVertical, 
   User, 
   Trash2, 
   Smartphone, 
-  Eye, 
-  Sun, 
-  Moon, 
-  Monitor,
-  Home,
   Calendar,
   FileText,
   Wifi,
   WifiOff,
   LoaderCircle
 } from 'lucide-react';
-import { ThemeKey, colorVars, themeColors } from '../utils/theme';
+import { ThemeKey } from '../utils/theme';
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported, getServiceWorkerStatus } from '../utils/cacheUtils';
 
 interface ExportModalState {
