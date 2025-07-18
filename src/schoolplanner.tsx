@@ -66,8 +66,18 @@ const SchoolPlanner = () => {
     const saved = localStorage.getItem('offlineCachingEnabled');
     return saved === null ? false : saved === 'true';
   });
-
-  // Remove enhanced biweekly schedule and pattern logic
+  // --- Add offline state at the top level ---
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Remove old .ics and .school handlers, use one for both
   const fileInputRef = useRef<HTMLInputElement>(null);
