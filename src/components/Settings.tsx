@@ -78,29 +78,8 @@ const Settings: React.FC<SettingsProps> = ({
   clearData,
   autoNamingEnabled,
   setAutoNamingEnabled,
-  showThemeModal,
-  setShowThemeModal,
-  theme,
-  themeType,
-  themeMode,
-  setThemeMode,
-  handleThemeChange,
   effectiveMode,
   colors,
-  infoOrder,
-  infoShown,
-  showInfoPopup,
-  setShowInfoPopup,
-  draggedIdx,
-  handleDragStart,
-  handleInfoDragOver,
-  handleDragEnd,
-  handleToggleInfoShown,
-  showFirstInfoBeside,
-  setShowFirstInfoBeside,
-  isCalendarPage,
-  countdownInTitle,
-  setCountdownInTitle,
   exportModalState,
   setExportModalState,
   handleExport,
@@ -377,22 +356,22 @@ const Settings: React.FC<SettingsProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              {themeMode === 'light' && <Sun className={effectiveMode === 'light' ? 'text-yellow-600' : 'text-yellow-400'} size={18} />}
-              {themeMode === 'dark' && <Moon className={effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400'} size={18} />}
-              {themeMode === 'system' && <Monitor className={effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} size={18} />}
+              {/* themeMode === 'light' && <Sun className={effectiveMode === 'light' ? 'text-yellow-600' : 'text-yellow-400'} size={18} /> */}
+              {/* themeMode === 'dark' && <Moon className={effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400'} size={18} /> */}
+              {/* themeMode === 'system' && <Monitor className={effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} size={18} /> */}
             </div>
             <div>
               <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Theme</p>
               <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Change the color theme of the app</p>
             </div>
           </div>
-          <button
+          {/* <button
             onClick={() => setShowThemeModal(true)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${colors.button} text-white`}
           >
             <Palette size={18} />
             Change Theme
-          </button>
+          </button> */}
         </div>
       </div>
     </div>
