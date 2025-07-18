@@ -125,14 +125,23 @@ const Settings: React.FC<SettingsProps> = ({
       const success = await registerServiceWorker();
       if (success) {
         setOfflineCachingEnabled(true);
-        // Update status after enabling
-        setTimeout(async () => {
+        // Update status after enabling with multiple checks
+        const updateStatus = async () => {
           const status = await getServiceWorkerStatus();
           const cache = await checkCacheStatus();
           setSwStatus(status);
           setCacheStatus(cache);
-          setIsCachingLoading(false);
-        }, 1000);
+          
+          // If cache is still empty, try again after a short delay
+          if (cache.cacheSize === 0) {
+            setTimeout(updateStatus, 500);
+          } else {
+            setIsCachingLoading(false);
+          }
+        };
+        
+        // Start checking status after a short delay
+        setTimeout(updateStatus, 500);
       } else {
         // Show error or revert toggle
         console.error('Failed to enable offline caching');

@@ -11,6 +11,9 @@ export const registerServiceWorker = async (): Promise<boolean> => {
       await navigator.serviceWorker.ready;
       console.log('Service Worker is ready');
       
+      // Proactively cache important files
+      await cacheImportantFiles();
+      
       return true;
     } catch (error) {
       console.error('Service Worker registration failed:', error);
@@ -19,6 +22,37 @@ export const registerServiceWorker = async (): Promise<boolean> => {
   }
   console.log('Service Worker not supported in this browser');
   return false;
+};
+
+const cacheImportantFiles = async (): Promise<void> => {
+  if (!('caches' in window)) return;
+  
+  try {
+    console.log('Proactively caching important files...');
+    const cache = await caches.open('school-planner-v1');
+    
+    // List of important files to cache
+    const filesToCache = [
+      '/',
+      '/index.html',
+      '/public/school.svg',
+      // Add any other critical assets here
+    ];
+    
+    // Cache each file
+    for (const file of filesToCache) {
+      try {
+        await cache.add(file);
+        console.log('Cached:', file);
+      } catch (error) {
+        console.warn('Failed to cache:', file, error);
+      }
+    }
+    
+    console.log('Proactive caching completed');
+  } catch (error) {
+    console.error('Proactive caching failed:', error);
+  }
 };
 
 export const unregisterServiceWorker = async (): Promise<boolean> => {
