@@ -60,6 +60,12 @@ const SchoolPlanner = () => {
   // New state for auto-naming toggle
   const [autoNamingEnabled, setAutoNamingEnabled] = useState(true);
 
+  // Add state for offline caching
+  const [offlineCachingEnabled, setOfflineCachingEnabled] = useState(() => {
+    const saved = localStorage.getItem('offlineCachingEnabled');
+    return saved === null ? false : saved === 'true';
+  });
+
   // Remove enhanced biweekly schedule and pattern logic
 
   // Remove old .ics and .school handlers, use one for both
@@ -1030,12 +1036,6 @@ const SchoolPlanner = () => {
       subjectIcons: true,
       name: false,
     },
-  });
-
-  // Add state for offline caching
-  const [offlineCachingEnabled, setOfflineCachingEnabled] = useState(() => {
-    const saved = localStorage.getItem('offlineCachingEnabled');
-    return saved === null ? false : saved === 'true';
   });
 
   const handleExport = () => {
