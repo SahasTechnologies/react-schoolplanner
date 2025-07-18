@@ -14,8 +14,6 @@ import { getSubjectIcon } from './utils/subjectUtils.ts';
 import { 
   CalendarEvent, 
   WeekData, 
-  parseICS, 
-  groupAllEventsIntoActualWeeks, 
   insertBreaksBetweenEvents, 
   getTodayOrNextEvents, 
   isBreakEvent 
@@ -29,7 +27,7 @@ import { Subject } from './types';
 import Sidebar from './components/Sidebar';
 import SubjectCard from './components/SubjectCard';
 import EventDetailsOverlay from './components/EventDetailsOverlay';
-import { exportSchoolData, importSchoolData } from './utils/subjectUtils.ts';
+import { processFile, exportData, generateRandomColour } from './utils/fileUtils.ts';
 import { getQuoteOfTheDayUrl } from './utils/quoteUtils.ts';
 
 
@@ -66,19 +64,7 @@ const SchoolPlanner = () => {
   // Remove old .ics and .school handlers, use one for both
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Default colours for the palette
-  const defaultColours = [
-    '#7C3AED', '#0891B2', '#DC2626', '#D97706', '#059669',
-    '#047857', '#EA580C', '#2563EB', '#DB2777', '#475569',
-    '#8B5CF6', '#06B6D4', '#EF4444', '#F59E0B', '#10B981',
-    '#14B8A6', '#F97316', '#3B82F6', '#EC4899', '#64748B',
-    '#6D28D9', '#0E7490', '#B91C1C', '#B45309', '#065F46'
-  ];
 
-  // Generate random colour (now uses defaultColours array)
-  const generateRandomColour = () => {
-    return defaultColours[Math.floor(Math.random() * defaultColours.length)];
-  };
 
   // Determine greeting based on time of day
   const getGreeting = () => {
@@ -118,138 +104,42 @@ const SchoolPlanner = () => {
       file = e;
     }
     if (!file) return;
+    
     setLoading(true);
     setError('');
+    
     try {
-      if (file.name.endsWith('.ics')) {
-        // ICS logic (old processFile)
-        const reader = new FileReader();
-        reader.onload = (ev: ProgressEvent<FileReader>) => {
-          try {
-            const icsContent = ev.target?.result as string;
-            const allRawEvents = parseICS(icsContent);
-            const allActualWeeks = groupAllEventsIntoActualWeeks(allRawEvents);
-            if (allActualWeeks.length === 0) {
-              setError('No valid Monday-Friday schedules with events found in the calendar file.');
-              setWelcomeStep('upload_ics');
-              setLoading(false);
-              return;
-            }
-            let bestWeek: WeekData | null = null;
-            let maxEvents = 0;
-            for (const week of allActualWeeks) {
-              if (week.events.length > maxEvents) {
-                bestWeek = week;
-                maxEvents = week.events.length;
-              }
-            }
-            if (bestWeek) {
-              setWeekData(bestWeek);
-            } else {
-              setError('No Monday-Friday week with events found.');
-              setWelcomeStep('upload_ics');
-              setLoading(false);
-              return;
-            }
-            setWelcomeStep('completed');
-            // Extract and combine subjects from ALL events (not just the first week)
-            const subjectMap = new Map<string, Subject>();
-            allRawEvents.forEach(event => {
-              const normalizedName = normalizeSubjectName(event.summary, autoNamingEnabled);
-              if (normalizedName) {
-                if (!subjectMap.has(normalizedName)) {
-                  subjectMap.set(normalizedName, {
-                    id: crypto.randomUUID(),
-                    name: normalizedName,
-                    originalName: event.summary,
-                    colour: generateRandomColour()
-                  });
-                }
-              }
-            });
-            setSubjects(Array.from(subjectMap.values()));
-          } catch (err) {
-            setError('Error processing file: ' + (err as Error).message);
-            setLoading(false);
-          } finally {
-            setLoading(false);
-          }
-        };
-        reader.readAsText(file);
-      } else if (file.name.endsWith('.school')) {
-        // .school import logic (now supports partial data)
-        let data;
-        try {
-          data = await importSchoolData(file);
-        } catch (err) {
-          setError('Invalid .school file: not valid JSON.');
-          setLoading(false);
-          return;
-        }
-        if (!data || typeof data !== 'object') {
-          setError('Invalid .school file: not a valid object.');
-          setLoading(false);
-          return;
-        }
-        // Only update fields present in the file, leave others unchanged
-        if (data.name) {
-          setUserName(data.name);
-          localStorage.setItem('userName', data.name);
-        }
-        if (data.subjects) {
-          // Ensure every subject has a colour (assign random if missing)
-          const patchedSubjects = data.subjects.map((subject: any) => ({
-            ...subject,
-            colour: subject.colour || (subject.name && (data.subjectColours || []).find((sc: any) => sc.name === subject.name)?.colour) || generateRandomColour()
-          }));
-          setSubjects(patchedSubjects);
-          localStorage.setItem('subjects', JSON.stringify(patchedSubjects));
-        }
-        if (data.weekData) {
-          setWeekData({
-            ...data.weekData,
-            monday: new Date(data.weekData.monday),
-            friday: new Date(data.weekData.friday),
-            events: data.weekData.events.map((e: any) => ({ ...e, dtstart: new Date(e.dtstart), dtend: e.dtend ? new Date(e.dtend) : undefined }))
-          });
-          localStorage.setItem('weekData', JSON.stringify(data.weekData));
-        } else if (data.subjects && data.subjects.some((s: any) => Array.isArray(s.timings) && s.timings.length > 0)) {
-          // Generate weekData from subjects' timings
-          const allEvents = data.subjects.flatMap((subject: any) =>
-            (subject.timings || []).map((timing: any) => ({
-              summary: subject.name,
-              dtstart: new Date(timing.start),
-              dtend: timing.end ? new Date(timing.end) : undefined,
-              location: timing.location || '',
-              description: timing.description || ''
-            }))
-          );
-          if (allEvents.length > 0) {
-            const allDates = allEvents.map((e: any) => e.dtstart);
-            const minDate = new Date(Math.min(...allDates.map((d: any) => d.getTime())));
-            const maxDate = new Date(Math.max(...allEvents.map((e: any) => (e.dtend ? e.dtend.getTime() : e.dtstart.getTime()))));
-            const weekData = {
-              monday: minDate,
-              friday: maxDate,
-              events: allEvents
-            };
-            setWeekData(weekData);
-            localStorage.setItem('weekData', JSON.stringify({
-              ...weekData,
-              monday: weekData.monday.toISOString(),
-              friday: weekData.friday.toISOString(),
-              events: weekData.events.map((e: any) => ({ ...e, dtstart: e.dtstart.toISOString(), dtend: e.dtend ? e.dtend.toISOString() : undefined }))
-            }));
-          }
-        }
-        // No error if none of the fields are present
-        setWelcomeStep('completed');
-        navigate('/home', { replace: true });
+      const result = await processFile(file, autoNamingEnabled);
+      
+      if (result.error) {
+        setError(result.error);
+        setWelcomeStep('upload_ics');
         setLoading(false);
-      } else {
-        setError('Unsupported file type. Please upload a .ics or .school file.');
-        setLoading(false);
+        return;
       }
+      
+      if (result.weekData) {
+        setWeekData(result.weekData);
+        localStorage.setItem('weekData', JSON.stringify({
+          ...result.weekData,
+          monday: result.weekData.monday.toISOString(),
+          friday: result.weekData.friday.toISOString(),
+          events: result.weekData.events.map((e: any) => ({ 
+            ...e, 
+            dtstart: e.dtstart.toISOString(), 
+            dtend: e.dtend ? e.dtend.toISOString() : undefined 
+          }))
+        }));
+      }
+      
+      if (result.subjects.length > 0) {
+        setSubjects(result.subjects);
+        localStorage.setItem('subjects', JSON.stringify(result.subjects));
+      }
+      
+      setWelcomeStep('completed');
+      navigate('/home', { replace: true });
+      setLoading(false);
     } catch (err) {
       setError('Failed to import file: ' + err);
       setLoading(false);
@@ -644,7 +534,7 @@ const SchoolPlanner = () => {
     return () => clearInterval(interval);
   }, [weekData]);
 
-  // Format time left as HH:MM:SS for tab and widget
+  // Format time left as HH:MM:SS or MM:SS for tab and widget (hide hours if 0)
   function formatCountdownForTab(ms: number | null): string {
     if (ms === null) return '';
     if (ms <= 0) return 'Now!';
@@ -652,7 +542,12 @@ const SchoolPlanner = () => {
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    
+    if (hours > 0) {
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    } else {
+      return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
   }
 
   // Make CountdownBox a pure display component
@@ -1073,7 +968,7 @@ const SchoolPlanner = () => {
   // Add state for countdown in tab title
   const [countdownInTitle, setCountdownInTitle] = useState(() => {
     const saved = localStorage.getItem('countdownInTitle');
-    return saved === 'true';
+    return saved === null ? true : saved === 'true'; // Default to true if not set
   });
   // Persist countdownInTitle
   useEffect(() => {
@@ -1113,48 +1008,7 @@ const SchoolPlanner = () => {
   });
 
   const handleExport = () => {
-    const data: any = {};
-    if (exportModalState.options.subjects) {
-      data.subjects = subjects.map(subject => {
-        // Always include colour in export
-        return {
-          ...subject,
-          colour: subject.colour || generateRandomColour(),
-        };
-      });
-    }
-    if (exportModalState.options.subjectInfo) {
-      data.subjectInfo = subjects.map(subject => ({
-        id: subject.id,
-        name: subject.name,
-        originalName: subject.originalName,
-      }));
-    }
-    if (exportModalState.options.subjectNotes) {
-      data.subjectNotes = {};
-      subjects.forEach(subject => {
-        const key = `subject_note_${normalizeSubjectName(subject.name, true)}`;
-        const note = localStorage.getItem(key);
-        if (note) data.subjectNotes[subject.name] = note;
-      });
-    }
-    if (exportModalState.options.subjectColours) {
-      data.subjectColours = subjects.map(subject => ({
-        name: subject.name,
-        colour: subject.colour,
-      }));
-    }
-    if (exportModalState.options.subjectIcons) {
-      data.subjectIcons = subjects.map(subject => ({
-        name: subject.name,
-        icon: normalizeSubjectName(subject.name, true),
-      }));
-    }
-    if (exportModalState.options.name) {
-      data.name = userName;
-    }
-    const fileName = `${userName || 'schoolplanner'}-export.school`;
-    exportSchoolData(data, fileName);
+    exportData(subjects, userName, exportModalState.options);
     setExportModalState(s => ({ ...s, show: false }));
   };
 
