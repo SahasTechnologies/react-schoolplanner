@@ -19,7 +19,7 @@ import {
   WifiOff
 } from 'lucide-react';
 import { ThemeKey, colorVars, themeColors } from '../utils/theme';
-import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported } from '../utils/cacheUtils';
+import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported, getServiceWorkerStatus, checkCacheStatus } from '../utils/cacheUtils';
 
 interface ExportModalState {
   show: boolean;
@@ -111,6 +111,8 @@ const Settings: React.FC<SettingsProps> = ({
   const [showNameEditModal, setShowNameEditModal] = React.useState(false);
   const [editUserName, setEditUserName] = React.useState(userName);
   const [serviceWorkerSupported] = React.useState(isServiceWorkerSupported());
+  const [cacheStatus, setCacheStatus] = React.useState<{ hasCache: boolean; cacheSize: number }>({ hasCache: false, cacheSize: 0 });
+  const [swStatus, setSwStatus] = React.useState<'registered' | 'not-registered' | 'not-supported'>('not-registered');
 
   // Handle offline caching toggle
   const handleOfflineCachingToggle = async (enabled: boolean) => {
@@ -119,6 +121,13 @@ const Settings: React.FC<SettingsProps> = ({
       const success = await registerServiceWorker();
       if (success) {
         setOfflineCachingEnabled(true);
+        // Update status after enabling
+        setTimeout(async () => {
+          const status = await getServiceWorkerStatus();
+          const cache = await checkCacheStatus();
+          setSwStatus(status);
+          setCacheStatus(cache);
+        }, 1000);
       } else {
         // Show error or revert toggle
         console.error('Failed to enable offline caching');
@@ -129,8 +138,21 @@ const Settings: React.FC<SettingsProps> = ({
       await unregisterServiceWorker();
       await clearAllCaches();
       setOfflineCachingEnabled(false);
+      setSwStatus('not-registered');
+      setCacheStatus({ hasCache: false, cacheSize: 0 });
     }
   };
+
+  // Check status on mount
+  React.useEffect(() => {
+    const checkStatus = async () => {
+      const status = await getServiceWorkerStatus();
+      const cache = await checkCacheStatus();
+      setSwStatus(status);
+      setCacheStatus(cache);
+    };
+    checkStatus();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -207,7 +229,7 @@ const Settings: React.FC<SettingsProps> = ({
               <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Save Site for Offline Use</p>
               <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>
                 {serviceWorkerSupported 
-                  ? 'Cache the site so it works without internet connection' 
+                  ? `Cache the site so it works without internet connection (Status: ${swStatus}, Cache: ${cacheStatus.hasCache ? `${cacheStatus.cacheSize} files` : 'none'})` 
                   : 'Service Worker not supported in this browser'
                 }
               </p>

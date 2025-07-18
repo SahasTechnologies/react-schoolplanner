@@ -2,6 +2,7 @@ const CACHE_NAME = 'school-planner-v1';
 
 // Install event - cache the main files
 self.addEventListener('install', (event) => {
+  console.log('Service Worker installing...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -13,25 +14,34 @@ self.addEventListener('install', (event) => {
           '/public/school.svg'
         ]);
       })
+      .catch((error) => {
+        console.error('Cache addAll failed:', error);
+      })
   );
 });
 
 // Fetch event - serve from cache if available, otherwise fetch from network
 self.addEventListener('fetch', (event) => {
+  console.log('Fetch event for:', event.request.url);
+  
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
-        // Return cached version or fetch from network
+        // Return cached version if available
         if (response) {
+          console.log('Serving from cache:', event.request.url);
           return response;
         }
+        
+        console.log('Not in cache, fetching from network:', event.request.url);
         
         // Clone the request because it's a stream and can only be consumed once
         const fetchRequest = event.request.clone();
         
         return fetch(fetchRequest).then((response) => {
           // Check if we received a valid response
-          if (!response || response.status !== 200 || response.type !== 'basic') {
+          if (!response || response.status !== 200) {
+            console.log('Invalid response, not caching:', event.request.url);
             return response;
           }
           
@@ -40,10 +50,21 @@ self.addEventListener('fetch', (event) => {
           
           caches.open(CACHE_NAME)
             .then((cache) => {
+              console.log('Caching new response:', event.request.url);
               cache.put(event.request, responseToCache);
+            })
+            .catch((error) => {
+              console.error('Failed to cache:', event.request.url, error);
             });
           
           return response;
+        }).catch((error) => {
+          console.error('Fetch failed:', event.request.url, error);
+          // If fetch fails and we're offline, try to serve the main page
+          if (event.request.mode === 'navigate') {
+            return caches.match('/index.html');
+          }
+          throw error;
         });
       })
   );
@@ -51,6 +72,7 @@ self.addEventListener('fetch', (event) => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
+  console.log('Service Worker activating...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
