@@ -395,6 +395,8 @@ const Settings: React.FC<SettingsProps> = ({
           </button>
         </div>
       </div>
+    </div>
+  );
+};
 
-      {/* Info Shown at Start Section */}
-      <div className={`
+export default Settings;
