@@ -5,7 +5,8 @@ import * as React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { 
   Calendar, FileText, Home, BarChart3,
-  Settings as SettingsIcon, LoaderCircle
+  Settings as SettingsIcon, LoaderCircle,
+  WifiOff // <-- Add WifiOff icon
 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { ThemeKey, getColors } from './utils/theme.ts';
@@ -411,9 +412,18 @@ const SchoolPlanner = () => {
     const eventsWithBreaks = insertBreaksBetweenEvents(events);
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <Home className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
-          <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Home</h2>
+        <div className="flex items-center gap-3 justify-between">
+          <div className="flex items-center gap-3">
+            <Home className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
+            <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Home</h2>
+          </div>
+          {/* Offline mode indicator */}
+          {isOffline && (
+            <div className="flex items-center gap-2 text-red-500 animate-pulse" title="Offline Mode" style={{ position: 'absolute', right: 0, top: 0, margin: '1rem' }}>
+              <WifiOff size={22} />
+              <span className="font-semibold text-base">Offline Mode</span>
+            </div>
+          )}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className={`${colors.container} rounded-lg ${colors.border} border p-6 col-span-1`}>
@@ -459,7 +469,7 @@ const SchoolPlanner = () => {
               colors={colors}
             />
             {/* Quote of the Day Widget below CountdownBox */}
-            <QuoteOfTheDayWidget theme={theme} themeType={themeType} effectiveMode={effectiveMode} />
+            <QuoteOfTheDayWidget theme={theme} themeType={themeType} effectiveMode={effectiveMode} isOffline={isOffline} />
           </div>
         </div>
       </div>
@@ -1162,10 +1172,22 @@ const SchoolPlanner = () => {
 };
 
 // Quote of the Day Widget
-const QuoteOfTheDayWidget: React.FC<{ theme: ThemeKey; themeType: 'normal' | 'extreme'; effectiveMode: 'light' | 'dark' }> = ({ theme, themeType, effectiveMode }) => {
+const QuoteOfTheDayWidget: React.FC<{ theme: ThemeKey; themeType: 'normal' | 'extreme'; effectiveMode: 'light' | 'dark'; isOffline?: boolean }> = ({ theme, themeType, effectiveMode, isOffline }) => {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
   const url = getQuoteOfTheDayUrl(theme, themeType, effectiveMode);
+
+  if (isOffline) {
+    return (
+      <div className={`${getColors(theme, themeType, effectiveMode).container} rounded-lg ${getColors(theme, themeType, effectiveMode).border} border p-4 mb-4 flex flex-col items-center`}>
+        <div className="flex items-center gap-2 text-red-500 mb-2">
+          <WifiOff size={22} />
+          <span className="font-semibold text-base">Offline Mode</span>
+        </div>
+        <div className="text-gray-400 text-center">Quote of the Day is not available in offline mode.</div>
+      </div>
+    );
+  }
 
   return (
     <div className={`${getColors(theme, themeType, effectiveMode).container} rounded-lg ${getColors(theme, themeType, effectiveMode).border} border p-4 mb-4 flex flex-col items-center`}>
