@@ -5,8 +5,7 @@ import * as React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { 
   Calendar, FileText, Home, BarChart3,
-  Settings as SettingsIcon, LoaderCircle,
-  WifiOff // <-- Add WifiOff icon
+  Settings as SettingsIcon, LoaderCircle, WifiOff
 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { ThemeKey, getColors } from './utils/theme.ts';
@@ -66,18 +65,8 @@ const SchoolPlanner = () => {
     const saved = localStorage.getItem('offlineCachingEnabled');
     return saved === null ? false : saved === 'true';
   });
-  // --- Add offline state at the top level ---
-  const [isOffline, setIsOffline] = useState(!navigator.onLine);
-  useEffect(() => {
-    const handleOnline = () => setIsOffline(false);
-    const handleOffline = () => setIsOffline(true);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
+
+  // Remove enhanced biweekly schedule and pattern logic
 
   // Remove old .ics and .school handlers, use one for both
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -421,19 +410,17 @@ const SchoolPlanner = () => {
     // Insert breaks between events for home screen too
     const eventsWithBreaks = insertBreaksBetweenEvents(events);
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-3 justify-between">
-          <div className="flex items-center gap-3">
-            <Home className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
-            <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Home</h2>
+      <div className="space-y-6 relative">
+        {/* Offline indicator in top right */}
+        {!online && (
+          <div className="absolute right-0 top-0 mt-2 mr-2 flex items-center gap-2 bg-red-500/90 text-white px-3 py-1 rounded-lg shadow z-50">
+            <WifiOff className="inline-block mr-1" size={18} />
+            <span className="font-semibold">Offline mode</span>
           </div>
-          {/* Offline mode indicator */}
-          {isOffline && (
-            <div className="flex items-center gap-2 text-red-500 animate-pulse" title="Offline Mode" style={{ position: 'absolute', right: 0, top: 0, margin: '1rem' }}>
-              <WifiOff size={22} />
-              <span className="font-semibold text-base">Offline Mode</span>
-            </div>
-          )}
+        )}
+        <div className="flex items-center gap-3">
+          <Home className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
+          <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Home</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className={`${colors.container} rounded-lg ${colors.border} border p-6 col-span-1`}>
@@ -479,7 +466,7 @@ const SchoolPlanner = () => {
               colors={colors}
             />
             {/* Quote of the Day Widget below CountdownBox */}
-            <QuoteOfTheDayWidget theme={theme} themeType={themeType} effectiveMode={effectiveMode} isOffline={isOffline} />
+            <QuoteOfTheDayWidget theme={theme} themeType={themeType} effectiveMode={effectiveMode} online={online} />
           </div>
         </div>
       </div>
@@ -1181,20 +1168,36 @@ const SchoolPlanner = () => {
   );
 };
 
+// Add a hook to track online status
+function useOnlineStatus() {
+  const [online, setOnline] = React.useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  React.useEffect(() => {
+    function handleOnline() { setOnline(true); }
+    function handleOffline() { setOnline(false); }
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+  return online;
+}
+
 // Quote of the Day Widget
-const QuoteOfTheDayWidget: React.FC<{ theme: ThemeKey; themeType: 'normal' | 'extreme'; effectiveMode: 'light' | 'dark'; isOffline?: boolean }> = ({ theme, themeType, effectiveMode, isOffline }) => {
+const QuoteOfTheDayWidget: React.FC<{ theme: ThemeKey; themeType: 'normal' | 'extreme'; effectiveMode: 'light' | 'dark'; online?: boolean }> = ({ theme, themeType, effectiveMode, online = true }) => {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
   const url = getQuoteOfTheDayUrl(theme, themeType, effectiveMode);
 
-  if (isOffline) {
+  if (!online) {
     return (
       <div className={`${getColors(theme, themeType, effectiveMode).container} rounded-lg ${getColors(theme, themeType, effectiveMode).border} border p-4 mb-4 flex flex-col items-center`}>
-        <div className="flex items-center gap-2 text-red-500 mb-2">
-          <WifiOff size={22} />
-          <span className="font-semibold text-base">Offline Mode</span>
+        <div className="flex items-center gap-2 mb-2">
+          <WifiOff className="text-red-500" size={22} />
+          <span className="font-semibold text-red-500">Offline mode</span>
         </div>
-        <div className="text-gray-400 text-center">Quote of the Day is not available in offline mode.</div>
+        <div className="text-gray-400 text-sm text-center">You're in offline mode. The quote of the day is unavailable.</div>
       </div>
     );
   }
