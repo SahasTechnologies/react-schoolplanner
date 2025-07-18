@@ -14,9 +14,12 @@ import {
   Monitor,
   Home,
   Calendar,
-  FileText
+  FileText,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 import { ThemeKey, colorVars, themeColors } from '../utils/theme';
+import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported } from '../utils/cacheUtils';
 
 interface ExportModalState {
   show: boolean;
@@ -64,6 +67,8 @@ interface SettingsProps {
   handleExport: () => void;
   handleFileInput: (e: React.ChangeEvent<HTMLInputElement> | File | null) => void;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
+  offlineCachingEnabled: boolean;
+  setOfflineCachingEnabled: (enabled: boolean) => void;
 }
 
 const Settings: React.FC<SettingsProps> = ({
@@ -99,10 +104,33 @@ const Settings: React.FC<SettingsProps> = ({
   setExportModalState,
   handleExport,
   handleFileInput,
-  fileInputRef
+  fileInputRef,
+  offlineCachingEnabled,
+  setOfflineCachingEnabled
 }: SettingsProps) => {
   const [showNameEditModal, setShowNameEditModal] = React.useState(false);
   const [editUserName, setEditUserName] = React.useState(userName);
+  const [serviceWorkerSupported] = React.useState(isServiceWorkerSupported());
+
+  // Handle offline caching toggle
+  const handleOfflineCachingToggle = async (enabled: boolean) => {
+    if (enabled) {
+      // Enable offline caching
+      const success = await registerServiceWorker();
+      if (success) {
+        setOfflineCachingEnabled(true);
+      } else {
+        // Show error or revert toggle
+        console.error('Failed to enable offline caching');
+        alert('Failed to enable offline caching. Please try again.');
+      }
+    } else {
+      // Disable offline caching
+      await unregisterServiceWorker();
+      await clearAllCaches();
+      setOfflineCachingEnabled(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -166,6 +194,35 @@ const Settings: React.FC<SettingsProps> = ({
               className="hidden"
             />
           </>
+        </div>
+        {/* Offline Caching Toggle */}
+        <div className="flex items-center justify-between mt-4 border-t border-gray-700 pt-4">
+          <div className="flex items-center gap-3">
+            {offlineCachingEnabled ? (
+              <Wifi className={effectiveMode === 'light' ? 'text-green-600' : 'text-green-400'} size={18} />
+            ) : (
+              <WifiOff className={effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} size={18} />
+            )}
+            <div>
+              <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Save Site for Offline Use</p>
+              <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>
+                {serviceWorkerSupported 
+                  ? 'Cache the site so it works without internet connection' 
+                  : 'Service Worker not supported in this browser'
+                }
+              </p>
+            </div>
+          </div>
+          <label className={`relative inline-flex items-center cursor-pointer ${!serviceWorkerSupported ? 'opacity-50' : ''}`}>
+            <input
+              type="checkbox"
+              checked={offlineCachingEnabled}
+              onChange={(e) => serviceWorkerSupported && handleOfflineCachingToggle(e.target.checked)}
+              className="sr-only peer"
+              disabled={!serviceWorkerSupported}
+            />
+            <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+          </label>
         </div>
       </div>
 

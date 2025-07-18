@@ -44,6 +44,7 @@ A modern, customizable, and user-friendly school timetable and subject planner b
 - **Customize which event info is shown by default** (time, location, teacher, period).
 - **Drag-and-drop to reorder info fields**.
 - **Choose whether to show the first info field beside the subject name.**
+- **Offline caching** - Save the site for offline use so it works without internet connection.
 
 ### 🧑‍💻 Modern UX
 - **Responsive design** for desktop and mobile.
@@ -87,7 +88,9 @@ Visit [http://localhost:5173](http://localhost:5173) (or the port shown in your 
 ## File Structure
 
 - `src/schoolplanner.tsx` — Main app logic and UI.
-- `src/theme.ts` — Theme and color configuration.
+- `src/utils/theme.ts` — Theme and color configuration.
+- `src/utils/cacheUtils.ts` — Service worker and offline caching utilities.
+- `public/sw.js` — Service worker for offline functionality.
 - `public/` — Static assets (including favicon).
 - `index.html` — App entry point.
 
@@ -110,6 +113,33 @@ Visit [http://localhost:5173](http://localhost:5173) (or the port shown in your 
 - lucide-react (icons)
 - react-router-dom (routing)
 - Tailwind CSS (styling)
+
+---
+
+## Offline Functionality
+
+The School Planner supports offline use through Progressive Web App (PWA) features:
+
+### Enabling Offline Mode
+1. Go to **Settings** → **Data** section
+2. Toggle **"Save Site for Offline Use"** to enable
+3. The app will cache necessary files for offline access
+4. You'll receive a notification when offline mode is enabled
+
+### How It Works
+- **Service Worker**: Caches the app files in your browser
+- **Automatic Updates**: When you visit the site online, the cache is updated
+- **Offline Access**: Once cached, the app works without internet connection
+- **Data Persistence**: Your timetable data is stored locally and works offline
+
+### Clearing Cache
+- **Manual**: Toggle off "Save Site for Offline Use" in Settings
+- **Automatic**: Using "Clear Data" will also remove the offline cache
+- **Browser**: You can also clear the cache through your browser's developer tools
+
+### Browser Support
+- **Supported**: Chrome, Firefox, Safari, Edge (modern versions)
+- **Not Supported**: Internet Explorer, very old browsers
 
 ---
 

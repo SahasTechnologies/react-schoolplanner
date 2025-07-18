@@ -29,6 +29,7 @@ import SubjectCard from './components/SubjectCard';
 import EventDetailsOverlay from './components/EventDetailsOverlay';
 import { processFile, exportData, generateRandomColour, defaultColours } from './utils/fileUtils.ts';
 import { getQuoteOfTheDayUrl } from './utils/quoteUtils.ts';
+import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported } from './utils/cacheUtils.ts';
 
 
 
@@ -164,7 +165,7 @@ const SchoolPlanner = () => {
   };
 
   // Clear all localStorage and reset state
-  const clearData = () => {
+  const clearData = async () => {
     localStorage.clear(); // Clear everything including theme
     setWeekData(null);
     setError('');
@@ -172,7 +173,11 @@ const SchoolPlanner = () => {
     setWelcomeStep('welcome'); // Reset to welcome screen
     setUserName(''); // Clear user name
     setAutoNamingEnabled(true); // Reset auto-naming to default
-    // Remove any now-unused state or props
+    setOfflineCachingEnabled(false); // Reset offline caching to default
+    
+    // Clear service worker and cache
+    await unregisterServiceWorker();
+    await clearAllCaches();
   };
 
 
@@ -384,6 +389,8 @@ const SchoolPlanner = () => {
         handleExport={handleExport}
         fileInputRef={fileInputRef}
         handleFileInput={handleFileInput}
+        offlineCachingEnabled={offlineCachingEnabled}
+        setOfflineCachingEnabled={setOfflineCachingEnabled}
       />
     );
   };
@@ -824,6 +831,18 @@ const SchoolPlanner = () => {
     setIsInitializing(false);
   }, []);
 
+  // Register service worker on mount if offline caching is enabled
+  React.useEffect(() => {
+    if (offlineCachingEnabled && isServiceWorkerSupported()) {
+      registerServiceWorker().then(success => {
+        if (!success) {
+          console.error('Failed to register service worker');
+          setOfflineCachingEnabled(false);
+        }
+      });
+    }
+  }, [offlineCachingEnabled]);
+
   // --- Welcome screen URL logic ---
   React.useEffect(() => {
     if (isInitializing) return;
@@ -976,6 +995,11 @@ const SchoolPlanner = () => {
     localStorage.setItem('countdownInTitle', countdownInTitle ? 'true' : 'false');
   }, [countdownInTitle]);
 
+  // Persist offlineCachingEnabled
+  useEffect(() => {
+    localStorage.setItem('offlineCachingEnabled', offlineCachingEnabled ? 'true' : 'false');
+  }, [offlineCachingEnabled]);
+
   // Update document.title for countdown in tab title
   useEffect(() => {
     if (countdownInTitle && tabCountdown && tabCountdown.time && tabCountdown.event) {
@@ -1006,6 +1030,12 @@ const SchoolPlanner = () => {
       subjectIcons: true,
       name: false,
     },
+  });
+
+  // Add state for offline caching
+  const [offlineCachingEnabled, setOfflineCachingEnabled] = useState(() => {
+    const saved = localStorage.getItem('offlineCachingEnabled');
+    return saved === null ? false : saved === 'true';
   });
 
   const handleExport = () => {
