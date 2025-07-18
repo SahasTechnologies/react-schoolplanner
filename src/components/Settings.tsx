@@ -20,7 +20,7 @@ import {
   LoaderCircle
 } from 'lucide-react';
 import { ThemeKey, colorVars, themeColors } from '../utils/theme';
-import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported, getServiceWorkerStatus, checkCacheStatus } from '../utils/cacheUtils';
+import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported, getServiceWorkerStatus } from '../utils/cacheUtils';
 
 interface ExportModalState {
   show: boolean;
@@ -112,9 +112,8 @@ const Settings: React.FC<SettingsProps> = ({
   const [showNameEditModal, setShowNameEditModal] = React.useState(false);
   const [editUserName, setEditUserName] = React.useState(userName);
   const [serviceWorkerSupported] = React.useState(isServiceWorkerSupported());
-  const [cacheStatus, setCacheStatus] = React.useState<{ hasCache: boolean; cacheSize: number }>({ hasCache: false, cacheSize: 0 });
-  const [swStatus, setSwStatus] = React.useState<'registered' | 'not-registered' | 'not-supported'>('not-registered');
   const [isCachingLoading, setIsCachingLoading] = React.useState(false);
+  const [swStatus, setSwStatus] = React.useState<'registered' | 'not-registered' | 'not-supported'>('not-registered');
 
   // Handle offline caching toggle
   const handleOfflineCachingToggle = async (enabled: boolean) => {
@@ -125,23 +124,11 @@ const Settings: React.FC<SettingsProps> = ({
       const success = await registerServiceWorker();
       if (success) {
         setOfflineCachingEnabled(true);
-        // Update status after enabling with multiple checks
-        const updateStatus = async () => {
+        setTimeout(async () => {
           const status = await getServiceWorkerStatus();
-          const cache = await checkCacheStatus();
           setSwStatus(status);
-          setCacheStatus(cache);
-          
-          // If cache is still empty, try again after a short delay
-          if (cache.cacheSize === 0) {
-            setTimeout(updateStatus, 500);
-          } else {
-            setIsCachingLoading(false);
-          }
-        };
-        
-        // Start checking status after a short delay
-        setTimeout(updateStatus, 500);
+          setIsCachingLoading(false);
+        }, 1000);
       } else {
         // Show error or revert toggle
         console.error('Failed to enable offline caching');
@@ -154,7 +141,6 @@ const Settings: React.FC<SettingsProps> = ({
       await clearAllCaches();
       setOfflineCachingEnabled(false);
       setSwStatus('not-registered');
-      setCacheStatus({ hasCache: false, cacheSize: 0 });
       setIsCachingLoading(false);
     }
   };
@@ -163,9 +149,7 @@ const Settings: React.FC<SettingsProps> = ({
   React.useEffect(() => {
     const checkStatus = async () => {
       const status = await getServiceWorkerStatus();
-      const cache = await checkCacheStatus();
       setSwStatus(status);
-      setCacheStatus(cache);
     };
     checkStatus();
   }, []);
@@ -245,9 +229,8 @@ const Settings: React.FC<SettingsProps> = ({
               <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Save Site for Offline Use</p>
               <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>
                 {serviceWorkerSupported 
-                  ? `Cache the site so it works without internet connection (Status: ${swStatus}, Cache: ${cacheStatus.hasCache ? `${cacheStatus.cacheSize} files` : 'none'})` 
-                  : 'Service Worker not supported in this browser'
-                }
+                  ? `Cache the site so it works without internet connection (Status: ${swStatus})` 
+                  : 'Service Worker not supported in this browser'}
               </p>
             </div>
           </div>
@@ -414,183 +397,4 @@ const Settings: React.FC<SettingsProps> = ({
       </div>
 
       {/* Info Shown at Start Section */}
-      <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
-        <div className="flex items-center gap-2 mb-4">
-          <Home className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
-          <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Home</h3>
-        </div>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <Eye className={effectiveMode === 'light' ? 'text-green-600' : 'text-green-400'} size={18} />
-            <div>
-              <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Put countdown in tab title</p>
-              <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Show countdown in browser tab (title bar) so you can always see it. When enabled, the tab will show <span className="font-mono">HH:MM until [next event]</span>. Off by default.</p>
-            </div>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={countdownInTitle}
-              onChange={e => setCountdownInTitle(e.target.checked)}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-          </label>
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Eye className={effectiveMode === 'light' ? 'text-green-600' : 'text-green-400'} size={18} />
-            <div>
-              <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Info Shown at Start</p>
-              <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Choose which info is visible before hover in Today's Schedule</p>
-            </div>
-          </div>
-          <button
-            onClick={() => setShowInfoPopup(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
-          >
-            <Edit2 size={16} />
-            Edit
-          </button>
-        </div>
-      </div>
-
-      {/* Info Shown at Start Popup */}
-      {showInfoPopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-          <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
-            <h3 className={`text-xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Info Shown at Start</h3>
-            <div className="space-y-5">
-              {infoOrder.map((item: { key: string; label: string }, idx: number) => (
-                <div
-                  key={item.key}
-                  className={`flex items-center justify-between gap-6 py-2 px-2 rounded transition-all duration-300 ${draggedIdx === idx ? 'bg-blue-100/20' : ''}`}
-                  draggable
-                  onDragStart={() => handleDragStart(idx)}
-                  onDragOver={(e: React.DragEvent) => { e.preventDefault(); handleInfoDragOver(idx); }}
-                  onDragEnd={handleDragEnd}
-                  style={{
-                    zIndex: draggedIdx === idx ? 10 : 1,
-                  }}
-                >
-                  <div className="flex items-center justify-center min-w-[32px] h-8">
-                    <GripVertical className="text-gray-400 cursor-grab" size={20} />
-                  </div>
-                  <span className="flex-1 font-medium text-lg flex items-center h-8">{item.label}</span>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={infoShown[item.key]}
-                      onChange={() => handleToggleInfoShown(item.key)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-              ))}
-            </div>
-            {/* Toggle for first info beside subject name */}
-            <div className="flex items-center justify-between gap-4 py-4 mt-4 border-t border-gray-700">
-              <span className="font-medium text-lg flex items-center h-8">Show first info beside subject name</span>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isCalendarPage ? false : showFirstInfoBeside}
-                  onChange={(e) => !isCalendarPage && setShowFirstInfoBeside(e.target.checked)}
-                  className="sr-only peer"
-                  disabled={isCalendarPage}
-                />
-                <div className={`w-11 h-6 ${isCalendarPage ? 'bg-gray-400' : 'bg-gray-600'} peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all ${isCalendarPage ? '' : 'peer-checked:bg-blue-600'}`}></div>
-              </label>
-            </div>
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={() => setShowInfoPopup(false)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
-              >Done</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Theme Modal */}
-      {showThemeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-          <div className={`rounded-xl p-8 shadow-2xl border-2 ${colors.container} ${colors.border} w-full max-w-xs mx-4`}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className={`text-lg font-bold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Choose Theme</h3>
-              <button onClick={() => setShowThemeModal(false)} className={`${effectiveMode === 'light' ? 'text-black' : 'text-white'} opacity-60 hover:opacity-100`}><X size={20} /></button>
-            </div>
-            {/* Theme Mode Toggle */}
-            <div className="mb-6 flex flex-row items-center justify-center">
-              <div className={`relative flex ${effectiveMode === 'light' ? 'bg-white' : 'bg-gray-800'} rounded-full w-44 h-12 px-3 gap-x-2 py-2 transition-colors duration-200`}>
-                {/* Toggle thumb */}
-                <div
-                  className={`absolute top-2 left-3 h-8 w-12 rounded-full transition-all duration-200 shadow-md ${themeMode === 'light' ? 'translate-x-0 bg-white' : themeMode === 'dark' ? 'translate-x-28 bg-gray-900' : 'translate-x-14 bg-gray-300 dark:bg-gray-800'}`}
-                  style={{ zIndex: 1 }}
-                />
-                {/* Light */}
-                <button
-                  className={`relative flex-1 flex flex-col items-center justify-center z-10 rounded-full transition-colors duration-200 ${themeMode === 'light' ? (effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400') : (effectiveMode === 'light' ? 'text-black' : 'text-white')} mx-1`}
-                  style={{ height: '40px' }}
-                  onClick={() => setThemeMode('light')}
-                >
-                  <Sun size={20} />
-                  <span className="text-xs font-medium">Light</span>
-                </button>
-                {/* System */}
-                <button
-                  className={`relative flex-1 flex flex-col items-center justify-center z-10 rounded-full transition-colors duration-200 ${themeMode === 'system' ? (effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400') : (effectiveMode === 'light' ? 'text-black' : 'text-white')} mx-1`}
-                  style={{ height: '40px' }}
-                  onClick={() => setThemeMode('system')}
-                >
-                  <Monitor size={20} />
-                  <span className="text-xs font-medium">System</span>
-                </button>
-                {/* Dark */}
-                <button
-                  className={`relative flex-1 flex flex-col items-center justify-center z-10 rounded-full transition-colors duration-200 ${themeMode === 'dark' ? (effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400') : (effectiveMode === 'light' ? 'text-black' : 'text-white')} mx-1`}
-                  style={{ height: '40px' }}
-                  onClick={() => setThemeMode('dark')}
-                >
-                  <Moon size={20} />
-                  <span className="text-xs font-medium">Dark</span>
-                </button>
-              </div>
-            </div>
-            {/* Normal Colour */}
-            <div className={`mb-2 text-lg font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Normal Colour</div>
-            <div className="flex flex-row flex-wrap gap-4 mb-6">
-              {(Object.entries(colorVars) as [ThemeKey, typeof colorVars[ThemeKey]][]).map(([key, val]) => (
-                <div key={key} className="flex flex-col items-center">
-                  <button
-                    className={`w-10 h-10 rounded-full border-2 ${(theme === key && themeType === 'normal') ? themeColors(effectiveMode)[key].borderAccent : 'border-gray-600'} ${val[effectiveMode].normal.swatch}`}
-                    onClick={() => handleThemeChange(key, 'normal')}
-                    title={themeColors(effectiveMode)[key].label}
-                  />
-                  <span className={`text-sm mt-1 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{themeColors(effectiveMode)[key].label}</span>
-                </div>
-              ))}
-            </div>
-            {/* Extreme Colour */}
-            <div className={`mb-2 text-lg font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Extreme Colour</div>
-            <div className="flex flex-row flex-wrap gap-4">
-              {(Object.entries(colorVars) as [ThemeKey, typeof colorVars[ThemeKey]][]).map(([key, val]) => (
-                <div key={key} className="flex flex-col items-center">
-                  <button
-                    className={`w-10 h-10 rounded-full border-2 ${(theme === key && themeType === 'extreme') ? themeColors(effectiveMode)[key].borderAccent : 'border-gray-600'} ${val[effectiveMode].extreme.swatch}`}
-                    onClick={() => handleThemeChange(key, 'extreme')}
-                    title={themeColors(effectiveMode)[key].label + ' (Extreme)'}
-                  />
-                  <span className={`text-sm mt-1 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{themeColors(effectiveMode)[key].label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default Settings; 
+      <div className={`
