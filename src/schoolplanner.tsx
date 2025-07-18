@@ -739,8 +739,24 @@ const SchoolPlanner = () => {
 
 
   // Add a new state to track if the user selected a normal or extreme theme
-  const [theme, setTheme] = useState<ThemeKey>('blue');
-  const [themeType, setThemeType] = useState<'normal' | 'extreme'>('normal');
+  const [theme, setTheme] = useState<ThemeKey>(() => {
+    // Try to load from localStorage, fallback to 'blue'
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('theme');
+      if (saved && ['red','orange','yellow','green','blue','purple','pink','grey'].includes(saved)) {
+        return saved as ThemeKey;
+      }
+    }
+    return 'blue';
+  });
+  const [themeType, setThemeType] = useState<'normal' | 'extreme'>(() => {
+    // Try to load from localStorage, fallback to 'normal'
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('themeType');
+      if (saved === 'normal' || saved === 'extreme') return saved;
+    }
+    return 'normal';
+  });
   const [showThemeModal, setShowThemeModal] = useState(false);
   // Add theme mode state: 'light' | 'dark' | 'system'
   const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'system'>(() => {
@@ -827,19 +843,7 @@ const SchoolPlanner = () => {
     }
   }, [theme, themeType, themeMode]);
 
-  // Load theme and themeType from localStorage on mount
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedTheme = localStorage.getItem('theme');
-      const savedType = localStorage.getItem('themeType');
-      if (savedTheme && ['red','orange','yellow','green','blue','purple','pink','grey'].includes(savedTheme)) {
-        setTheme(savedTheme as ThemeKey);
-      }
-      if (savedType && (savedType === 'normal' || savedType === 'extreme')) {
-        setThemeType(savedType as 'normal' | 'extreme');
-      }
-    }
-  }, []);
+
 
 
 
