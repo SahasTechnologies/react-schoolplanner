@@ -11,6 +11,7 @@ import {
   FileText,
   Wifi,
   WifiOff,
+  LoaderCircle,
   Home
 } from 'lucide-react';
 import { ThemeKey } from '../utils/themeUtils';
@@ -94,6 +95,7 @@ const Settings: React.FC<SettingsProps> = ({
   const [showNameEditModal, setShowNameEditModal] = React.useState(false);
   const [editUserName, setEditUserName] = React.useState(userName);
   const [serviceWorkerSupported] = React.useState(isServiceWorkerSupported());
+  const [isCachingLoading, setIsCachingLoading] = React.useState(false);
   const [showTerms, setShowTerms] = React.useState(false);
   const [showPrivacy, setShowPrivacy] = React.useState(false);
   const [showLicensing, setShowLicensing] = React.useState(false);
@@ -132,7 +134,40 @@ const Settings: React.FC<SettingsProps> = ({
     }
   }, [showTerms, showPrivacy, showLicensing]);
 
-  // Remove the handleOfflineCachingToggle function definition entirely
+  // Handle offline caching toggle
+  const handleOfflineCachingToggle = async (enabled: boolean) => {
+    setIsCachingLoading(true);
+    
+    if (enabled) {
+      // Enable offline caching
+      const success = await registerServiceWorker();
+      if (success) {
+        setOfflineCachingEnabled(true);
+        setTimeout(() => {
+          setIsCachingLoading(false);
+        }, 1000);
+        showSuccess('Offline Caching', 'Offline caching enabled successfully! Files are now cached for offline use.', { effectiveMode, colors });
+      } else {
+        // Show error or revert toggle
+        console.error('Failed to enable offline caching');
+        showError('Offline Caching', 'Failed to enable offline caching. Please try again.', { effectiveMode, colors });
+        setIsCachingLoading(false);
+      }
+    } else {
+      // Disable offline caching
+      const unregisterSuccess = await unregisterServiceWorker();
+      const clearSuccess = await clearAllCaches();
+      setOfflineCachingEnabled(false);
+      setIsCachingLoading(false);
+      
+      if (unregisterSuccess && clearSuccess) {
+        showInfo('Offline Caching', 'Offline caching disabled and all cached files cleared.', { effectiveMode, colors });
+      } else {
+        showError('Offline Caching', 'Failed to completely disable offline caching. Some cached files may remain.', { effectiveMode, colors });
+      }
+    }
+  };
+
 
 
   return (
@@ -489,7 +524,7 @@ const Settings: React.FC<SettingsProps> = ({
               Clear Data
             </button>
           </div>
-          <div className="flex items-center justify-between mt-4 border-t border-gray-700 pt-4">
+          <div className="flex items-center justify-between mt-4">
             <div className="flex items-center gap-3">
               <Smartphone className={effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400'} size={18} />
               <div>
@@ -514,11 +549,13 @@ const Settings: React.FC<SettingsProps> = ({
               <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
             </label>
           </div>
-          {/* Show Countdown in Tab Title Toggle */}
-          <div className="flex items-center justify-between">
-            <div>
-              <p className={`font-medium ${colors.containerText}`}>Show Countdown in Browser Tab</p>
-              <p className={`text-sm ${colors.containerText} opacity-80`}>Display the countdown timer in the browser tab title</p>
+          <div className="flex items-center justify-between mt-4">
+            <div className="flex items-center gap-3">
+              <Calendar className={colors.containerText} size={18} />
+              <div>
+                <p className={`font-medium ${colors.containerText}`}>Show Countdown in Browser Tab</p>
+                <p className={`text-sm ${colors.containerText} opacity-80`}>Display the countdown timer in the browser tab title</p>
+              </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
