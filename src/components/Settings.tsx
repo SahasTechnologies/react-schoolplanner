@@ -14,8 +14,8 @@ import {
   Home
 } from 'lucide-react';
 import { ThemeKey } from '../utils/themeUtils';
-import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported, forceCacheUpdate } from '../utils/cacheUtils';
-import { showSuccess, showError, showInfo } from '../utils/notificationUtils';
+import { isServiceWorkerSupported, forceCacheUpdate } from '../utils/cacheUtils';
+import { showSuccess, showError } from '../utils/notificationUtils';
 import Markdown from 'markdown-to-jsx';
 import { useState, useEffect } from 'react';
 
@@ -84,7 +84,6 @@ const Settings: React.FC<SettingsProps> = ({
   handleFileInput,
   fileInputRef,
   offlineCachingEnabled,
-  setOfflineCachingEnabled,
   countdownInTitle,
   setCountdownInTitle,
   showInfoPopup,
