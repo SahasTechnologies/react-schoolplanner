@@ -8,6 +8,9 @@ const urlsToCache = [
   '/src/App.css',
   '/src/index.css',
   '/school.svg',
+  '/terms.md',
+  '/privacy.md',
+  '/license.md',
   // Add other assets as needed
 ];
 

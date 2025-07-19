@@ -16,6 +16,9 @@ import {
 import { ThemeKey } from '../utils/themeUtils';
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported, forceCacheUpdate } from '../utils/cacheUtils';
 import { showSuccess, showError, showInfo } from '../utils/notificationUtils';
+import TermsAndConditions from './legal/TermsAndConditions';
+import PrivacyPolicy from './legal/PrivacyPolicy';
+import Licensing from './legal/Licensing';
 
 interface ExportModalState {
   show: boolean;
@@ -89,6 +92,9 @@ const Settings: React.FC<SettingsProps> = ({
   const [editUserName, setEditUserName] = React.useState(userName);
   const [serviceWorkerSupported] = React.useState(isServiceWorkerSupported());
   const [isCachingLoading, setIsCachingLoading] = React.useState(false);
+  const [showTerms, setShowTerms] = React.useState(false);
+  const [showPrivacy, setShowPrivacy] = React.useState(false);
+  const [showLicensing, setShowLicensing] = React.useState(false);
 
   // Handle offline caching toggle
   const handleOfflineCachingToggle = async (enabled: boolean) => {
@@ -324,6 +330,68 @@ const Settings: React.FC<SettingsProps> = ({
                 className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
               >Export</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Legal Section */}
+      <div className={`${colors.container} rounded-lg ${colors.border} border p-6 mb-4`}>
+        <div className="flex items-center gap-2 mb-4">
+          <FileText className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
+          <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Legal</h3>
+        </div>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <span className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Terms and Conditions</span>
+            <button
+              onClick={() => setShowTerms(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+            >
+              Read
+            </button>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Privacy Policy</span>
+            <button
+              onClick={() => setShowPrivacy(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+            >
+              Read
+            </button>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Licensing</span>
+            <button
+              onClick={() => setShowLicensing(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+            >
+              Read
+            </button>
+          </div>
+        </div>
+      </div>
+      {/* Legal Modals */}
+      {showTerms && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative`}>
+            <button onClick={() => setShowTerms(false)} className="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition text-gray-400">&times;</button>
+            <TermsAndConditions />
+          </div>
+        </div>
+      )}
+      {showPrivacy && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative`}>
+            <button onClick={() => setShowPrivacy(false)} className="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition text-gray-400">&times;</button>
+            <PrivacyPolicy />
+          </div>
+        </div>
+      )}
+      {showLicensing && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative`}>
+            <button onClick={() => setShowLicensing(false)} className="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition text-gray-400">&times;</button>
+            <Licensing />
           </div>
         </div>
       )}
