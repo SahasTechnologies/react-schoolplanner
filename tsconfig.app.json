@@ -6,6 +6,7 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
+    "types": ["react"],
 
     /* Essential for tsBuildInfoFile */
     "incremental": true, // ADDED: Required for tsBuildInfoFile
