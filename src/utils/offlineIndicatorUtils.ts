@@ -66,23 +66,6 @@ class OfflineIndicatorManager {
     }
   }
 
-  private createWifiIcon(effectiveMode: 'light' | 'dark', size: string = 'medium'): HTMLElement {
-    const icon = document.createElement('div');
-    const iconSize = size === 'small' ? 16 : size === 'large' ? 20 : 18;
-    const color = effectiveMode === 'light' ? '#059669' : '#34d399';
-    
-    icon.innerHTML = `
-      <svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2">
-        <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
-        <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
-        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
-        <line x1="12" y1="20" x2="12.01" y2="20"></line>
-      </svg>
-    `;
-    
-    return icon;
-  }
-
   private createWifiOffIcon(effectiveMode: 'light' | 'dark', size: string = 'medium'): HTMLElement {
     const icon = document.createElement('div');
     const iconSize = size === 'small' ? 16 : size === 'large' ? 20 : 18;
@@ -101,28 +84,6 @@ class OfflineIndicatorManager {
     `;
     
     return icon;
-  }
-
-  private createRunningOnWifiButton(options: OfflineIndicatorOptions): HTMLElement {
-    const button = document.createElement('button');
-    const sizeClasses: Record<string, string> = {
-      small: 'text-xs',
-      medium: 'text-sm',
-      large: 'text-base'
-    };
-    
-    const textColor = options.effectiveMode === 'light' 
-      ? 'text-green-700 hover:text-green-800' 
-      : 'text-green-300 hover:text-green-200';
-    
-    button.className = `font-medium ${sizeClasses[options.size || 'medium']} ${textColor} transition-colors duration-200`;
-    button.textContent = 'Running on WiFi';
-    
-    if (options.onToggleOfflineCaching) {
-      button.addEventListener('click', options.onToggleOfflineCaching);
-    }
-    
-    return button;
   }
 
   private createOfflineText(options: OfflineIndicatorOptions): HTMLElement {
