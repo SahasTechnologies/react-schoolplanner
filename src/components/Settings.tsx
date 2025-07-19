@@ -14,7 +14,7 @@ import {
   LoaderCircle
 } from 'lucide-react';
 import { ThemeKey } from '../utils/theme';
-import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported, getServiceWorkerStatus, forceCacheUpdate } from '../utils/cacheUtils';
+import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported, forceCacheUpdate } from '../utils/cacheUtils';
 
 interface ExportModalState {
   show: boolean;
