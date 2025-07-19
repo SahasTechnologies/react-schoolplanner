@@ -84,7 +84,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
         <p className={`${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'} mb-6`}>You have already uploaded your timetable and name. To change them, go to Settings.</p>
         <button
           onClick={() => navigate('/settings')}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+          className="bg-primary hover:bg-primary-dark text-primary-foreground px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
         >
           Go to Settings
         </button>
@@ -94,17 +94,23 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
 
   // Add step order and helper
   const stepOrder = ['legal', 'upload', 'name_input'];
-  const stepLabels = ['Legal', 'Upload', 'Name'];
   const stepIndex = stepOrder.indexOf(welcomeStep);
 
   // Add step circles at the top
   const StepCircles = () => (
-    <div className="flex justify-center items-center gap-4 mb-8">
+    <div className="flex justify-center items-center gap-4 mb-8 mt-2">
       {stepOrder.map((step, idx) => (
-        <div key={step} className={`flex flex-col items-center transition-all duration-300 ${stepIndex === idx ? 'scale-110' : 'opacity-60'}`}> 
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg transition-all duration-300 ${stepIndex === idx ? (effectiveMode === 'light' ? 'bg-blue-600 text-white' : 'bg-blue-400 text-black') : (effectiveMode === 'light' ? 'bg-gray-200 text-gray-700' : 'bg-gray-700 text-gray-300')}`}>{idx + 1}</div>
-          <span className={`mt-1 text-xs ${stepIndex === idx ? 'font-semibold' : ''}`}>{stepLabels[idx]}</span>
-        </div>
+        <button
+          key={step}
+          type="button"
+          disabled={idx >= stepIndex}
+          onClick={() => idx < stepIndex && setWelcomeStep(step as typeof welcomeStep)}
+          className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary ${stepIndex === idx ? (effectiveMode === 'light' ? 'bg-primary text-white' : 'bg-primary-light text-black') : (effectiveMode === 'light' ? 'bg-secondary text-secondary-foreground' : 'bg-secondary-dark text-secondary-foreground-dark')} ${idx < stepIndex ? 'cursor-pointer hover:scale-105' : 'cursor-default'}`}
+          aria-label={`Step ${idx + 1}`}
+          tabIndex={idx < stepIndex ? 0 : -1}
+        >
+          {idx + 1}
+        </button>
       ))}
     </div>
   );
@@ -131,7 +137,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
                   </symbol>
                 </svg>
               </div>
-              <span className={`text-base ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>I agree to the <span className="underline hover:text-blue-600 transition-colors duration-200 cursor-pointer" onClick={e => {e.stopPropagation(); setShowTerms(true);}}>Terms & Conditions</span> and <span className="underline hover:text-blue-600 transition-colors duration-200 cursor-pointer" onClick={e => {e.stopPropagation(); setShowPrivacy(true);}}>Privacy Policy</span></span>
+              <span className={`text-base ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>I agree to the <span className="underline hover:text-primary transition-colors duration-200 cursor-pointer" onClick={e => {e.stopPropagation(); setShowTerms(true);}}>Terms & Conditions</span> and <span className="underline hover:text-primary transition-colors duration-200 cursor-pointer" onClick={e => {e.stopPropagation(); setShowPrivacy(true);}}>Privacy Policy</span></span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
               <div className="checkbox-wrapper-30">
@@ -147,12 +153,12 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
                   </symbol>
                 </svg>
               </div>
-              <span className={`text-base ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>I agree to be bound by <span className="underline hover:text-blue-600 transition-colors duration-200 cursor-pointer" onClick={e => {e.stopPropagation(); setShowLicensing(true);}}>Licensing</span></span>
+              <span className={`text-base ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>I agree to be bound by <span className="underline hover:text-primary transition-colors duration-200 cursor-pointer" onClick={e => {e.stopPropagation(); setShowLicensing(true);}}>Licensing</span></span>
             </label>
           </div>
           <button
             onClick={() => setWelcomeStep('upload')}
-            className={`bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 ${!(agreeLegal && agreeLicense) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`bg-primary hover:bg-primary-dark text-primary-foreground px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 ${!(agreeLegal && agreeLicense) ? 'opacity-50 cursor-not-allowed' : ''}`}
             disabled={!(agreeLegal && agreeLicense)}
           >
             Next
@@ -202,10 +208,10 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
           <style>{`
           /* Checkbox CSS by Saeed Alipoor */
           .checkbox-wrapper-30 .checkbox {
-            --bg: ${effectiveMode === 'light' ? '#fff' : '#222'};
-            --brdr: #d1d6ee;
-            --brdr-actv: ${effectiveMode === 'light' ? '#1e2235' : '#fff'};
-            --brdr-hovr: #bbc1e1;
+            --bg: ${effectiveMode === 'light' ? 'var(--color-bg)' : 'var(--color-bg-dark)'};
+            --brdr: var(--color-border);
+            --brdr-actv: var(--color-primary);
+            --brdr-hovr: var(--color-primary-light);
             --tick: ${effectiveMode === 'light' ? '#1e2235' : '#fff'};
             --dur: calc((var(--size, 2)/2) * 0.6s);
             display: inline-block;
@@ -307,7 +313,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
           <div
             className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 w-full max-w-lg ${
               dragOver
-                ? 'border-blue-400 bg-blue-400/10'
+                ? 'border-primary/20 bg-primary/5'
                 : effectiveMode === 'light'
                   ? 'border-gray-300 hover:border-gray-400 bg-white'
                   : 'border-gray-600 hover:border-gray-500'
@@ -348,7 +354,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
                 </p>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 mx-auto"
+                  className="bg-primary hover:bg-primary-dark text-primary-foreground px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 mx-auto"
                 >
                   <FileText size={20} />
                   Upload or Import
@@ -387,7 +393,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
           </div>
           {loading && (
             <div className="text-center py-8">
-              <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${effectiveMode === 'light' ? 'border-black' : 'border-blue-400'} mx-auto mb-4`}></div>
+              <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${effectiveMode === 'light' ? 'border-black' : 'border-primary'} mx-auto mb-4`}></div>
               <p className={`${effectiveMode === 'light' ? 'text-black' : 'text-gray-400'}`}>Processing your calendar...</p>
             </div>
           )}
@@ -405,7 +411,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
       return (
         <div className="flex flex-col items-center justify-center h-full text-center p-8">
           <StepCircles />
-          <User size={64} className="text-blue-400 mb-6 animate-bounce-in" />
+          <User size={64} className="text-primary mb-6 animate-bounce-in" />
           <h2 className={`text-3xl font-bold mb-4 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>What's your name? (Optional)</h2>
           <p className={`${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-300'} mb-6`}>We'll use this to greet you!</p>
           <input
@@ -413,11 +419,11 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
             value={userName}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserName(e.target.value)}
             placeholder="Enter your name"
-            className={`w-full max-w-sm px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6 text-lg ${effectiveMode === 'light' ? 'bg-gray-100 text-black border-gray-300' : 'bg-gray-700 text-white border-gray-600'}`}
+            className={`w-full max-w-sm px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-primary mb-6 text-lg ${effectiveMode === 'light' ? 'bg-gray-100 text-black border-gray-300' : 'bg-gray-700 text-white border-gray-600'}`}
           />
           <button
             onClick={() => setWelcomeStep('completed')}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+            className="bg-primary hover:bg-primary-dark text-primary-foreground px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
           >
             Next
           </button>
