@@ -10,9 +10,7 @@ import {
   Calendar,
   FileText,
   Wifi,
-  WifiOff,
-  LoaderCircle,
-  Home
+  WifiOff
 } from 'lucide-react';
 import { ThemeKey } from '../utils/themeUtils';
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported, forceCacheUpdate } from '../utils/cacheUtils';
@@ -95,7 +93,6 @@ const Settings: React.FC<SettingsProps> = ({
   const [showNameEditModal, setShowNameEditModal] = React.useState(false);
   const [editUserName, setEditUserName] = React.useState(userName);
   const [serviceWorkerSupported] = React.useState(isServiceWorkerSupported());
-  const [isCachingLoading, setIsCachingLoading] = React.useState(false);
   const [showTerms, setShowTerms] = React.useState(false);
   const [showPrivacy, setShowPrivacy] = React.useState(false);
   const [showLicensing, setShowLicensing] = React.useState(false);
@@ -136,7 +133,6 @@ const Settings: React.FC<SettingsProps> = ({
 
   // Handle offline caching toggle
   const handleOfflineCachingToggle = async (enabled: boolean) => {
-    setIsCachingLoading(true);
     
     if (enabled) {
       // Enable offline caching
@@ -144,21 +140,18 @@ const Settings: React.FC<SettingsProps> = ({
       if (success) {
         setOfflineCachingEnabled(true);
         setTimeout(() => {
-          setIsCachingLoading(false);
         }, 1000);
         showSuccess('Offline Caching', 'Offline caching enabled successfully! Files are now cached for offline use.', { effectiveMode, colors });
       } else {
         // Show error or revert toggle
         console.error('Failed to enable offline caching');
         showError('Offline Caching', 'Failed to enable offline caching. Please try again.', { effectiveMode, colors });
-        setIsCachingLoading(false);
       }
     } else {
       // Disable offline caching
       const unregisterSuccess = await unregisterServiceWorker();
       const clearSuccess = await clearAllCaches();
       setOfflineCachingEnabled(false);
-      setIsCachingLoading(false);
       
       if (unregisterSuccess && clearSuccess) {
         showInfo('Offline Caching', 'Offline caching disabled and all cached files cleared.', { effectiveMode, colors });
@@ -544,6 +537,22 @@ const Settings: React.FC<SettingsProps> = ({
                     { effectiveMode, colors }
                   );
                 }}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+            </label>
+          </div>
+          {/* Show Countdown in Tab Title Toggle */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={`font-medium ${colors.containerText}`}>Show Countdown in Browser Tab</p>
+              <p className={`text-sm ${colors.containerText} opacity-80`}>Display the countdown timer in the browser tab title</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={countdownInTitle}
+                onChange={e => setCountdownInTitle(e.target.checked)}
                 className="sr-only peer"
               />
               <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
