@@ -38,6 +38,7 @@ export interface FileProcessingResult {
   weekData: WeekData | null;
   subjects: Subject[];
   error?: string;
+  userName?: string;
 }
 
 // Process ICS file
@@ -196,7 +197,8 @@ export const processSchoolFile = async (
     
     return {
       weekData,
-      subjects
+      subjects,
+      userName: data.name || undefined
     };
   } catch (err) {
     return {

@@ -44,17 +44,9 @@ class OfflineIndicatorManager {
     // Clear existing content
     element.innerHTML = '';
 
-    // If online and offline caching is enabled, show "Run on WiFi" button
+    // If online and offline caching is enabled, hide the indicator
     if (isOnline && options.offlineCachingEnabled) {
-      element.className = `flex items-center gap-2 ${options.className || ''}`;
-      
-      const wifiIcon = this.createWifiIcon(options.effectiveMode, options.size);
-      element.appendChild(wifiIcon);
-
-      if (options.showText) {
-        const button = this.createRunningOnWifiButton(options);
-        element.appendChild(button);
-      }
+      element.style.display = 'none';
     }
     // If actually offline, show offline indicator
     else if (!isOnline) {
@@ -219,43 +211,8 @@ export const createOfflineIndicatorElement = (options: OfflineIndicatorOptions):
   const isOnline = navigator.onLine;
 
   if (isOnline && options.offlineCachingEnabled) {
-    element.className = `flex items-center gap-2 ${options.className || ''}`;
-    
-    const wifiIcon = document.createElement('div');
-    const iconSize = options.size === 'small' ? 16 : options.size === 'large' ? 20 : 18;
-    const color = options.effectiveMode === 'light' ? '#059669' : '#34d399';
-    
-    wifiIcon.innerHTML = `
-      <svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2">
-        <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
-        <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
-        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
-        <line x1="12" y1="20" x2="12.01" y2="20"></line>
-      </svg>
-    `;
-    element.appendChild(wifiIcon);
-
-    if (options.showText) {
-      const button = document.createElement('button');
-      const sizeClasses: Record<string, string> = {
-        small: 'text-xs',
-        medium: 'text-sm',
-        large: 'text-base'
-      };
-      
-      const textColor = options.effectiveMode === 'light' 
-        ? 'text-green-700 hover:text-green-800' 
-        : 'text-green-300 hover:text-green-200';
-      
-      button.className = `font-medium ${sizeClasses[options.size || 'medium']} ${textColor} transition-colors duration-200`;
-      button.textContent = 'Running on WiFi';
-      
-      if (options.onToggleOfflineCaching) {
-        button.addEventListener('click', options.onToggleOfflineCaching);
-      }
-      
-      element.appendChild(button);
-    }
+    element.style.display = 'none';
+    return element;
   } else if (!isOnline) {
     element.className = `flex items-center gap-2 ${options.className || ''}`;
     

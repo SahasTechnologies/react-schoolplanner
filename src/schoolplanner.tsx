@@ -62,7 +62,10 @@ const SchoolPlanner = () => {
   const [userName, setUserName] = useState('');
 
   // New state for auto-naming toggle
-  const [autoNamingEnabled, setAutoNamingEnabled] = useState(true);
+  const [autoNamingEnabled, setAutoNamingEnabled] = useState(() => {
+    const saved = localStorage.getItem('autoNamingEnabled');
+    return saved === null ? true : saved === 'true';
+  });
 
   // Add state for offline caching
   const [offlineCachingEnabled, setOfflineCachingEnabled] = useState(() => {
@@ -151,6 +154,12 @@ const SchoolPlanner = () => {
       if (result.subjects.length > 0) {
         setSubjects(result.subjects);
         localStorage.setItem('subjects', JSON.stringify(result.subjects));
+      }
+      
+      // Update userName if it exists in the imported data
+      if (result.userName && result.userName !== userName) {
+        setUserName(result.userName);
+        localStorage.setItem('userName', result.userName);
       }
       
       setWelcomeStep('completed');
@@ -827,6 +836,11 @@ const SchoolPlanner = () => {
     }
   }, [userName, welcomeStep]);
 
+  // --- Persist autoNamingEnabled to localStorage on change ---
+  React.useEffect(() => {
+    localStorage.setItem('autoNamingEnabled', autoNamingEnabled.toString());
+  }, [autoNamingEnabled]);
+
   // --- Load userName from localStorage on mount ---
   React.useEffect(() => {
     const savedName = localStorage.getItem('userName');
@@ -1158,7 +1172,7 @@ const SchoolPlanner = () => {
               <div className="mb-8 flex items-center">
                 <h1 className={`text-4xl font-bold mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}
                   style={{textAlign: 'left', width: '100%'}}>
-                  {userName ? `${getGreeting()}, ${userName}!` : 'School Planner'}
+                  {userName ? `${getGreeting()}, ${userName}!` : `${getGreeting()}!`}
                 </h1>
               </div>
             )}

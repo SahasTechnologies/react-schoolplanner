@@ -55,26 +55,7 @@ A modern, customizable, and user-friendly school timetable and subject planner b
 ---
 
 ## Getting Started
-
-### 1. Install dependencies
-
-```bash
-npm install
-```
-
-### 2. Run the app
-
-```bash
-npm run dev
-```
-
-### 3. Open in your browser
-
-Visit [http://localhost:5173](http://localhost:5173) (or the port shown in your terminal).
-
----
-
-## Usage
+  Just go to react-schoolplanner.pages.dev! It's that simple, and all of your data stays on your device.
 
 1. **On first launch:**  
    - Enter your name (optional).
@@ -144,5 +125,5 @@ The School Planner supports offline use through Progressive Web App (PWA) featur
 ---
 
 ## License
-
-MIT
+Apache License 2.0
+Check the Licensing file for additional Licensing information.
