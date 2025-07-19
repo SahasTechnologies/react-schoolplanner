@@ -10,7 +10,8 @@ import {
   Calendar,
   FileText,
   Wifi,
-  WifiOff
+  WifiOff,
+  Home
 } from 'lucide-react';
 import { ThemeKey } from '../utils/themeUtils';
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported, forceCacheUpdate } from '../utils/cacheUtils';
@@ -131,36 +132,7 @@ const Settings: React.FC<SettingsProps> = ({
     }
   }, [showTerms, showPrivacy, showLicensing]);
 
-  // Handle offline caching toggle
-  const handleOfflineCachingToggle = async (enabled: boolean) => {
-    
-    if (enabled) {
-      // Enable offline caching
-      const success = await registerServiceWorker();
-      if (success) {
-        setOfflineCachingEnabled(true);
-        setTimeout(() => {
-        }, 1000);
-        showSuccess('Offline Caching', 'Offline caching enabled successfully! Files are now cached for offline use.', { effectiveMode, colors });
-      } else {
-        // Show error or revert toggle
-        console.error('Failed to enable offline caching');
-        showError('Offline Caching', 'Failed to enable offline caching. Please try again.', { effectiveMode, colors });
-      }
-    } else {
-      // Disable offline caching
-      const unregisterSuccess = await unregisterServiceWorker();
-      const clearSuccess = await clearAllCaches();
-      setOfflineCachingEnabled(false);
-      
-      if (unregisterSuccess && clearSuccess) {
-        showInfo('Offline Caching', 'Offline caching disabled and all cached files cleared.', { effectiveMode, colors });
-      } else {
-        showError('Offline Caching', 'Failed to completely disable offline caching. Some cached files may remain.', { effectiveMode, colors });
-      }
-    }
-  };
-
+  // Remove the handleOfflineCachingToggle function definition entirely
 
 
   return (
