@@ -27,9 +27,11 @@ import { Subject } from './types';
 import Sidebar from './components/Sidebar';
 import SubjectCard from './components/SubjectCard';
 import EventDetailsOverlay from './components/EventDetailsOverlay';
+import OfflineIndicator from './components/OfflineIndicator';
 import { processFile, exportData, generateRandomColour, defaultColours } from './utils/fileUtils.ts';
 import { getQuoteOfTheDayUrl } from './utils/quoteUtils.ts';
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported } from './utils/cacheUtils.ts';
+import { useNetworkStatus } from './utils/networkUtils.ts';
 
 
 
@@ -411,9 +413,17 @@ const SchoolPlanner = () => {
     const eventsWithBreaks = insertBreaksBetweenEvents(events);
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <Home className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
-          <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Home</h2>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Home className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
+            <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Home</h2>
+          </div>
+          {/* Offline indicator in top right */}
+          <OfflineIndicator 
+            effectiveMode={effectiveMode} 
+            colors={colors} 
+            size="medium"
+          />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className={`${colors.container} rounded-lg ${colors.border} border p-6 col-span-1`}>
@@ -1166,10 +1176,25 @@ const QuoteOfTheDayWidget: React.FC<{ theme: ThemeKey; themeType: 'normal' | 'ex
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
   const url = getQuoteOfTheDayUrl(theme, themeType, effectiveMode);
+  const isOnline = useNetworkStatus();
 
   return (
     <div className={`${getColors(theme, themeType, effectiveMode).container} rounded-lg ${getColors(theme, themeType, effectiveMode).border} border p-4 mb-4 flex flex-col items-center`}>
-      <div className="font-semibold text-lg mb-2" style={{ color: effectiveMode === 'light' ? '#222' : '#fff' }}>Quote of the Day</div>
+      <div className="flex items-center gap-2 mb-2">
+        <div className="font-semibold text-lg" style={{ color: effectiveMode === 'light' ? '#222' : '#fff' }}>Quote of the Day</div>
+        {/* Offline indicator for quote widget */}
+        {!isOnline && (
+          <OfflineIndicator 
+            effectiveMode={effectiveMode} 
+            colors={getColors(theme, themeType, effectiveMode)} 
+            showText={false}
+            size="small"
+          />
+        )}
+      </div>
+      {!isOnline && (
+        <div className="text-orange-500 text-sm py-2 mb-2">You're in offline mode</div>
+      )}
       {loading && !error && (
         <div className="flex flex-col items-center justify-center py-4 w-full">
           <LoaderCircle className={`animate-spin mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`} size={32} />
