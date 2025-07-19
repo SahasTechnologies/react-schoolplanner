@@ -1018,7 +1018,7 @@ const SchoolPlanner = () => {
       }
       
       // Show notification for the change
-      const fieldName = infoOrder.find(item => item.key === key)?.label || key;
+      const fieldName = infoOrder.find((item: { key: string; label: string }) => item.key === key)?.label || key;
       showInfo('Display Setting', `${fieldName} ${newShown[key] ? 'shown' : 'hidden'}`, { effectiveMode, colors });
       
       return newShown;
