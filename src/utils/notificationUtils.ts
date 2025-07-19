@@ -34,6 +34,9 @@ class NotificationManager {
       right: 16px;
       z-index: 1000;
       pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     `;
     document.body.appendChild(this.container);
   }
@@ -47,11 +50,11 @@ class NotificationManager {
       box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
       max-width: 320px;
       width: 320px;
-      margin-bottom: 8px;
       pointer-events: auto;
       transform: translateX(100%);
       opacity: 0;
-      transition: all 0.3s ease-in-out;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      margin-bottom: 0;
     `;
 
     const iconColor = this.getIconColor(options.type, options.effectiveMode);
@@ -201,7 +204,7 @@ class NotificationManager {
     this.container.appendChild(element);
     this.notifications.push(notification);
 
-    // Trigger slide-in animation
+    // Trigger slide-in animation from left
     requestAnimationFrame(() => {
       element.style.transform = 'translateX(0)';
       element.style.opacity = '1';
@@ -248,15 +251,32 @@ class NotificationManager {
     if (!notification) return;
 
     notification.isExiting = true;
+    
+    // Slide out to the right
     notification.element.style.transform = 'translateX(100%)';
     notification.element.style.opacity = '0';
 
+    // After the exit animation, remove the element and update positions
     setTimeout(() => {
       if (notification.element.parentNode) {
         notification.element.parentNode.removeChild(notification.element);
       }
       this.notifications = this.notifications.filter(n => n.id !== id);
+      
+      // Animate remaining notifications to slide up
+      this.animateRemainingNotifications();
     }, 300);
+  }
+
+  private animateRemainingNotifications() {
+    // Get all notification elements in the container
+    const notificationElements = Array.from(this.container.children) as HTMLElement[];
+    
+    // Animate each notification to its new position
+    notificationElements.forEach((element, index) => {
+      const targetTransform = `translateY(${index * (320 + 8)}px)`; // 320px width + 8px gap
+      element.style.transform = targetTransform;
+    });
   }
 
   clearAll() {

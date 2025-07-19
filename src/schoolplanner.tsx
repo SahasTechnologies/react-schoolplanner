@@ -33,6 +33,7 @@ import { processFile, exportData, generateRandomColour, defaultColours } from '.
 import { getQuoteOfTheDayUrl } from './utils/quoteUtils.ts';
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported } from './utils/cacheUtils.ts';
 import { useNetworkStatus } from './utils/networkUtils.ts';
+import { showSuccess, showError, showInfo } from './utils/notificationUtils';
 
 
 
@@ -118,6 +119,9 @@ const SchoolPlanner = () => {
     setLoading(true);
     setError('');
     
+    // Show loading notification
+    showInfo('Uploading File', `Processing ${file.name}...`, { effectiveMode, colors, duration: 0 });
+    
     try {
       const result = await processFile(file, autoNamingEnabled);
       
@@ -125,6 +129,7 @@ const SchoolPlanner = () => {
         setError(result.error);
         setWelcomeStep('upload_ics');
         setLoading(false);
+        showError('Upload Failed', result.error, { effectiveMode, colors });
         return;
       }
       
@@ -150,9 +155,14 @@ const SchoolPlanner = () => {
       setWelcomeStep('completed');
       navigate('/home', { replace: true });
       setLoading(false);
+      
+      // Show success notification
+      const fileType = file.name.endsWith('.ics') ? 'Calendar' : 'Data';
+      showSuccess('Upload Successful', `${fileType} file uploaded successfully! Found ${result.subjects.length} subjects.`, { effectiveMode, colors });
     } catch (err) {
       setError('Failed to import file: ' + err);
       setLoading(false);
+      showError('Upload Failed', `Failed to import file: ${err}`, { effectiveMode, colors });
     }
   };
 
@@ -170,6 +180,7 @@ const SchoolPlanner = () => {
       handleFileInput(files[0]);
     } else {
       setError('Please drop a valid .ics or .school file.');
+      showError('Invalid File', 'Please drop a valid .ics or .school file.', { effectiveMode, colors });
     }
   };
 
@@ -187,6 +198,8 @@ const SchoolPlanner = () => {
     // Clear service worker and cache
     await unregisterServiceWorker();
     await clearAllCaches();
+    
+    showInfo('Data Cleared', 'All data has been cleared and reset to defaults', { effectiveMode, colors });
   };
 
 
@@ -214,6 +227,7 @@ const SchoolPlanner = () => {
           prevSubjects.filter((s: Subject) => s.id !== selectedSubjectForEdit.id)
         );
         // The colour of the existing subject might be updated if desired, but for simplicity, we keep its original colour.
+        showInfo('Subject Merged', `Subject "${selectedSubjectForEdit.name}" merged with "${editName}"`, { effectiveMode, colors });
       } else {
         // No conflict, just update the subject
         setSubjects((prevSubjects: Subject[]) =>
@@ -223,6 +237,7 @@ const SchoolPlanner = () => {
               : subject
           )
         );
+        showSuccess('Subject Updated', `Subject "${selectedSubjectForEdit.name}" updated successfully`, { effectiveMode, colors });
       }
     }
     setShowSubjectEditModal(false);
@@ -777,6 +792,7 @@ const SchoolPlanner = () => {
       localStorage.setItem('theme', key);
       localStorage.setItem('themeType', type);
     }
+    showInfo('Theme Updated', `Theme changed to ${key} (${type})`, { effectiveMode, colors });
   }
 
   // Persist theme, themeType, and themeMode to localStorage
@@ -1000,6 +1016,11 @@ const SchoolPlanner = () => {
           return prevOrder;
         });
       }
+      
+      // Show notification for the change
+      const fieldName = infoOrder.find(item => item.key === key)?.label || key;
+      showInfo('Display Setting', `${fieldName} ${newShown[key] ? 'shown' : 'hidden'}`, { effectiveMode, colors });
+      
       return newShown;
     });
   };
@@ -1062,8 +1083,9 @@ const SchoolPlanner = () => {
   });
 
   const handleExport = () => {
-    exportData(subjects, userName, exportModalState.options);
+    const fileName = exportData(subjects, userName, exportModalState.options);
     setExportModalState(s => ({ ...s, show: false }));
+    showSuccess('Export Successful', `Data exported to ${fileName}`, { effectiveMode, colors });
   };
 
   // Main content routes
