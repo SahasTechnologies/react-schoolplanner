@@ -421,7 +421,6 @@ const SchoolPlanner = () => {
           {/* Offline indicator in top right */}
           <OfflineIndicator 
             effectiveMode={effectiveMode} 
-            colors={colors} 
             size="medium"
           />
         </div>
@@ -1186,7 +1185,6 @@ const QuoteOfTheDayWidget: React.FC<{ theme: ThemeKey; themeType: 'normal' | 'ex
         {!isOnline && (
           <OfflineIndicator 
             effectiveMode={effectiveMode} 
-            colors={getColors(theme, themeType, effectiveMode)} 
             showText={false}
             size="small"
           />

@@ -4,7 +4,6 @@ import { useNetworkStatus } from '../utils/networkUtils';
 
 interface OfflineIndicatorProps {
   effectiveMode: 'light' | 'dark';
-  colors: any;
   className?: string;
   showText?: boolean;
   size?: 'small' | 'medium' | 'large';
@@ -12,7 +11,6 @@ interface OfflineIndicatorProps {
 
 const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({ 
   effectiveMode, 
-  colors, 
   className = '', 
   showText = true,
   size = 'medium' 
