@@ -11,7 +11,6 @@ import {
   FileText,
   Wifi,
   WifiOff,
-  LoaderCircle,
   Home
 } from 'lucide-react';
 import { ThemeKey } from '../utils/themeUtils';
@@ -95,7 +94,7 @@ const Settings: React.FC<SettingsProps> = ({
   const [showNameEditModal, setShowNameEditModal] = React.useState(false);
   const [editUserName, setEditUserName] = React.useState(userName);
   const [serviceWorkerSupported] = React.useState(isServiceWorkerSupported());
-  const [isCachingLoading, setIsCachingLoading] = React.useState(false);
+
   const [showTerms, setShowTerms] = React.useState(false);
   const [showPrivacy, setShowPrivacy] = React.useState(false);
   const [showLicensing, setShowLicensing] = React.useState(false);
@@ -134,39 +133,7 @@ const Settings: React.FC<SettingsProps> = ({
     }
   }, [showTerms, showPrivacy, showLicensing]);
 
-  // Handle offline caching toggle
-  const handleOfflineCachingToggle = async (enabled: boolean) => {
-    setIsCachingLoading(true);
-    
-    if (enabled) {
-      // Enable offline caching
-      const success = await registerServiceWorker();
-      if (success) {
-        setOfflineCachingEnabled(true);
-        setTimeout(() => {
-          setIsCachingLoading(false);
-        }, 1000);
-        showSuccess('Offline Caching', 'Offline caching enabled successfully! Files are now cached for offline use.', { effectiveMode, colors });
-      } else {
-        // Show error or revert toggle
-        console.error('Failed to enable offline caching');
-        showError('Offline Caching', 'Failed to enable offline caching. Please try again.', { effectiveMode, colors });
-        setIsCachingLoading(false);
-      }
-    } else {
-      // Disable offline caching
-      const unregisterSuccess = await unregisterServiceWorker();
-      const clearSuccess = await clearAllCaches();
-      setOfflineCachingEnabled(false);
-      setIsCachingLoading(false);
-      
-      if (unregisterSuccess && clearSuccess) {
-        showInfo('Offline Caching', 'Offline caching disabled and all cached files cleared.', { effectiveMode, colors });
-      } else {
-        showError('Offline Caching', 'Failed to completely disable offline caching. Some cached files may remain.', { effectiveMode, colors });
-      }
-    }
-  };
+
 
 
 
