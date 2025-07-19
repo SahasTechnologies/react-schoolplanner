@@ -190,7 +190,7 @@ const Settings: React.FC<SettingsProps> = ({
           </div>
           <button
             onClick={() => { setEditUserName(userName); setShowNameEditModal(true); }}
-            className={`${colors.button} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
+            className={`${colors.buttonAccent} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
           >
             <Edit2 size={16} />
             Change Name
@@ -425,7 +425,7 @@ const Settings: React.FC<SettingsProps> = ({
             <span className={`font-medium ${colors.buttonText}`}>Terms and Conditions</span>
             <button
               onClick={() => setShowTerms(true)}
-              className="bg-primary hover:bg-primary-dark text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+              className={`${colors.buttonAccent} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
             >
               Read
             </button>
@@ -434,7 +434,7 @@ const Settings: React.FC<SettingsProps> = ({
             <span className={`font-medium ${colors.buttonText}`}>Privacy Policy</span>
             <button
               onClick={() => setShowPrivacy(true)}
-              className="bg-primary hover:bg-primary-dark text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+              className={`${colors.buttonAccent} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
             >
               Read
             </button>
@@ -443,7 +443,7 @@ const Settings: React.FC<SettingsProps> = ({
             <span className={`font-medium ${colors.buttonText}`}>Licensing</span>
             <button
               onClick={() => setShowLicensing(true)}
-              className="bg-primary hover:bg-primary-dark text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+              className={`${colors.buttonAccent} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
             >
               Read
             </button>

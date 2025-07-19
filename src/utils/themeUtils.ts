@@ -300,37 +300,41 @@ export const themeColors = (mode: 'dark' | 'light') => ({
 export const getColors = (theme: ThemeKey, themeType: 'normal' | 'extreme', effectiveMode: 'light' | 'dark') => {
   const colors = colorVars[theme][effectiveMode][themeType];
   // Button and buttonText colors for theme-aware buttons
-  let button, buttonText, buttonAccent, buttonAccentHover;
+  let button, buttonText, buttonAccent, buttonAccentHover, text, containerText, accentText;
   if (effectiveMode === 'light') {
     button = 'bg-gray-900 hover:bg-gray-800'; // fallback dark button for light mode
     buttonText = 'text-white';
+    text = 'text-black';
+    containerText = 'text-black';
     // Theme-accented button backgrounds for light mode
-    const accentMap: Record<ThemeKey, [string, string]> = {
-      red:    ['bg-red-600', 'hover:bg-red-700'],
-      orange: ['bg-orange-500', 'hover:bg-orange-600'],
-      yellow: ['bg-yellow-500', 'hover:bg-yellow-600'],
-      green:  ['bg-green-600', 'hover:bg-green-700'],
-      blue:   ['bg-blue-600', 'hover:bg-blue-700'],
-      purple: ['bg-purple-600', 'hover:bg-purple-700'],
-      pink:   ['bg-pink-600', 'hover:bg-pink-700'],
-      grey:   ['bg-gray-600', 'hover:bg-gray-700'],
+    const accentMap: Record<ThemeKey, [string, string, string]> = {
+      red:    ['bg-red-600', 'hover:bg-red-700', 'text-red-600'],
+      orange: ['bg-orange-500', 'hover:bg-orange-600', 'text-orange-600'],
+      yellow: ['bg-yellow-500', 'hover:bg-yellow-600', 'text-yellow-600'],
+      green:  ['bg-green-600', 'hover:bg-green-700', 'text-green-600'],
+      blue:   ['bg-blue-600', 'hover:bg-blue-700', 'text-blue-600'],
+      purple: ['bg-purple-600', 'hover:bg-purple-700', 'text-purple-600'],
+      pink:   ['bg-pink-600', 'hover:bg-pink-700', 'text-pink-600'],
+      grey:   ['bg-gray-600', 'hover:bg-gray-700', 'text-gray-600'],
     };
-    [buttonAccent, buttonAccentHover] = accentMap[theme];
+    [buttonAccent, buttonAccentHover, accentText] = accentMap[theme];
   } else {
     button = 'bg-white/10 hover:bg-white/20'; // fallback light button for dark mode
     buttonText = 'text-white';
+    text = 'text-white';
+    containerText = 'text-white';
     // Theme-accented button backgrounds for dark mode
-    const accentMap: Record<ThemeKey, [string, string]> = {
-      red:    ['bg-red-500', 'hover:bg-red-600'],
-      orange: ['bg-orange-400', 'hover:bg-orange-500'],
-      yellow: ['bg-yellow-400', 'hover:bg-yellow-500'],
-      green:  ['bg-green-500', 'hover:bg-green-600'],
-      blue:   ['bg-blue-500', 'hover:bg-blue-600'],
-      purple: ['bg-purple-500', 'hover:bg-purple-600'],
-      pink:   ['bg-pink-500', 'hover:bg-pink-600'],
-      grey:   ['bg-gray-500', 'hover:bg-gray-600'],
+    const accentMap: Record<ThemeKey, [string, string, string]> = {
+      red:    ['bg-red-500', 'hover:bg-red-600', 'text-red-400'],
+      orange: ['bg-orange-400', 'hover:bg-orange-500', 'text-orange-300'],
+      yellow: ['bg-yellow-400', 'hover:bg-yellow-500', 'text-yellow-300'],
+      green:  ['bg-green-500', 'hover:bg-green-600', 'text-green-300'],
+      blue:   ['bg-blue-500', 'hover:bg-blue-600', 'text-blue-300'],
+      purple: ['bg-purple-500', 'hover:bg-purple-600', 'text-purple-300'],
+      pink:   ['bg-pink-500', 'hover:bg-pink-600', 'text-pink-300'],
+      grey:   ['bg-gray-500', 'hover:bg-gray-600', 'text-gray-300'],
     };
-    [buttonAccent, buttonAccentHover] = accentMap[theme];
+    [buttonAccent, buttonAccentHover, accentText] = accentMap[theme];
   }
   return {
     background: colors.background,
@@ -342,5 +346,8 @@ export const getColors = (theme: ThemeKey, themeType: 'normal' | 'extreme', effe
     buttonText,
     buttonAccent,
     buttonAccentHover,
+    text,
+    containerText,
+    accentText,
   };
 }; 

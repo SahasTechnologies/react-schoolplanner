@@ -111,14 +111,14 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
             type="button"
             disabled={isUpcoming}
             onClick={() => isCompleted && setWelcomeStep(step as typeof welcomeStep)}
-            className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary border-2 border-primary
-              ${isActive ? `${colors.button} ${colors.buttonText} shadow-lg` : isCompleted ? `${colors.button} ${colors.buttonText} opacity-70` : `bg-transparent ${colors.buttonText} opacity-50`}
+            className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg transition-all duration-300 focus:outline-none border-2
+              ${isActive ? `${colors.buttonAccent} ${colors.buttonText} shadow-lg` : 'bg-transparent border-gray-300'}
               ${isCompleted ? 'cursor-pointer hover:scale-105' : 'cursor-default'}
             `}
             aria-label={`Step ${idx + 1}`}
             tabIndex={isCompleted ? 0 : -1}
           >
-            {idx + 1}
+            <span className={isActive ? colors.accentText : 'text-gray-400'}>{idx + 1}</span>
           </button>
         );
       })}
@@ -129,7 +129,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
     case 'legal':
       return (
         <div className="flex flex-col items-center justify-center h-full text-center p-8 relative">
-          <div className="absolute top-0 left-0 w-full flex justify-center z-10">
+          <div className="fixed top-0 left-0 w-full flex justify-center z-50 pt-8 pointer-events-none">
             <StepCircles />
           </div>
           <h1 className={`text-5xl font-bold mb-4 animate-fade-in-down ${colors.buttonText}`}>Welcome to School Planner!</h1>
@@ -149,7 +149,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
                   </symbol>
                 </svg>
               </div>
-              <span className={`text-base ${colors.buttonText}`}>I agree to the <span className="underline hover:text-primary transition-colors duration-200 cursor-pointer" onClick={e => {e.stopPropagation(); setShowTerms(true);}}>Terms & Conditions</span> and <span className="underline hover:text-primary transition-colors duration-200 cursor-pointer" onClick={e => {e.stopPropagation(); setShowPrivacy(true);}}>Privacy Policy</span></span>
+              <span className={`text-base ${colors.text}`}>I agree to the <span className="underline hover:text-primary transition-colors duration-200 cursor-pointer" onClick={e => {e.stopPropagation(); setShowTerms(true);}}>Terms & Conditions</span> and <span className="underline hover:text-primary transition-colors duration-200 cursor-pointer" onClick={e => {e.stopPropagation(); setShowPrivacy(true);}}>Privacy Policy</span></span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
               <div className="checkbox-wrapper-30">
@@ -165,7 +165,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
                   </symbol>
                 </svg>
               </div>
-              <span className={`text-base ${colors.buttonText}`}>I agree to be bound by <span className="underline hover:text-primary transition-colors duration-200 cursor-pointer" onClick={e => {e.stopPropagation(); setShowLicensing(true);}}>Licensing</span></span>
+              <span className={`text-base ${colors.text}`}>I agree to be bound by <span className="underline hover:text-primary transition-colors duration-200 cursor-pointer" onClick={e => {e.stopPropagation(); setShowLicensing(true);}}>Licensing</span></span>
             </label>
           </div>
           <button
