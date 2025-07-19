@@ -99,19 +99,27 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
   // Add step circles at the top
   const StepCircles = () => (
     <div className="flex justify-center items-center gap-4 mb-8 mt-2">
-      {stepOrder.map((step, idx) => (
-        <button
-          key={step}
-          type="button"
-          disabled={idx >= stepIndex}
-          onClick={() => idx < stepIndex && setWelcomeStep(step as typeof welcomeStep)}
-          className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary ${stepIndex === idx ? (effectiveMode === 'light' ? 'bg-primary text-white' : 'bg-primary-light text-black') : (effectiveMode === 'light' ? 'bg-secondary text-secondary-foreground' : 'bg-secondary-dark text-secondary-foreground-dark')} ${idx < stepIndex ? 'cursor-pointer hover:scale-105' : 'cursor-default'}`}
-          aria-label={`Step ${idx + 1}`}
-          tabIndex={idx < stepIndex ? 0 : -1}
-        >
-          {idx + 1}
-        </button>
-      ))}
+      {stepOrder.map((step, idx) => {
+        const isActive = stepIndex === idx;
+        const isCompleted = idx < stepIndex;
+        const isUpcoming = idx > stepIndex;
+        return (
+          <button
+            key={step}
+            type="button"
+            disabled={isUpcoming}
+            onClick={() => isCompleted && setWelcomeStep(step as typeof welcomeStep)}
+            className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary border-2 border-primary
+              ${isActive ? 'bg-primary text-white shadow-lg' : isCompleted ? 'bg-primary/10 text-primary' : 'bg-transparent text-primary opacity-50'}
+              ${isCompleted ? 'cursor-pointer hover:scale-105' : 'cursor-default'}
+            `}
+            aria-label={`Step ${idx + 1}`}
+            tabIndex={isCompleted ? 0 : -1}
+          >
+            {idx + 1}
+          </button>
+        );
+      })}
     </div>
   );
 

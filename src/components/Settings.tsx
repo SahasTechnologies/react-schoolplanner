@@ -11,7 +11,8 @@ import {
   FileText,
   Wifi,
   WifiOff,
-  LoaderCircle
+  LoaderCircle,
+  Home
 } from 'lucide-react';
 import { ThemeKey } from '../utils/themeUtils';
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported, forceCacheUpdate } from '../utils/cacheUtils';
@@ -84,7 +85,11 @@ const Settings: React.FC<SettingsProps> = ({
   handleFileInput,
   fileInputRef,
   offlineCachingEnabled,
-  setOfflineCachingEnabled
+  setOfflineCachingEnabled,
+  countdownInTitle,
+  setCountdownInTitle,
+  showInfoPopup,
+  setShowInfoPopup
 }: SettingsProps) => {
 
   const [showNameEditModal, setShowNameEditModal] = React.useState(false);
@@ -185,7 +190,7 @@ const Settings: React.FC<SettingsProps> = ({
           </div>
           <button
             onClick={() => { setEditUserName(userName); setShowNameEditModal(true); }}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+            className="bg-primary hover:bg-primary-dark text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
           >
             <Edit2 size={16} />
             Change Name
@@ -199,7 +204,7 @@ const Settings: React.FC<SettingsProps> = ({
           </div>
           <button
             onClick={() => setExportModalState((prev) => ({ ...prev, show: true }))}
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+            className="bg-primary hover:bg-primary-dark text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
           >
             <FileText size={16} />
             Export
@@ -214,7 +219,7 @@ const Settings: React.FC<SettingsProps> = ({
           <>
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+              className="bg-primary hover:bg-primary-dark text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
             >
               <FileText size={16} />
               Import
@@ -258,7 +263,7 @@ const Settings: React.FC<SettingsProps> = ({
                 className="sr-only peer"
                 disabled={!serviceWorkerSupported}
               />
-              <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
             </label>
           )}
         </div>
@@ -283,13 +288,55 @@ const Settings: React.FC<SettingsProps> = ({
                   showError('Cache Update', 'Failed to update cache. Please try again.', { effectiveMode, colors });
                 }
               }}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+              className="bg-primary hover:bg-primary-dark text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
             >
               <FileText size={16} />
               Update Cache
             </button>
           </div>
         )}
+      </div>
+
+      {/* Home Settings Section */}
+      <div className={`${colors.container} rounded-lg ${colors.border} border p-6 mb-4`}>
+        <div className="flex items-center gap-2 mb-4">
+          <Home className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
+          <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Home Settings</h3>
+        </div>
+        <div className="space-y-4">
+          {/* Show Countdown on Home Toggle */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Show Countdown on Home</p>
+              <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Display the countdown timer on the home screen</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={countdownInTitle}
+                onChange={e => setCountdownInTitle(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+            </label>
+          </div>
+          {/* Show Info Popup on Home Toggle */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Show Info Popup on Home</p>
+              <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Display the info popup when opening the home screen</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showInfoPopup}
+                onChange={e => setShowInfoPopup(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+            </label>
+          </div>
+        </div>
       </div>
 
       {/* Name Edit Modal */}
@@ -307,7 +354,7 @@ const Settings: React.FC<SettingsProps> = ({
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowNameEditModal(false)}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+                className="bg-secondary hover:bg-secondary-dark text-secondary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200"
               >Cancel</button>
               <button
                 onClick={() => { 
@@ -315,7 +362,7 @@ const Settings: React.FC<SettingsProps> = ({
                   setShowNameEditModal(false);
                   showSuccess('Name Updated', 'Your name has been updated successfully!', { effectiveMode, colors });
                 }}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+                className="bg-primary hover:bg-primary-dark text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200"
               >Save</button>
             </div>
           </div>
@@ -356,11 +403,11 @@ const Settings: React.FC<SettingsProps> = ({
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setExportModalState(s => ({ ...s, show: false }))}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+                className="bg-secondary hover:bg-secondary-dark text-secondary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200"
               >Cancel</button>
               <button
                 onClick={handleExport}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+                className="bg-primary hover:bg-primary-dark text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200"
               >Export</button>
             </div>
           </div>
@@ -378,7 +425,7 @@ const Settings: React.FC<SettingsProps> = ({
             <span className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Terms and Conditions</span>
             <button
               onClick={() => setShowTerms(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+              className="bg-primary hover:bg-primary-dark text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200"
             >
               Read
             </button>
@@ -387,7 +434,7 @@ const Settings: React.FC<SettingsProps> = ({
             <span className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Privacy Policy</span>
             <button
               onClick={() => setShowPrivacy(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+              className="bg-primary hover:bg-primary-dark text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200"
             >
               Read
             </button>
@@ -396,7 +443,7 @@ const Settings: React.FC<SettingsProps> = ({
             <span className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Licensing</span>
             <button
               onClick={() => setShowLicensing(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+              className="bg-primary hover:bg-primary-dark text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200"
             >
               Read
             </button>
@@ -519,7 +566,7 @@ const Settings: React.FC<SettingsProps> = ({
                 }}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
             </label>
           </div>
         </div>
