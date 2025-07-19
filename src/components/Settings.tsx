@@ -16,9 +16,8 @@ import {
 import { ThemeKey } from '../utils/themeUtils';
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported, forceCacheUpdate } from '../utils/cacheUtils';
 import { showSuccess, showError, showInfo } from '../utils/notificationUtils';
-import TermsAndConditions from './legal/TermsAndConditions';
-import PrivacyPolicy from './legal/PrivacyPolicy';
-import Licensing from './legal/Licensing';
+import ReactMarkdown from 'react-markdown';
+import { useState, useEffect } from 'react';
 
 interface ExportModalState {
   show: boolean;
@@ -95,6 +94,40 @@ const Settings: React.FC<SettingsProps> = ({
   const [showTerms, setShowTerms] = React.useState(false);
   const [showPrivacy, setShowPrivacy] = React.useState(false);
   const [showLicensing, setShowLicensing] = React.useState(false);
+  // Add state for markdown content
+  const [termsContent, setTermsContent] = useState<string>('');
+  const [privacyContent, setPrivacyContent] = useState<string>('');
+  const [licenseContent, setLicenseContent] = useState<string>('');
+  const [loadingMarkdown, setLoadingMarkdown] = useState<string | null>(null);
+  const [markdownError, setMarkdownError] = useState<string | null>(null);
+
+  // Fetch markdown when modal opens
+  useEffect(() => {
+    if (showTerms && !termsContent) {
+      setLoadingMarkdown('terms');
+      fetch('/terms.md')
+        .then(res => res.ok ? res.text() : Promise.reject('Failed to load Terms and Conditions'))
+        .then(setTermsContent)
+        .catch(() => setMarkdownError('Failed to load Terms and Conditions'))
+        .finally(() => setLoadingMarkdown(null));
+    }
+    if (showPrivacy && !privacyContent) {
+      setLoadingMarkdown('privacy');
+      fetch('/privacy.md')
+        .then(res => res.ok ? res.text() : Promise.reject('Failed to load Privacy Policy'))
+        .then(setPrivacyContent)
+        .catch(() => setMarkdownError('Failed to load Privacy Policy'))
+        .finally(() => setLoadingMarkdown(null));
+    }
+    if (showLicensing && !licenseContent) {
+      setLoadingMarkdown('license');
+      fetch('/license.md')
+        .then(res => res.ok ? res.text() : Promise.reject('Failed to load Licensing'))
+        .then(setLicenseContent)
+        .catch(() => setMarkdownError('Failed to load Licensing'))
+        .finally(() => setLoadingMarkdown(null));
+    }
+  }, [showTerms, showPrivacy, showLicensing]);
 
   // Handle offline caching toggle
   const handleOfflineCachingToggle = async (enabled: boolean) => {
@@ -374,24 +407,42 @@ const Settings: React.FC<SettingsProps> = ({
       {showTerms && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
           <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative`}>
-            <button onClick={() => setShowTerms(false)} className="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition text-gray-400">&times;</button>
-            <TermsAndConditions />
+            <button onClick={() => { setShowTerms(false); setMarkdownError(null); }} className="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition text-gray-400">&times;</button>
+            {loadingMarkdown === 'terms' ? (
+              <div className="text-center py-8">Loading...</div>
+            ) : markdownError ? (
+              <div className="text-red-500 text-center py-8">{markdownError}</div>
+            ) : (
+              <ReactMarkdown className="prose dark:prose-invert max-w-none">{termsContent}</ReactMarkdown>
+            )}
           </div>
         </div>
       )}
       {showPrivacy && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
           <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative`}>
-            <button onClick={() => setShowPrivacy(false)} className="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition text-gray-400">&times;</button>
-            <PrivacyPolicy />
+            <button onClick={() => { setShowPrivacy(false); setMarkdownError(null); }} className="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition text-gray-400">&times;</button>
+            {loadingMarkdown === 'privacy' ? (
+              <div className="text-center py-8">Loading...</div>
+            ) : markdownError ? (
+              <div className="text-red-500 text-center py-8">{markdownError}</div>
+            ) : (
+              <ReactMarkdown className="prose dark:prose-invert max-w-none">{privacyContent}</ReactMarkdown>
+            )}
           </div>
         </div>
       )}
       {showLicensing && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
           <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative`}>
-            <button onClick={() => setShowLicensing(false)} className="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition text-gray-400">&times;</button>
-            <Licensing />
+            <button onClick={() => { setShowLicensing(false); setMarkdownError(null); }} className="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition text-gray-400">&times;</button>
+            {loadingMarkdown === 'license' ? (
+              <div className="text-center py-8">Loading...</div>
+            ) : markdownError ? (
+              <div className="text-red-500 text-center py-8">{markdownError}</div>
+            ) : (
+              <ReactMarkdown className="prose dark:prose-invert max-w-none">{licenseContent}</ReactMarkdown>
+            )}
           </div>
         </div>
       )}
