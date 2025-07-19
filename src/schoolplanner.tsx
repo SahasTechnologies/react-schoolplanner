@@ -5,7 +5,7 @@ import * as React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { 
   Calendar, FileText, Home, BarChart3,
-  Settings as SettingsIcon, LoaderCircle, WifiOff
+  Settings as SettingsIcon, LoaderCircle
 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { ThemeKey, getColors } from './utils/theme.ts';
@@ -66,9 +66,6 @@ const SchoolPlanner = () => {
     return saved === null ? false : saved === 'true';
   });
 
-  // Add state for offline detection
-  const [isOffline, setIsOffline] = useState(!navigator.onLine);
-
   // Remove enhanced biweekly schedule and pattern logic
 
   // Remove old .ics and .school handlers, use one for both
@@ -87,7 +84,15 @@ const SchoolPlanner = () => {
 
 
 
-  // getEventColour function will be defined after effectiveMode is available
+  const getEventColour = (title: string): string => { // Changed to 'getEventColour'
+    // Handle break events specially
+    if (title === 'Break') {
+      return effectiveMode === 'light' ? '#6b7280' : '#9ca3af'; // Gray color for breaks
+    }
+    const normalizedTitle = normalizeSubjectName(title, autoNamingEnabled);
+    const subject = subjects.find((s: Subject) => normalizeSubjectName(s.name, autoNamingEnabled) === normalizedTitle);
+    return subject ? subject.colour : generateRandomColour(); // Changed to 'subject.colour'
+  };
 
 
 
@@ -454,7 +459,7 @@ const SchoolPlanner = () => {
               colors={colors}
             />
             {/* Quote of the Day Widget below CountdownBox */}
-            <QuoteOfTheDayWidget theme={theme} themeType={themeType} effectiveMode={effectiveMode} isOffline={isOffline} />
+            <QuoteOfTheDayWidget theme={theme} themeType={themeType} effectiveMode={effectiveMode} />
           </div>
         </div>
       </div>
@@ -698,17 +703,6 @@ const SchoolPlanner = () => {
 
   // Helper to get the correct color set for the current theme and type
   const colors = getColors(theme, themeType, effectiveMode);
-
-  // Define getEventColour function after effectiveMode is available
-  const getEventColour = (title: string): string => {
-    // Handle break events specially
-    if (title === 'Break') {
-      return effectiveMode === 'light' ? '#6b7280' : '#9ca3af'; // Gray color for breaks
-    }
-    const normalizedTitle = normalizeSubjectName(title, autoNamingEnabled);
-    const subject = subjects.find((s: Subject) => normalizeSubjectName(s.name, autoNamingEnabled) === normalizedTitle);
-    return subject ? subject.colour : generateRandomColour();
-  };
 
   // Dynamically set the body background color to match the theme
   React.useEffect(() => {
@@ -1012,20 +1006,6 @@ const SchoolPlanner = () => {
     localStorage.setItem('offlineCachingEnabled', offlineCachingEnabled ? 'true' : 'false');
   }, [offlineCachingEnabled]);
 
-  // Offline detection
-  useEffect(() => {
-    const handleOnline = () => setIsOffline(false);
-    const handleOffline = () => setIsOffline(true);
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
   // Update document.title for countdown in tab title
   useEffect(() => {
     if (countdownInTitle && tabCountdown && tabCountdown.time && tabCountdown.event) {
@@ -1123,18 +1103,11 @@ const SchoolPlanner = () => {
           <div className="max-w-7xl mx-auto">
             {/* Header - Conditional based on route */}
             {location.pathname === '/home' && (
-              <div className="mb-8 flex items-center justify-between">
+              <div className="mb-8 flex items-center">
                 <h1 className={`text-4xl font-bold mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}
-                  style={{textAlign: 'left'}}>
+                  style={{textAlign: 'left', width: '100%'}}>
                   {userName ? `${getGreeting()}, ${userName}!` : 'School Planner'}
                 </h1>
-                {/* Offline indicator */}
-                {isOffline && (
-                  <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${effectiveMode === 'light' ? 'bg-gray-100 text-gray-700' : 'bg-gray-800 text-gray-300'}`}>
-                    <WifiOff size={16} />
-                    <span className="text-sm font-medium">Offline mode</span>
-                  </div>
-                )}
               </div>
             )}
             {location.pathname === '/settings' && (
@@ -1189,49 +1162,34 @@ const SchoolPlanner = () => {
 };
 
 // Quote of the Day Widget
-const QuoteOfTheDayWidget: React.FC<{ theme: ThemeKey; themeType: 'normal' | 'extreme'; effectiveMode: 'light' | 'dark'; isOffline: boolean }> = ({ theme, themeType, effectiveMode, isOffline }) => {
+const QuoteOfTheDayWidget: React.FC<{ theme: ThemeKey; themeType: 'normal' | 'extreme'; effectiveMode: 'light' | 'dark' }> = ({ theme, themeType, effectiveMode }) => {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
   const url = getQuoteOfTheDayUrl(theme, themeType, effectiveMode);
 
   return (
     <div className={`${getColors(theme, themeType, effectiveMode).container} rounded-lg ${getColors(theme, themeType, effectiveMode).border} border p-4 mb-4 flex flex-col items-center`}>
-      <div className="flex items-center gap-2 mb-2">
-        <div className="font-semibold text-lg" style={{ color: effectiveMode === 'light' ? '#222' : '#fff' }}>Quote of the Day</div>
-        {isOffline && (
-          <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${effectiveMode === 'light' ? 'bg-gray-100 text-gray-600' : 'bg-gray-700 text-gray-300'}`}>
-            <WifiOff size={12} />
-            <span>Offline</span>
-          </div>
-        )}
-      </div>
-      {loading && !error && !isOffline && (
+      <div className="font-semibold text-lg mb-2" style={{ color: effectiveMode === 'light' ? '#222' : '#fff' }}>Quote of the Day</div>
+      {loading && !error && (
         <div className="flex flex-col items-center justify-center py-4 w-full">
           <LoaderCircle className={`animate-spin mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`} size={32} />
           <span className={`${effectiveMode === 'light' ? 'text-black' : 'text-gray-400'}`}>Loading...</span>
         </div>
       )}
-      {error && !isOffline && (
+      {error && (
         <div className="text-red-500 text-sm py-2">Failed to load quote widget.</div>
       )}
-      {isOffline ? (
-        <div className="flex flex-col items-center justify-center py-4 w-full">
-          <WifiOff className={`mb-2 ${effectiveMode === 'light' ? 'text-gray-400' : 'text-gray-500'}`} size={32} />
-          <span className={`text-sm ${effectiveMode === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>Quote unavailable in offline mode</span>
-        </div>
-      ) : (
-        <iframe
-          title="Quote of the Day"
-          src={url}
-          width="100%"
-          height="120"
-          style={{ border: 'none', borderRadius: '8px' }}
-          loading="lazy"
-          sandbox="allow-scripts allow-same-origin"
-          onLoad={() => { setLoading(false); setError(false); }}
-          onError={() => { setLoading(false); setError(true); }}
-        ></iframe>
-      )}
+      <iframe
+        title="Quote of the Day"
+        src={url}
+        width="100%"
+        height="120"
+        style={{ border: 'none', borderRadius: '8px' }}
+        loading="lazy"
+        sandbox="allow-scripts allow-same-origin"
+        onLoad={() => { setLoading(false); setError(false); }}
+        onError={() => { setLoading(false); setError(true); }}
+      ></iframe>
     </div>
   );
 };
