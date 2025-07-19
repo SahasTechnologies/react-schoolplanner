@@ -1,5 +1,5 @@
 // Utility to get the correct Quote of the Day iframe URL based on theme
-import { ThemeKey } from './theme.ts';
+import { ThemeKey } from './themeUtils';
 
 // Hardcoded URLs for each theme/mode/type combination
 const quoteUrlDark: Record<string, string> = {

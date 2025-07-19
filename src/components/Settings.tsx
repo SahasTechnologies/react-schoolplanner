@@ -13,8 +13,9 @@ import {
   WifiOff,
   LoaderCircle
 } from 'lucide-react';
-import { ThemeKey } from '../utils/theme';
+import { ThemeKey } from '../utils/themeUtils';
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported, forceCacheUpdate } from '../utils/cacheUtils';
+import { showSuccess, showError } from '../utils/notificationUtils';
 
 interface ExportModalState {
   show: boolean;
@@ -83,6 +84,7 @@ const Settings: React.FC<SettingsProps> = ({
   offlineCachingEnabled,
   setOfflineCachingEnabled
 }: SettingsProps) => {
+
   const [showNameEditModal, setShowNameEditModal] = React.useState(false);
   const [editUserName, setEditUserName] = React.useState(userName);
   const [serviceWorkerSupported] = React.useState(isServiceWorkerSupported());
@@ -103,7 +105,7 @@ const Settings: React.FC<SettingsProps> = ({
       } else {
         // Show error or revert toggle
         console.error('Failed to enable offline caching');
-        alert('Failed to enable offline caching. Please try again.');
+        showError('Offline Caching', 'Failed to enable offline caching. Please try again.', { effectiveMode, colors });
         setIsCachingLoading(false);
       }
     } else {
@@ -230,9 +232,9 @@ const Settings: React.FC<SettingsProps> = ({
               onClick={async () => {
                 const success = await forceCacheUpdate();
                 if (success) {
-                  alert('Cache updated successfully!');
+                  showSuccess('Cache Update', 'Cache updated successfully!', { effectiveMode, colors });
                 } else {
-                  alert('Failed to update cache. Please try again.');
+                  showError('Cache Update', 'Failed to update cache. Please try again.', { effectiveMode, colors });
                 }
               }}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
@@ -262,7 +264,11 @@ const Settings: React.FC<SettingsProps> = ({
                 className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
               >Cancel</button>
               <button
-                onClick={() => { setUserName(editUserName); setShowNameEditModal(false); }}
+                onClick={() => { 
+                  setUserName(editUserName); 
+                  setShowNameEditModal(false);
+                  showSuccess('Name Updated', 'Your name has been updated successfully!', { effectiveMode, colors });
+                }}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
               >Save</button>
             </div>
@@ -350,7 +356,14 @@ const Settings: React.FC<SettingsProps> = ({
               <input
                 type="checkbox"
                 checked={autoNamingEnabled}
-                onChange={(e) => setAutoNamingEnabled(e.target.checked)}
+                onChange={(e) => {
+                  setAutoNamingEnabled(e.target.checked);
+                  showSuccess(
+                    'Auto-Naming Updated', 
+                    `Auto-naming has been ${e.target.checked ? 'enabled' : 'disabled'} successfully!`,
+                    { effectiveMode, colors }
+                  );
+                }}
                 className="sr-only peer"
               />
               <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>

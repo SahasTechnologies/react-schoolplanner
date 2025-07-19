@@ -8,7 +8,7 @@ import {
   Settings as SettingsIcon, LoaderCircle
 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { ThemeKey, getColors } from './utils/theme.ts';
+import { ThemeKey, getColors, ThemeModal } from './utils/themeUtils';
 import { normalizeSubjectName } from './utils/subjectUtils.ts';
 import { getSubjectIcon } from './utils/subjectUtils.ts';
 import { 
@@ -22,12 +22,12 @@ import WelcomeScreen from './components/WelcomeScreen';
 import Settings from './components/Settings';
 import EventCard from './components/EventCard';
 import SubjectEditModal from './components/SubjectEditModal';
-import ThemeModal from './components/ThemeModal';
+
 import { Subject } from './types';
 import Sidebar from './components/Sidebar';
 import SubjectCard from './components/SubjectCard';
 import EventDetailsOverlay from './components/EventDetailsOverlay';
-import OfflineIndicator from './components/OfflineIndicator';
+import { createOfflineIndicatorElement } from './utils/offlineIndicatorUtils';
 import { processFile, exportData, generateRandomColour, defaultColours } from './utils/fileUtils.ts';
 import { getQuoteOfTheDayUrl } from './utils/quoteUtils.ts';
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported } from './utils/cacheUtils.ts';
@@ -419,12 +419,18 @@ const SchoolPlanner = () => {
             <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Home</h2>
           </div>
           {/* Offline indicator in top right */}
-          <OfflineIndicator 
-            effectiveMode={effectiveMode} 
-            size="medium"
-            offlineCachingEnabled={offlineCachingEnabled}
-            onToggleOfflineCaching={() => setOfflineCachingEnabled(!offlineCachingEnabled)}
-          />
+          <div ref={(el) => {
+            if (el) {
+              el.innerHTML = '';
+              const indicator = createOfflineIndicatorElement({
+                effectiveMode,
+                size: 'medium',
+                offlineCachingEnabled,
+                onToggleOfflineCaching: () => setOfflineCachingEnabled(!offlineCachingEnabled)
+              });
+              el.appendChild(indicator);
+            }
+          }} />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className={`${colors.container} rounded-lg ${colors.border} border p-6 col-span-1`}>
@@ -1198,11 +1204,17 @@ const QuoteOfTheDayWidget: React.FC<{
         <div className="font-semibold text-lg" style={{ color: effectiveMode === 'light' ? '#222' : '#fff' }}>Quote of the Day</div>
         {/* Only show offline indicator if actually offline, not when online with offline caching */}
         {!isOnline && (
-          <OfflineIndicator 
-            effectiveMode={effectiveMode} 
-            showText={false}
-            size="small"
-          />
+          <div ref={(el) => {
+            if (el) {
+              el.innerHTML = '';
+              const indicator = createOfflineIndicatorElement({
+                effectiveMode,
+                showText: false,
+                size: 'small'
+              });
+              el.appendChild(indicator);
+            }
+          }} />
         )}
       </div>
       {!isOnline && (
