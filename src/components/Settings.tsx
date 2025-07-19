@@ -16,7 +16,7 @@ import {
 import { ThemeKey } from '../utils/themeUtils';
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported, forceCacheUpdate } from '../utils/cacheUtils';
 import { showSuccess, showError, showInfo } from '../utils/notificationUtils';
-import ReactMarkdown from 'react-markdown';
+import Markdown from 'markdown-to-jsx';
 import { useState, useEffect } from 'react';
 
 interface ExportModalState {
@@ -413,7 +413,7 @@ const Settings: React.FC<SettingsProps> = ({
             ) : markdownError ? (
               <div className="text-red-500 text-center py-8">{markdownError}</div>
             ) : (
-              <ReactMarkdown className="prose dark:prose-invert max-w-none">{termsContent}</ReactMarkdown>
+              <Markdown className="prose dark:prose-invert max-w-none">{termsContent}</Markdown>
             )}
           </div>
         </div>
@@ -427,7 +427,7 @@ const Settings: React.FC<SettingsProps> = ({
             ) : markdownError ? (
               <div className="text-red-500 text-center py-8">{markdownError}</div>
             ) : (
-              <ReactMarkdown className="prose dark:prose-invert max-w-none">{privacyContent}</ReactMarkdown>
+              <Markdown className="prose dark:prose-invert max-w-none">{privacyContent}</Markdown>
             )}
           </div>
         </div>
@@ -441,7 +441,7 @@ const Settings: React.FC<SettingsProps> = ({
             ) : markdownError ? (
               <div className="text-red-500 text-center py-8">{markdownError}</div>
             ) : (
-              <ReactMarkdown className="prose dark:prose-invert max-w-none">{licenseContent}</ReactMarkdown>
+              <Markdown className="prose dark:prose-invert max-w-none">{licenseContent}</Markdown>
             )}
           </div>
         </div>
