@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Upload, FileText, User } from 'lucide-react';
+import Markdown from 'markdown-to-jsx';
 
 interface WelcomeScreenProps {
   welcomeStep: 'welcome' | 'name_input' | 'upload_ics' | 'completed';
@@ -36,8 +37,45 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
     navigate
   } = props;
 
-  const [agreeLegal, setAgreeLegal] = React.useState(false);
-  const [agreeLicense, setAgreeLicense] = React.useState(false);
+  const [agreeLegal, setAgreeLegal] = useState(false);
+  const [agreeLicense, setAgreeLicense] = useState(false);
+  // Add props for modal openers
+  const [showTerms, setShowTerms] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showLicensing, setShowLicensing] = useState(false);
+  const [termsContent, setTermsContent] = useState('');
+  const [privacyContent, setPrivacyContent] = useState('');
+  const [licenseContent, setLicenseContent] = useState('');
+  const [loadingMarkdown, setLoadingMarkdown] = useState<string | null>(null);
+  const [markdownError, setMarkdownError] = useState<string | null>(null);
+
+  // Fetch markdown when modal opens
+  useEffect(() => {
+    if (showTerms && !termsContent) {
+      setLoadingMarkdown('terms');
+      fetch('/terms.md')
+        .then(res => res.ok ? res.text() : Promise.reject('Failed to load Terms and Conditions'))
+        .then(setTermsContent)
+        .catch(() => setMarkdownError('Failed to load Terms and Conditions'))
+        .finally(() => setLoadingMarkdown(null));
+    }
+    if (showPrivacy && !privacyContent) {
+      setLoadingMarkdown('privacy');
+      fetch('/privacy.md')
+        .then(res => res.ok ? res.text() : Promise.reject('Failed to load Privacy Policy'))
+        .then(setPrivacyContent)
+        .catch(() => setMarkdownError('Failed to load Privacy Policy'))
+        .finally(() => setLoadingMarkdown(null));
+    }
+    if (showLicensing && !licenseContent) {
+      setLoadingMarkdown('license');
+      fetch('/license.md')
+        .then(res => res.ok ? res.text() : Promise.reject('Failed to load Licensing'))
+        .then(setLicenseContent)
+        .catch(() => setMarkdownError('Failed to load Licensing'))
+        .finally(() => setLoadingMarkdown(null));
+    }
+  }, [showTerms, showPrivacy, showLicensing]);
 
   if (welcomeStep === 'completed') {
     return (
@@ -61,7 +99,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
           <h1 className={`text-5xl font-bold mb-4 animate-fade-in-down ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Welcome!</h1>
           <p className={`text-xl mb-8 animate-fade-in-up ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>Your personal school planner.</p>
           <div className="mb-6 space-y-4">
-            <label className="flex items-center gap-3">
+            <label className="flex items-center gap-3 cursor-pointer">
               <div className="checkbox-wrapper-30">
                 <span className="checkbox">
                   <input type="checkbox" checked={agreeLegal} onChange={e => setAgreeLegal(e.target.checked)} />
@@ -75,9 +113,14 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
                   </symbol>
                 </svg>
               </div>
-              <span className={`text-base ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>I agree to the Terms & Conditions and Privacy Policy</span>
+              <span className={`text-base underline hover:text-blue-600 transition-colors duration-200 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}
+                onClick={() => setShowTerms(true)}
+                role="button"
+                tabIndex={0}
+                style={{cursor: 'pointer'}}
+              >I agree to the <span className="underline" onClick={e => {e.stopPropagation(); setShowTerms(true);}}>Terms & Conditions</span> and <span className="underline" onClick={e => {e.stopPropagation(); setShowPrivacy(true);}}>Privacy Policy</span></span>
             </label>
-            <label className="flex items-center gap-3">
+            <label className="flex items-center gap-3 cursor-pointer">
               <div className="checkbox-wrapper-30">
                 <span className="checkbox">
                   <input type="checkbox" checked={agreeLicense} onChange={e => setAgreeLicense(e.target.checked)} />
@@ -91,7 +134,12 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
                   </symbol>
                 </svg>
               </div>
-              <span className={`text-base ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>I agree to be bound by Licensing</span>
+              <span className={`text-base underline hover:text-blue-600 transition-colors duration-200 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}
+                onClick={() => setShowLicensing(true)}
+                role="button"
+                tabIndex={0}
+                style={{cursor: 'pointer'}}
+              >I agree to be bound by <span className="underline" onClick={e => {e.stopPropagation(); setShowLicensing(true);}}>Licensing</span></span>
             </label>
           </div>
           <button
@@ -101,13 +149,56 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
           >
             Get Started
           </button>
+          {showTerms && (
+            <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+              <div className="bg-white dark:bg-gray-900 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto">
+                <button onClick={() => { setShowTerms(false); setMarkdownError(null); }} className="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition text-gray-400">&times;</button>
+                {loadingMarkdown === 'terms' ? (
+                  <div className="text-center py-8">Loading...</div>
+                ) : markdownError ? (
+                  <div className="text-red-500 text-center py-8">{markdownError}</div>
+                ) : (
+                  <Markdown className="prose dark:prose-invert max-w-none">{termsContent}</Markdown>
+                )}
+              </div>
+            </div>
+          )}
+          {showPrivacy && (
+            <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+              <div className="bg-white dark:bg-gray-900 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto">
+                <button onClick={() => { setShowPrivacy(false); setMarkdownError(null); }} className="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition text-gray-400">&times;</button>
+                {loadingMarkdown === 'privacy' ? (
+                  <div className="text-center py-8">Loading...</div>
+                ) : markdownError ? (
+                  <div className="text-red-500 text-center py-8">{markdownError}</div>
+                ) : (
+                  <Markdown className="prose dark:prose-invert max-w-none">{privacyContent}</Markdown>
+                )}
+              </div>
+            </div>
+          )}
+          {showLicensing && (
+            <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+              <div className="bg-white dark:bg-gray-900 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto">
+                <button onClick={() => { setShowLicensing(false); setMarkdownError(null); }} className="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition text-gray-400">&times;</button>
+                {loadingMarkdown === 'license' ? (
+                  <div className="text-center py-8">Loading...</div>
+                ) : markdownError ? (
+                  <div className="text-red-500 text-center py-8">{markdownError}</div>
+                ) : (
+                  <Markdown className="prose dark:prose-invert max-w-none">{licenseContent}</Markdown>
+                )}
+              </div>
+            </div>
+          )}
           <style>{`
           /* Checkbox CSS by Saeed Alipoor */
           .checkbox-wrapper-30 .checkbox {
-            --bg: #fff;
+            --bg: ${effectiveMode === 'light' ? '#fff' : '#222'};
             --brdr: #d1d6ee;
-            --brdr-actv: #1e2235;
+            --brdr-actv: ${effectiveMode === 'light' ? '#1e2235' : '#fff'};
             --brdr-hovr: #bbc1e1;
+            --tick: ${effectiveMode === 'light' ? '#1e2235' : '#fff'};
             --dur: calc((var(--size, 2)/2) * 0.6s);
             display: inline-block;
             width: calc(var(--size, 1) * 22px);
@@ -150,12 +241,13 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
           .checkbox-wrapper-30 .checkbox input:checked + svg {
             --dashArray: 16 93;
             --dashOffset: 109;
+            stroke: var(--tick);
           }
           .checkbox-wrapper-30 .checkbox svg {
             fill: none;
             left: 0;
             pointer-events: none;
-            stroke: var(--stroke, var(--border-active));
+            stroke: var(--tick, var(--border-active));
             stroke-dasharray: var(--dashArray, 93);
             stroke-dashoffset: var(--dashOffset, 94);
             stroke-linecap: round;
