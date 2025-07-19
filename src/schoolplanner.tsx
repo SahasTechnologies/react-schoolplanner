@@ -8,7 +8,8 @@ import {
   Settings as SettingsIcon, LoaderCircle
 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { ThemeKey, getColors, ThemeModal } from './utils/themeUtils';
+import { ThemeKey, getColors } from './utils/themeUtils';
+import { ThemeModal } from './components/ThemeModal';
 import { normalizeSubjectName } from './utils/subjectUtils.ts';
 import { getSubjectIcon } from './utils/subjectUtils.ts';
 import { 
