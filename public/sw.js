@@ -22,13 +22,31 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Fetch event - serve from cache when offline
+// Fetch event - serve from cache when offline, update cache when online
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
-        // Return cached version or fetch from network
-        return response || fetch(event.request);
+        // If we have a cached version, return it immediately
+        if (response) {
+          // But also fetch the latest version in the background to update cache
+          fetch(event.request).then((fetchResponse) => {
+            if (fetchResponse.status === 200) {
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, fetchResponse.clone());
+                console.log('Updated cache for:', event.request.url);
+              });
+            }
+          }).catch(() => {
+            // If fetch fails, we still have the cached version
+            console.log('Failed to update cache for:', event.request.url);
+          });
+          
+          return response;
+        }
+        
+        // If no cached version, fetch from network
+        return fetch(event.request);
       })
   );
 });
@@ -47,4 +65,43 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
-}); 
+});
+
+// Check for updates when the service worker starts
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+  
+  if (event.data && event.data.type === 'UPDATE_CACHE') {
+    event.waitUntil(updateCache());
+  }
+});
+
+// Background sync for cache updates
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'background-sync') {
+    event.waitUntil(updateCache());
+  }
+});
+
+// Function to update cache with latest versions
+async function updateCache() {
+  try {
+    const cache = await caches.open(CACHE_NAME);
+    
+    for (const url of urlsToCache) {
+      try {
+        const response = await fetch(url);
+        if (response.status === 200) {
+          await cache.put(url, response);
+          console.log('Updated cache for:', url);
+        }
+      } catch (error) {
+        console.log('Failed to update cache for:', url, error);
+      }
+    }
+  } catch (error) {
+    console.log('Cache update failed:', error);
+  }
+} 

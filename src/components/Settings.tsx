@@ -359,13 +359,13 @@ const Settings: React.FC<SettingsProps> = ({
               <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Change the color theme of the app</p>
             </div>
           </div>
-          {/* <button
+          <button
             onClick={() => setShowThemeModal(true)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${colors.button} text-white`}
           >
             <Palette size={18} />
             Change Theme
-          </button> */}
+          </button>
         </div>
       </div>
     </div>

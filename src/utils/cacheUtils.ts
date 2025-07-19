@@ -74,6 +74,60 @@ export const getServiceWorkerStatus = async (): Promise<'registered' | 'not-regi
   }
 };
 
+// Check for service worker updates
+export const checkForUpdates = async (): Promise<boolean> => {
+  if (!isServiceWorkerSupported()) {
+    return false;
+  }
+  
+  try {
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (registration) {
+      await registration.update();
+      
+      // Listen for new service worker
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        if (newWorker) {
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // New service worker is ready, notify user
+              console.log('New version available!');
+              // You could show a notification here to reload the page
+            }
+          });
+        }
+      });
+      
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Error checking for updates:', error);
+    return false;
+  }
+};
+
+// Force update the cache
+export const forceCacheUpdate = async (): Promise<boolean> => {
+  if (!isServiceWorkerSupported()) {
+    return false;
+  }
+  
+  try {
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (registration && registration.active) {
+      // Send message to service worker to update cache
+      registration.active.postMessage({ type: 'UPDATE_CACHE' });
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Error forcing cache update:', error);
+    return false;
+  }
+};
+
 export const checkCacheStatus = async (): Promise<{ hasCache: boolean; cacheSize: number }> => {
   if (!('caches' in window)) {
     return { hasCache: false, cacheSize: 0 };
