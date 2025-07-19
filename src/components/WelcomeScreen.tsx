@@ -112,13 +112,13 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
             disabled={isUpcoming}
             onClick={() => isCompleted && setWelcomeStep(step as typeof welcomeStep)}
             className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg transition-all duration-300 focus:outline-none border-2
-              ${isActive ? `${colors.buttonAccent} ${colors.buttonText} shadow-lg` : 'bg-transparent border-gray-300'}
+              ${isActive ? `${colors.buttonAccent} shadow-lg` : 'bg-transparent border-gray-300'}
               ${isCompleted ? 'cursor-pointer hover:scale-105' : 'cursor-default'}
             `}
             aria-label={`Step ${idx + 1}`}
             tabIndex={isCompleted ? 0 : -1}
           >
-            <span className={isActive ? colors.accentText : 'text-gray-400'}>{idx + 1}</span>
+            <span className={isActive ? 'text-white' : 'text-gray-400'}>{idx + 1}</span>
           </button>
         );
       })}
