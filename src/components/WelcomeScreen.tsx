@@ -48,8 +48,6 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
   const [licenseContent, setLicenseContent] = useState('');
   const [loadingMarkdown, setLoadingMarkdown] = useState<string | null>(null);
   const [markdownError, setMarkdownError] = useState<string | null>(null);
-  // Add state for uploaded school file name detection
-  const [schoolFileHasName, setSchoolFileHasName] = useState(false);
 
   // Fetch markdown when modal opens
   useEffect(() => {
@@ -98,16 +96,6 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
   const stepOrder = ['legal', 'upload', 'name_input'];
   const stepLabels = ['Legal', 'Upload', 'Name'];
   const stepIndex = stepOrder.indexOf(welcomeStep);
-
-  // Add back buttons to steps 2 and 3
-  const BackButton = () => (
-    <button
-      onClick={() => setWelcomeStep(stepOrder[stepIndex - 1] as 'upload' | 'name_input' | 'legal')}
-      className="absolute left-8 top-8 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg font-medium transition-colors duration-200 hover:bg-gray-300 dark:hover:bg-gray-600"
-    >
-      &larr; Back
-    </button>
-  );
 
   // Add step circles at the top
   const StepCircles = () => (
@@ -314,12 +302,6 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
       return (
         <div className="flex flex-col items-center justify-center h-full text-center p-8">
           <StepCircles />
-          <button
-            onClick={() => setWelcomeStep('legal')}
-            className="absolute left-8 top-8 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg font-medium transition-colors duration-200 hover:bg-gray-300 dark:hover:bg-gray-600"
-          >
-            &larr; Back
-          </button>
           <h2 className={`text-3xl font-bold mb-6 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Upload or Import Your Timetable</h2>
           <p className={`mb-4 text-base ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>Upload an ICS calendar or import your .school file.</p>
           <div
@@ -343,20 +325,16 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
                     const data = JSON.parse(ev.target?.result as string);
                     if (data && data.userName) {
                       setUserName(data.userName);
-                      setSchoolFileHasName(true);
                       setWelcomeStep('completed');
                     } else {
-                      setSchoolFileHasName(false);
                       setWelcomeStep('name_input');
                     }
                   } catch {
-                    setSchoolFileHasName(false);
                     setWelcomeStep('name_input');
                   }
                 };
                 reader.readAsText(file);
               } else {
-                setSchoolFileHasName(false);
                 setWelcomeStep('name_input');
               }
             }}
@@ -389,20 +367,16 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
                           const data = JSON.parse(ev.target?.result as string);
                           if (data && data.userName) {
                             setUserName(data.userName);
-                            setSchoolFileHasName(true);
                             setWelcomeStep('completed');
                           } else {
-                            setSchoolFileHasName(false);
                             setWelcomeStep('name_input');
                           }
                         } catch {
-                          setSchoolFileHasName(false);
                           setWelcomeStep('name_input');
                         }
                       };
                       reader.readAsText(file);
                     } else {
-                      setSchoolFileHasName(false);
                       setWelcomeStep('name_input');
                     }
                   }}
@@ -431,12 +405,6 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
       return (
         <div className="flex flex-col items-center justify-center h-full text-center p-8">
           <StepCircles />
-          <button
-            onClick={() => setWelcomeStep('upload')}
-            className="absolute left-8 top-8 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg font-medium transition-colors duration-200 hover:bg-gray-300 dark:hover:bg-gray-600"
-          >
-            &larr; Back
-          </button>
           <User size={64} className="text-blue-400 mb-6 animate-bounce-in" />
           <h2 className={`text-3xl font-bold mb-4 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>What's your name? (Optional)</h2>
           <p className={`${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-300'} mb-6`}>We'll use this to greet you!</p>
