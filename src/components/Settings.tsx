@@ -204,7 +204,7 @@ const Settings: React.FC<SettingsProps> = ({
           </div>
           <button
             onClick={() => setExportModalState((prev) => ({ ...prev, show: true }))}
-            className="bg-primary hover:bg-primary-dark text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+            className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
           >
             <FileText size={16} />
             Export
@@ -219,7 +219,7 @@ const Settings: React.FC<SettingsProps> = ({
           <>
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="bg-primary hover:bg-primary-dark text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+              className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
             >
               <FileText size={16} />
               Import
@@ -362,7 +362,7 @@ const Settings: React.FC<SettingsProps> = ({
                   setShowNameEditModal(false);
                   showSuccess('Name Updated', 'Your name has been updated successfully!', { effectiveMode, colors });
                 }}
-                className="bg-primary hover:bg-primary-dark text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+                className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
               >Save</button>
             </div>
           </div>
@@ -592,7 +592,7 @@ const Settings: React.FC<SettingsProps> = ({
           </div>
           <button
             onClick={() => setShowThemeModal(true)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${colors.button} ${colors.buttonText}`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText}`}
           >
             <Palette size={18} />
             Change Theme

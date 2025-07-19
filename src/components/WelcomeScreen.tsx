@@ -86,7 +86,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
         <p className={`${colors.buttonText} opacity-80 mb-6`}>You have already uploaded your timetable and name. To change them, go to Settings.</p>
         <button
           onClick={() => navigate('/settings')}
-          className={`${colors.button} ${colors.buttonText} px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105`}
+          className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105`}
         >
           Go to Settings
         </button>
@@ -128,8 +128,10 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
   switch (welcomeStep) {
     case 'legal':
       return (
-        <div className="flex flex-col items-center justify-center h-full text-center p-8">
-          <StepCircles />
+        <div className="flex flex-col items-center justify-center h-full text-center p-8 relative">
+          <div className="absolute top-0 left-0 w-full flex justify-center z-10">
+            <StepCircles />
+          </div>
           <h1 className={`text-5xl font-bold mb-4 animate-fade-in-down ${colors.buttonText}`}>Welcome to School Planner!</h1>
           <p className={`text-xl mb-8 animate-fade-in-up ${colors.buttonText} opacity-80`}>Your personal school planner.</p>
           <div className="mb-6 space-y-4">
@@ -168,7 +170,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
           </div>
           <button
             onClick={() => setWelcomeStep('upload')}
-            className={`${colors.button} ${colors.buttonText} px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 ${!(agreeLegal && agreeLicense) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 ${!(agreeLegal && agreeLicense) ? 'opacity-50 cursor-not-allowed' : ''}`}
             disabled={!(agreeLegal && agreeLicense)}
           >
             Next
@@ -316,8 +318,10 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
       );
     case 'upload':
       return (
-        <div className="flex flex-col items-center justify-center h-full text-center p-8">
-          <StepCircles />
+        <div className="flex flex-col items-center justify-center h-full text-center p-8 relative">
+          <div className="absolute top-0 left-0 w-full flex justify-center z-10">
+            <StepCircles />
+          </div>
           <h2 className={`text-3xl font-bold mb-6 ${colors.buttonText}`}>Upload or Import Your Timetable</h2>
           <p className={`mb-4 text-base ${colors.buttonText} opacity-80`}>Upload an ICS calendar or import your .school file.</p>
           <div
@@ -419,8 +423,10 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
       );
     case 'name_input':
       return (
-        <div className="flex flex-col items-center justify-center h-full text-center p-8">
-          <StepCircles />
+        <div className="flex flex-col items-center justify-center h-full text-center p-8 relative">
+          <div className="absolute top-0 left-0 w-full flex justify-center z-10">
+            <StepCircles />
+          </div>
           <User size={64} className="text-primary mb-6 animate-bounce-in" />
           <h2 className={`text-3xl font-bold mb-4 ${colors.buttonText}`}>What's your name? (Optional)</h2>
           <p className={`${colors.buttonText} opacity-80 mb-6`}>We'll use this to greet you!</p>
