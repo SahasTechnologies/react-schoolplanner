@@ -66,8 +66,8 @@ const SchoolPlanner = () => {
     return saved === null ? false : saved === 'true';
   });
 
-  // Add state for online/offline detection
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  // Add state for offline detection
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
   // Remove enhanced biweekly schedule and pattern logic
 
@@ -462,7 +462,7 @@ const SchoolPlanner = () => {
               colors={colors}
             />
             {/* Quote of the Day Widget below CountdownBox */}
-            <QuoteOfTheDayWidget theme={theme} themeType={themeType} effectiveMode={effectiveMode} isOnline={isOnline} />
+            <QuoteOfTheDayWidget theme={theme} themeType={themeType} effectiveMode={effectiveMode} isOffline={isOffline} />
           </div>
         </div>
       </div>
@@ -1009,10 +1009,10 @@ const SchoolPlanner = () => {
     localStorage.setItem('offlineCachingEnabled', offlineCachingEnabled ? 'true' : 'false');
   }, [offlineCachingEnabled]);
 
-  // Online/offline detection
+  // Offline detection
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -1125,8 +1125,8 @@ const SchoolPlanner = () => {
                   style={{textAlign: 'left'}}>
                   {userName ? `${getGreeting()}, ${userName}!` : 'School Planner'}
                 </h1>
-                {/* Offline Indicator */}
-                {!isOnline && (
+                {/* Offline indicator */}
+                {isOffline && (
                   <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${effectiveMode === 'light' ? 'bg-gray-100 text-gray-700' : 'bg-gray-800 text-gray-300'}`}>
                     <WifiOff size={16} />
                     <span className="text-sm font-medium">Offline mode</span>
@@ -1186,7 +1186,7 @@ const SchoolPlanner = () => {
 };
 
 // Quote of the Day Widget
-const QuoteOfTheDayWidget: React.FC<{ theme: ThemeKey; themeType: 'normal' | 'extreme'; effectiveMode: 'light' | 'dark'; isOnline: boolean }> = ({ theme, themeType, effectiveMode, isOnline }) => {
+const QuoteOfTheDayWidget: React.FC<{ theme: ThemeKey; themeType: 'normal' | 'extreme'; effectiveMode: 'light' | 'dark'; isOffline: boolean }> = ({ theme, themeType, effectiveMode, isOffline }) => {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
   const url = getQuoteOfTheDayUrl(theme, themeType, effectiveMode);
@@ -1195,41 +1195,39 @@ const QuoteOfTheDayWidget: React.FC<{ theme: ThemeKey; themeType: 'normal' | 'ex
     <div className={`${getColors(theme, themeType, effectiveMode).container} rounded-lg ${getColors(theme, themeType, effectiveMode).border} border p-4 mb-4 flex flex-col items-center`}>
       <div className="flex items-center gap-2 mb-2">
         <div className="font-semibold text-lg" style={{ color: effectiveMode === 'light' ? '#222' : '#fff' }}>Quote of the Day</div>
-        {!isOnline && (
-          <div className="flex items-center gap-1">
-            <WifiOff size={14} className="text-gray-500" />
-            <span className="text-xs text-gray-500">Offline</span>
+        {isOffline && (
+          <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${effectiveMode === 'light' ? 'bg-gray-100 text-gray-600' : 'bg-gray-700 text-gray-300'}`}>
+            <WifiOff size={12} />
+            <span>Offline</span>
           </div>
         )}
       </div>
-      {!isOnline ? (
+      {loading && !error && !isOffline && (
+        <div className="flex flex-col items-center justify-center py-4 w-full">
+          <LoaderCircle className={`animate-spin mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`} size={32} />
+          <span className={`${effectiveMode === 'light' ? 'text-black' : 'text-gray-400'}`}>Loading...</span>
+        </div>
+      )}
+      {error && !isOffline && (
+        <div className="text-red-500 text-sm py-2">Failed to load quote widget.</div>
+      )}
+      {isOffline ? (
         <div className="flex flex-col items-center justify-center py-4 w-full">
           <WifiOff className={`mb-2 ${effectiveMode === 'light' ? 'text-gray-400' : 'text-gray-500'}`} size={32} />
-          <span className={`text-sm ${effectiveMode === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>Quote unavailable offline</span>
+          <span className={`text-sm ${effectiveMode === 'light' ? 'text-gray-500' : 'text-gray-400'}`}>Quote unavailable in offline mode</span>
         </div>
       ) : (
-        <>
-          {loading && !error && (
-            <div className="flex flex-col items-center justify-center py-4 w-full">
-              <LoaderCircle className={`animate-spin mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`} size={32} />
-              <span className={`${effectiveMode === 'light' ? 'text-black' : 'text-gray-400'}`}>Loading...</span>
-            </div>
-          )}
-          {error && (
-            <div className="text-red-500 text-sm py-2">Failed to load quote widget.</div>
-          )}
-          <iframe
-            title="Quote of the Day"
-            src={url}
-            width="100%"
-            height="120"
-            style={{ border: 'none', borderRadius: '8px' }}
-            loading="lazy"
-            sandbox="allow-scripts allow-same-origin"
-            onLoad={() => { setLoading(false); setError(false); }}
-            onError={() => { setLoading(false); setError(true); }}
-          ></iframe>
-        </>
+        <iframe
+          title="Quote of the Day"
+          src={url}
+          width="100%"
+          height="120"
+          style={{ border: 'none', borderRadius: '8px' }}
+          loading="lazy"
+          sandbox="allow-scripts allow-same-origin"
+          onLoad={() => { setLoading(false); setError(false); }}
+          onError={() => { setLoading(false); setError(true); }}
+        ></iframe>
       )}
     </div>
   );
