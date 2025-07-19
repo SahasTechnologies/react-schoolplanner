@@ -173,20 +173,20 @@ const Settings: React.FC<SettingsProps> = ({
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <SettingsIcon className={colors.buttonText} size={24} />
-        <h2 className={`text-2xl font-semibold ${colors.buttonText}`}>Settings</h2>
+        <SettingsIcon className={colors.text} size={24} />
+        <h2 className={`text-2xl font-semibold ${colors.text}`}>Settings</h2>
       </div>
 
       {/* Data Section */}
       <div className={`${colors.container} rounded-lg ${colors.border} border p-6 mb-4`}>
         <div className="flex items-center gap-2 mb-4">
-          <User className={colors.buttonText} size={20} />
-          <h3 className={`text-lg font-medium ${colors.buttonText}`}>Data</h3>
+          <User className={colors.containerText} size={20} />
+          <h3 className={`text-lg font-medium ${colors.containerText}`}>Data</h3>
         </div>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <p className={`font-medium ${colors.buttonText}`}>Name</p>
-            <p className={`text-sm ${colors.buttonText} opacity-80`}>{userName || <span className="italic">(not set)</span>}</p>
+            <p className={`font-medium ${colors.containerText}`}>Name</p>
+            <p className={`text-sm ${colors.containerText} opacity-80`}>{userName || <span className="italic">(not set)</span>}</p>
           </div>
           <button
             onClick={() => { setEditUserName(userName); setShowNameEditModal(true); }}
@@ -197,24 +197,22 @@ const Settings: React.FC<SettingsProps> = ({
           </button>
         </div>
         {/* Export Data Button */}
-        <div className="flex items-center justify-between mt-4">
-          <div>
-            <p className={`font-medium ${colors.buttonText}`}>Export Data</p>
-            <p className={`text-sm ${colors.buttonText} opacity-80`}>Export your calendar and subject data as a .school file</p>
-          </div>
-          <button
-            onClick={() => setExportModalState((prev) => ({ ...prev, show: true }))}
-            className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
-          >
-            <FileText size={16} />
-            Export
-          </button>
+        <div>
+          <p className={`font-medium ${colors.containerText}`}>Export Data</p>
+          <p className={`text-sm ${colors.containerText} opacity-80`}>Export your calendar and subject data as a .school file</p>
         </div>
+        <button
+          onClick={() => setExportModalState((prev) => ({ ...prev, show: true }))}
+          className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
+        >
+          <FileText size={16} />
+          Export
+        </button>
         {/* Import Data Button (direct file input, no modal) */}
         <div className="flex items-center justify-between mt-4">
           <div>
-            <p className={`font-medium ${colors.buttonText}`}>Import Data</p>
-            <p className={`text-sm ${colors.buttonText} opacity-80`}>Import your .ics or .school file</p>
+            <p className={`font-medium ${colors.containerText}`}>Import Data</p>
+            <p className={`text-sm ${colors.containerText} opacity-80`}>Import your .ics or .school file</p>
           </div>
           <>
             <button
@@ -234,38 +232,20 @@ const Settings: React.FC<SettingsProps> = ({
           </>
         </div>
         {/* Offline Caching Toggle */}
-        <div className="flex items-center justify-between mt-4 border-t border-gray-700 pt-4">
-          <div className="flex items-center gap-3">
-            {offlineCachingEnabled ? (
-              <Wifi className={effectiveMode === 'light' ? 'text-green-600' : 'text-green-400'} size={18} />
-            ) : (
-              <WifiOff className={effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} size={18} />
-            )}
-            <div>
-              <p className={`font-medium ${colors.buttonText}`}>Save Site for Offline Use</p>
-              <p className={`text-sm ${colors.buttonText} opacity-80`}>
-                {serviceWorkerSupported 
-                  ? 'Cache the site so it works without internet connection' 
-                  : 'Service Worker not supported in this browser'}
-              </p>
-            </div>
-          </div>
-          {isCachingLoading ? (
-            <div className="flex items-center justify-center w-11 h-6">
-              <LoaderCircle className={`animate-spin ${effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400'}`} size={20} />
-            </div>
+        <div className="flex items-center gap-3">
+          {offlineCachingEnabled ? (
+            <Wifi className={effectiveMode === 'light' ? 'text-green-600' : 'text-green-400'} size={18} />
           ) : (
-            <label className={`relative inline-flex items-center cursor-pointer ${!serviceWorkerSupported ? 'opacity-50' : ''}`}>
-              <input
-                type="checkbox"
-                checked={offlineCachingEnabled}
-                onChange={(e) => serviceWorkerSupported && handleOfflineCachingToggle(e.target.checked)}
-                className="sr-only peer"
-                disabled={!serviceWorkerSupported}
-              />
-              <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-            </label>
+            <WifiOff className={effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} size={18} />
           )}
+          <div>
+            <p className={`font-medium ${colors.containerText}`}>Save Site for Offline Use</p>
+            <p className={`text-sm ${colors.containerText} opacity-80`}>
+              {serviceWorkerSupported 
+                ? 'Cache the site so it works without internet connection' 
+                : 'Service Worker not supported in this browser'}
+            </p>
+          </div>
         </div>
         
         {/* Update Cache Button - only show if caching is enabled */}
@@ -273,8 +253,8 @@ const Settings: React.FC<SettingsProps> = ({
           <div className="flex items-center justify-between mt-4 border-t border-gray-700 pt-4">
             <div className="flex items-center gap-3">
               <div>
-                <p className={`font-medium ${colors.buttonText}`}>Update Cache</p>
-                <p className={`text-sm ${colors.buttonText} opacity-80`}>
+                <p className={`font-medium ${colors.containerText}`}>Update Cache</p>
+                <p className={`text-sm ${colors.containerText} opacity-80`}>
                   Manually update the cached files to the latest version
                 </p>
               </div>
@@ -300,15 +280,15 @@ const Settings: React.FC<SettingsProps> = ({
       {/* Home Settings Section */}
       <div className={`${colors.container} rounded-lg ${colors.border} border p-6 mb-4`}>
         <div className="flex items-center gap-2 mb-4">
-          <Home className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
-          <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Home Settings</h3>
+          <Home className={colors.text} size={20} />
+          <h3 className={`text-lg font-medium ${colors.text}`}>Home Settings</h3>
         </div>
         <div className="space-y-4">
           {/* Show Countdown on Home Toggle */}
           <div className="flex items-center justify-between">
             <div>
-              <p className={`font-medium ${colors.buttonText}`}>Show Countdown on Home</p>
-              <p className={`text-sm ${colors.buttonText} opacity-80`}>Display the countdown timer on the home screen</p>
+              <p className={`font-medium ${colors.containerText}`}>Show Countdown on Home</p>
+              <p className={`text-sm ${colors.containerText} opacity-80`}>Display the countdown timer on the home screen</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -323,8 +303,8 @@ const Settings: React.FC<SettingsProps> = ({
           {/* Show Info Popup on Home Toggle */}
           <div className="flex items-center justify-between">
             <div>
-              <p className={`font-medium ${colors.buttonText}`}>Show Info Popup on Home</p>
-              <p className={`text-sm ${colors.buttonText} opacity-80`}>Display the info popup when opening the home screen</p>
+              <p className={`font-medium ${colors.containerText}`}>Show Info Popup on Home</p>
+              <p className={`text-sm ${colors.containerText} opacity-80`}>Display the info popup when opening the home screen</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -417,8 +397,8 @@ const Settings: React.FC<SettingsProps> = ({
       {/* Legal Section */}
       <div className={`${colors.container} rounded-lg ${colors.border} border p-6 mb-4`}>
         <div className="flex items-center gap-2 mb-4">
-          <FileText className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
-          <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Legal</h3>
+          <FileText className={colors.text} size={20} />
+          <h3 className={`text-lg font-medium ${colors.text}`}>Legal</h3>
         </div>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -524,16 +504,16 @@ const Settings: React.FC<SettingsProps> = ({
       {/* Timetable Settings */}
       <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
         <div className="flex items-center gap-2 mb-4">
-          <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
-          <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Timetable Settings</h3>
+          <Calendar className={colors.text} size={20} />
+          <h3 className={`text-lg font-medium ${colors.text}`}>Timetable Settings</h3>
         </div>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Trash2 className={effectiveMode === 'light' ? 'text-red-600' : 'text-red-400'} size={18} />
               <div>
-                <p className={`font-medium ${colors.buttonText}`}>Clear Timetable Data</p>
-                <p className={`text-sm ${colors.buttonText} opacity-80`}>This will remove all uploaded calendar data and subjects</p>
+                <p className={`font-medium ${colors.containerText}`}>Clear Timetable Data</p>
+                <p className={`text-sm ${colors.containerText} opacity-80`}>This will remove all uploaded calendar data and subjects</p>
               </div>
             </div>
             <button
@@ -548,8 +528,8 @@ const Settings: React.FC<SettingsProps> = ({
             <div className="flex items-center gap-3">
               <Smartphone className={effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400'} size={18} />
               <div>
-                <p className={`font-medium ${colors.buttonText}`}>Enable Auto-Naming</p>
-                <p className={`text-sm ${colors.buttonText} opacity-80`}>Automatically rename subjects based on keywords</p>
+                <p className={`font-medium ${colors.containerText}`}>Enable Auto-Naming</p>
+                <p className={`text-sm ${colors.containerText} opacity-80`}>Automatically rename subjects based on keywords</p>
               </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -575,8 +555,8 @@ const Settings: React.FC<SettingsProps> = ({
       {/* Customise Section */}
       <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
         <div className="flex items-center gap-2 mb-4">
-          <Palette className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
-          <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Customise</h3>
+          <Palette className={colors.text} size={20} />
+          <h3 className={`text-lg font-medium ${colors.text}`}>Customise</h3>
         </div>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -586,8 +566,8 @@ const Settings: React.FC<SettingsProps> = ({
               {/* themeMode === 'system' && <Monitor className={effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} size={18} /> */}
             </div>
             <div>
-              <p className={`font-medium ${colors.buttonText}`}>Theme</p>
-              <p className={`text-sm ${colors.buttonText} opacity-80`}>Change the color theme of the app</p>
+              <p className={`font-medium ${colors.containerText}`}>Theme</p>
+              <p className={`text-sm ${colors.containerText} opacity-80`}>Change the color theme of the app</p>
             </div>
           </div>
           <button

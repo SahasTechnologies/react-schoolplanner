@@ -218,9 +218,17 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
             </div>
           )}
           <style>{`
+          /* Set theme variables for checkbox for better light mode visibility */
+          .checkbox-wrapper-30 {
+            --color-bg: ${colors.container ? (colors.effectiveMode === 'light' ? '#fff' : '#232323') : '#fff'};
+            --color-bg-dark: ${colors.container ? (colors.effectiveMode === 'dark' ? '#232323' : '#fff') : '#232323'};
+            --color-border: ${colors.border ? (colors.effectiveMode === 'light' ? '#d1d5db' : '#444') : '#d1d5db'};
+            --color-primary: ${colors.buttonAccent ? (colors.effectiveMode === 'light' ? '#2563eb' : '#60a5fa') : '#2563eb'};
+            --color-primary-light: ${colors.buttonAccentHover ? (colors.effectiveMode === 'light' ? '#93c5fd' : '#2563eb') : '#93c5fd'};
+          }
           /* Checkbox CSS by Saeed Alipoor */
           .checkbox-wrapper-30 .checkbox {
-            --bg: ${effectiveMode === 'light' ? 'var(--color-bg)' : 'var(--color-bg-dark)'};
+            --bg: var(--color-bg);
             --brdr: var(--color-border);
             --brdr-actv: var(--color-primary);
             --brdr-hovr: var(--color-primary-light);

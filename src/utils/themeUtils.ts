@@ -300,7 +300,7 @@ export const themeColors = (mode: 'dark' | 'light') => ({
 export const getColors = (theme: ThemeKey, themeType: 'normal' | 'extreme', effectiveMode: 'light' | 'dark') => {
   const colors = colorVars[theme][effectiveMode][themeType];
   // Button and buttonText colors for theme-aware buttons
-  let button, buttonText, buttonAccent, buttonAccentHover, text, containerText, accentText;
+  let button, buttonText, buttonAccent, buttonAccentHover, text, containerText, accentText, sidebarHover;
   if (effectiveMode === 'light') {
     button = 'bg-gray-900 hover:bg-gray-800'; // fallback dark button for light mode
     buttonText = 'text-white';
@@ -318,6 +318,7 @@ export const getColors = (theme: ThemeKey, themeType: 'normal' | 'extreme', effe
       grey:   ['bg-gray-600', 'hover:bg-gray-700', 'text-gray-600'],
     };
     [buttonAccent, buttonAccentHover, accentText] = accentMap[theme];
+    sidebarHover = 'bg-gray-200'; // Subtle hover for sidebar in light mode
   } else {
     button = 'bg-white/10 hover:bg-white/20'; // fallback light button for dark mode
     buttonText = 'text-white';
@@ -335,6 +336,7 @@ export const getColors = (theme: ThemeKey, themeType: 'normal' | 'extreme', effe
       grey:   ['bg-gray-500', 'hover:bg-gray-600', 'text-gray-300'],
     };
     [buttonAccent, buttonAccentHover, accentText] = accentMap[theme];
+    sidebarHover = 'bg-white/10'; // Subtle light overlay for sidebar in dark mode
   }
   return {
     background: colors.background,
@@ -349,5 +351,6 @@ export const getColors = (theme: ThemeKey, themeType: 'normal' | 'extreme', effe
     text,
     containerText,
     accentText,
+    sidebarHover,
   };
 }; 
