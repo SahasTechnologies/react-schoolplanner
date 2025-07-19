@@ -87,7 +87,6 @@ const Settings: React.FC<SettingsProps> = ({
   const [editUserName, setEditUserName] = React.useState(userName);
   const [serviceWorkerSupported] = React.useState(isServiceWorkerSupported());
   const [isCachingLoading, setIsCachingLoading] = React.useState(false);
-  const [swStatus, setSwStatus] = React.useState<'registered' | 'not-registered' | 'not-supported'>('not-registered');
 
   // Handle offline caching toggle
   const handleOfflineCachingToggle = async (enabled: boolean) => {
@@ -98,9 +97,7 @@ const Settings: React.FC<SettingsProps> = ({
       const success = await registerServiceWorker();
       if (success) {
         setOfflineCachingEnabled(true);
-        setTimeout(async () => {
-          const status = await getServiceWorkerStatus();
-          setSwStatus(status);
+        setTimeout(() => {
           setIsCachingLoading(false);
         }, 1000);
       } else {
@@ -114,19 +111,11 @@ const Settings: React.FC<SettingsProps> = ({
       await unregisterServiceWorker();
       await clearAllCaches();
       setOfflineCachingEnabled(false);
-      setSwStatus('not-registered');
       setIsCachingLoading(false);
     }
   };
 
-  // Check status on mount
-  React.useEffect(() => {
-    const checkStatus = async () => {
-      const status = await getServiceWorkerStatus();
-      setSwStatus(status);
-    };
-    checkStatus();
-  }, []);
+
 
   return (
     <div className="space-y-6">
