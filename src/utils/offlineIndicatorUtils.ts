@@ -1,4 +1,4 @@
-import { useNetworkStatus } from './networkUtils';
+
 
 export interface OfflineIndicatorOptions {
   effectiveMode: 'light' | 'dark';
@@ -161,7 +161,7 @@ class OfflineIndicatorManager {
 
   // Method to update all indicators when network status changes
   updateAllIndicators() {
-    this.indicators.forEach((instance, id) => {
+    this.indicators.forEach(() => {
       // We need to store the options somewhere to update them
       // For now, this is a placeholder - in a real implementation,
       // you'd store the options with each instance

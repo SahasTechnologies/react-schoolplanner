@@ -304,5 +304,6 @@ export const getColors = (theme: ThemeKey, themeType: 'normal' | 'extreme', effe
     container: colors.container,
     border: colors.border,
     swatch: colors.swatch,
+    spin: effectiveMode === 'light' ? 'border-gray-600' : 'border-gray-400',
   };
 }; 
