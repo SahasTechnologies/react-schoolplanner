@@ -26,7 +26,7 @@ The OFL allows the licensed icons to be used, studied, modified and redistribute
 - [lucide-react](https://lucide.dev/) (SIL Open Font License)
 - [react-router-dom](https://reactrouter.com/) (MIT License)
 - [Tailwind CSS](https://tailwindcss.com/) (MIT License)
-- [react-markdown](https://github.com/remarkjs/react-markdown) (MIT License)
+- [markdown-to-jsx](https://github.com/probablyup/markdown-to-jsx) (MIT License)
 - [file-saver](https://github.com/eligrey/FileSaver.js/) (MIT License)
 - [@types/file-saver](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/file-saver) (MIT License)
 - [@types/react](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react) (MIT License)

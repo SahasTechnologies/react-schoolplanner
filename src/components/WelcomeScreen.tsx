@@ -3,10 +3,10 @@ import { Upload, FileText, User } from 'lucide-react';
 import Markdown from 'markdown-to-jsx';
 
 interface WelcomeScreenProps {
-  welcomeStep: 'welcome' | 'name_input' | 'upload_ics' | 'completed';
+  welcomeStep: 'upload' | 'name_input' | 'legal' | 'completed';
   userName: string;
   setUserName: (name: string) => void;
-  setWelcomeStep: (step: 'welcome' | 'name_input' | 'upload_ics' | 'completed') => void;
+  setWelcomeStep: (step: 'upload' | 'name_input' | 'legal' | 'completed') => void;
   loading: boolean;
   error: string;
   dragOver: boolean;
@@ -48,6 +48,8 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
   const [licenseContent, setLicenseContent] = useState('');
   const [loadingMarkdown, setLoadingMarkdown] = useState<string | null>(null);
   const [markdownError, setMarkdownError] = useState<string | null>(null);
+  // Add state for uploaded school file name detection
+  const [schoolFileHasName, setSchoolFileHasName] = useState(false);
 
   // Fetch markdown when modal opens
   useEffect(() => {
@@ -92,11 +94,39 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
     );
   }
 
+  // Add step order and helper
+  const stepOrder = ['legal', 'upload', 'name_input'];
+  const stepLabels = ['Legal', 'Upload', 'Name'];
+  const stepIndex = stepOrder.indexOf(welcomeStep);
+
+  // Add back buttons to steps 2 and 3
+  const BackButton = () => (
+    <button
+      onClick={() => setWelcomeStep(stepOrder[stepIndex - 1] as 'upload' | 'name_input' | 'legal')}
+      className="absolute left-8 top-8 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg font-medium transition-colors duration-200 hover:bg-gray-300 dark:hover:bg-gray-600"
+    >
+      &larr; Back
+    </button>
+  );
+
+  // Add step circles at the top
+  const StepCircles = () => (
+    <div className="flex justify-center items-center gap-4 mb-8">
+      {stepOrder.map((step, idx) => (
+        <div key={step} className={`flex flex-col items-center transition-all duration-300 ${stepIndex === idx ? 'scale-110' : 'opacity-60'}`}> 
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg transition-all duration-300 ${stepIndex === idx ? (effectiveMode === 'light' ? 'bg-blue-600 text-white' : 'bg-blue-400 text-black') : (effectiveMode === 'light' ? 'bg-gray-200 text-gray-700' : 'bg-gray-700 text-gray-300')}`}>{idx + 1}</div>
+          <span className={`mt-1 text-xs ${stepIndex === idx ? 'font-semibold' : ''}`}>{stepLabels[idx]}</span>
+        </div>
+      ))}
+    </div>
+  );
+
   switch (welcomeStep) {
-    case 'welcome':
+    case 'legal':
       return (
         <div className="flex flex-col items-center justify-center h-full text-center p-8">
-          <h1 className={`text-5xl font-bold mb-4 animate-fade-in-down ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Welcome!</h1>
+          <StepCircles />
+          <h1 className={`text-5xl font-bold mb-4 animate-fade-in-down ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Welcome to School Planner!</h1>
           <p className={`text-xl mb-8 animate-fade-in-up ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>Your personal school planner.</p>
           <div className="mb-6 space-y-4">
             <label className="flex items-center gap-3 cursor-pointer">
@@ -133,11 +163,11 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
             </label>
           </div>
           <button
-            onClick={() => setWelcomeStep('name_input')}
+            onClick={() => setWelcomeStep('upload')}
             className={`bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 ${!(agreeLegal && agreeLicense) ? 'opacity-50 cursor-not-allowed' : ''}`}
             disabled={!(agreeLegal && agreeLicense)}
           >
-            Get Started
+            Next
           </button>
           {showTerms && (
             <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
@@ -280,30 +310,16 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
           `}</style>
         </div>
       );
-    case 'name_input':
+    case 'upload':
       return (
         <div className="flex flex-col items-center justify-center h-full text-center p-8">
-          <User size={64} className="text-blue-400 mb-6 animate-bounce-in" />
-          <h2 className={`text-3xl font-bold mb-4 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>What's your name? (Optional)</h2>
-          <p className={`${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-300'} mb-6`}>We'll use this to greet you!</p>
-          <input
-            type="text"
-            value={userName}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserName(e.target.value)}
-            placeholder="Enter your name"
-            className={`w-full max-w-sm px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6 text-lg ${effectiveMode === 'light' ? 'bg-gray-100 text-black border-gray-300' : 'bg-gray-700 text-white border-gray-600'}`}
-          />
+          <StepCircles />
           <button
-            onClick={() => setWelcomeStep('upload_ics')}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+            onClick={() => setWelcomeStep('legal')}
+            className="absolute left-8 top-8 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg font-medium transition-colors duration-200 hover:bg-gray-300 dark:hover:bg-gray-600"
           >
-            Next
+            &larr; Back
           </button>
-        </div>
-      );
-    case 'upload_ics':
-      return (
-        <div className="flex flex-col items-center justify-center h-full text-center p-8">
           <h2 className={`text-3xl font-bold mb-6 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Upload or Import Your Timetable</h2>
           <p className={`mb-4 text-base ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>Upload an ICS calendar or import your .school file.</p>
           <div
@@ -316,7 +332,34 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
             }`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
+            onDrop={e => {
+              handleDrop(e);
+              // If .school file and has name, skip name step
+              const file = e.dataTransfer?.files?.[0];
+              if (file && file.name.endsWith('.school')) {
+                const reader = new FileReader();
+                reader.onload = ev => {
+                  try {
+                    const data = JSON.parse(ev.target?.result as string);
+                    if (data && data.userName) {
+                      setUserName(data.userName);
+                      setSchoolFileHasName(true);
+                      setWelcomeStep('completed');
+                    } else {
+                      setSchoolFileHasName(false);
+                      setWelcomeStep('name_input');
+                    }
+                  } catch {
+                    setSchoolFileHasName(false);
+                    setWelcomeStep('name_input');
+                  }
+                };
+                reader.readAsText(file);
+              } else {
+                setSchoolFileHasName(false);
+                setWelcomeStep('name_input');
+              }
+            }}
           >
             <div className="flex flex-col items-center gap-4">
               <Upload size={48} className={effectiveMode === 'light' ? 'text-gray-400' : 'text-gray-400'} />
@@ -336,7 +379,33 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
                   ref={fileInputRef}
                   type="file"
                   accept=".ics,.school"
-                  onChange={handleFileInput}
+                  onChange={e => {
+                    handleFileInput(e);
+                    const file = (e.target as HTMLInputElement).files?.[0];
+                    if (file && file.name.endsWith('.school')) {
+                      const reader = new FileReader();
+                      reader.onload = ev => {
+                        try {
+                          const data = JSON.parse(ev.target?.result as string);
+                          if (data && data.userName) {
+                            setUserName(data.userName);
+                            setSchoolFileHasName(true);
+                            setWelcomeStep('completed');
+                          } else {
+                            setSchoolFileHasName(false);
+                            setWelcomeStep('name_input');
+                          }
+                        } catch {
+                          setSchoolFileHasName(false);
+                          setWelcomeStep('name_input');
+                        }
+                      };
+                      reader.readAsText(file);
+                    } else {
+                      setSchoolFileHasName(false);
+                      setWelcomeStep('name_input');
+                    }
+                  }}
                   className="hidden"
                 />
               </div>
@@ -356,6 +425,34 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
               </div>
             </div>
           )}
+        </div>
+      );
+    case 'name_input':
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-center p-8">
+          <StepCircles />
+          <button
+            onClick={() => setWelcomeStep('upload')}
+            className="absolute left-8 top-8 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg font-medium transition-colors duration-200 hover:bg-gray-300 dark:hover:bg-gray-600"
+          >
+            &larr; Back
+          </button>
+          <User size={64} className="text-blue-400 mb-6 animate-bounce-in" />
+          <h2 className={`text-3xl font-bold mb-4 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>What's your name? (Optional)</h2>
+          <p className={`${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-300'} mb-6`}>We'll use this to greet you!</p>
+          <input
+            type="text"
+            value={userName}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUserName(e.target.value)}
+            placeholder="Enter your name"
+            className={`w-full max-w-sm px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6 text-lg ${effectiveMode === 'light' ? 'bg-gray-100 text-black border-gray-300' : 'bg-gray-700 text-white border-gray-600'}`}
+          />
+          <button
+            onClick={() => setWelcomeStep('completed')}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+          >
+            Next
+          </button>
         </div>
       );
     default:
