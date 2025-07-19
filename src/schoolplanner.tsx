@@ -46,6 +46,7 @@ const SchoolPlanner = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const online = useOnlineStatus();
   
   // State for subject editing modal
   const [showSubjectEditModal, setShowSubjectEditModal] = useState(false);
