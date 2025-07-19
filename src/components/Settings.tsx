@@ -14,7 +14,7 @@ import {
   LoaderCircle
 } from 'lucide-react';
 import { ThemeKey } from '../utils/theme';
-import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported, getServiceWorkerStatus } from '../utils/cacheUtils';
+import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported, getServiceWorkerStatus, forceCacheUpdate } from '../utils/cacheUtils';
 
 interface ExportModalState {
   show: boolean;
@@ -203,7 +203,7 @@ const Settings: React.FC<SettingsProps> = ({
               <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Save Site for Offline Use</p>
               <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>
                 {serviceWorkerSupported 
-                  ? `Cache the site so it works without internet connection (Status: ${swStatus})` 
+                  ? 'Cache the site so it works without internet connection' 
                   : 'Service Worker not supported in this browser'}
               </p>
             </div>
@@ -225,6 +225,34 @@ const Settings: React.FC<SettingsProps> = ({
             </label>
           )}
         </div>
+        
+        {/* Update Cache Button - only show if caching is enabled */}
+        {offlineCachingEnabled && serviceWorkerSupported && (
+          <div className="flex items-center justify-between mt-4 border-t border-gray-700 pt-4">
+            <div className="flex items-center gap-3">
+              <div>
+                <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Update Cache</p>
+                <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>
+                  Manually update the cached files to the latest version
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={async () => {
+                const success = await forceCacheUpdate();
+                if (success) {
+                  alert('Cache updated successfully!');
+                } else {
+                  alert('Failed to update cache. Please try again.');
+                }
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+            >
+              <FileText size={16} />
+              Update Cache
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Name Edit Modal */}

@@ -25,20 +25,20 @@ const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
   if (isOnline && offlineCachingEnabled) {
     return (
       <div className={`flex items-center gap-2 ${className}`}>
-        <Wifi 
-          className={effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400'} 
-          size={size === 'small' ? 16 : size === 'large' ? 20 : 18} 
-        />
+              <Wifi 
+        className={effectiveMode === 'light' ? 'text-green-600' : 'text-green-400'} 
+        size={size === 'small' ? 16 : size === 'large' ? 20 : 18} 
+      />
         {showText && (
           <button
             onClick={onToggleOfflineCaching}
             className={`font-medium ${size === 'small' ? 'text-xs' : size === 'large' ? 'text-base' : 'text-sm'} ${
               effectiveMode === 'light' 
-                ? 'text-blue-700 hover:text-blue-800' 
-                : 'text-blue-300 hover:text-blue-200'
+                ? 'text-green-700 hover:text-green-800' 
+                : 'text-green-300 hover:text-green-200'
             } transition-colors duration-200`}
           >
-            Run on WiFi
+            Running on WiFi
           </button>
         )}
       </div>
