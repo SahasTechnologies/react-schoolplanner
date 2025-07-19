@@ -58,7 +58,7 @@ const SchoolPlanner = () => {
   const [editColour, setEditColour] = useState(''); // Changed to 'editColour'
 
   // Welcome screen states
-  const [welcomeStep, setWelcomeStep] = useState<'welcome' | 'name_input' | 'upload_ics' | 'completed'>('welcome');
+  const [welcomeStep, setWelcomeStep] = useState<'legal' | 'upload' | 'name_input' | 'completed'>('legal');
   const [userName, setUserName] = useState('');
 
   // New state for auto-naming toggle
@@ -130,7 +130,7 @@ const SchoolPlanner = () => {
       
       if (result.error) {
         setError(result.error);
-        setWelcomeStep('upload_ics');
+        setWelcomeStep('upload');
         setLoading(false);
         removeNotification(loadingNotificationId);
         showError('Upload Failed', result.error, { effectiveMode, colors });
@@ -202,7 +202,7 @@ const SchoolPlanner = () => {
     setWeekData(null);
     setError('');
     setSubjects([]);
-    setWelcomeStep('welcome'); // Reset to welcome screen
+    setWelcomeStep('legal'); // Reset to welcome screen
     setUserName(''); // Clear user name
     setAutoNamingEnabled(true); // Reset auto-naming to default
     setOfflineCachingEnabled(false); // Reset offline caching to default
@@ -851,7 +851,7 @@ const SchoolPlanner = () => {
 
   // --- On mount, if userName, weekData, and subjects exist in localStorage, skip welcome screen ---
   React.useEffect(() => {
-    if (welcomeStep === 'welcome') {
+    if (welcomeStep === 'completed') {
       const savedWeekData = localStorage.getItem('weekData');
       const savedSubjects = localStorage.getItem('subjects');
       const savedName = localStorage.getItem('userName');
@@ -967,7 +967,7 @@ const SchoolPlanner = () => {
 
   // --- On mount, if weekData and subjects exist in localStorage, skip welcome screen ---
   React.useEffect(() => {
-    if (welcomeStep === 'welcome') {
+    if (welcomeStep === 'completed') {
       const savedWeekData = localStorage.getItem('weekData');
       const savedSubjects = localStorage.getItem('subjects');
       if (savedWeekData && savedSubjects) {
