@@ -87,15 +87,7 @@ const SchoolPlanner = () => {
 
 
 
-  const getEventColour = (title: string): string => { // Changed to 'getEventColour'
-    // Handle break events specially
-    if (title === 'Break') {
-      return effectiveMode === 'light' ? '#6b7280' : '#9ca3af'; // Gray color for breaks
-    }
-    const normalizedTitle = normalizeSubjectName(title, autoNamingEnabled);
-    const subject = subjects.find((s: Subject) => normalizeSubjectName(s.name, autoNamingEnabled) === normalizedTitle);
-    return subject ? subject.colour : generateRandomColour(); // Changed to 'subject.colour'
-  };
+  // getEventColour function will be defined after effectiveMode is available
 
 
 
@@ -706,6 +698,17 @@ const SchoolPlanner = () => {
 
   // Helper to get the correct color set for the current theme and type
   const colors = getColors(theme, themeType, effectiveMode);
+
+  // Define getEventColour function after effectiveMode is available
+  const getEventColour = (title: string): string => {
+    // Handle break events specially
+    if (title === 'Break') {
+      return effectiveMode === 'light' ? '#6b7280' : '#9ca3af'; // Gray color for breaks
+    }
+    const normalizedTitle = normalizeSubjectName(title, autoNamingEnabled);
+    const subject = subjects.find((s: Subject) => normalizeSubjectName(s.name, autoNamingEnabled) === normalizedTitle);
+    return subject ? subject.colour : generateRandomColour();
+  };
 
   // Dynamically set the body background color to match the theme
   React.useEffect(() => {
