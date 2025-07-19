@@ -4,6 +4,7 @@ import {
   Users, BookOpen, PenLine, BookUser, Briefcase, HeartHandshake, Library, BookMarked, Star, 
   GraduationCap, Bot, Book, Utensils
 } from 'lucide-react';
+import { saveAs } from 'file-saver';
 
 // Map for specific subject renames
 export const renameMap = new Map<string, string>([
@@ -138,9 +139,9 @@ export function exportSchoolData(data: any, fileName: string) {
   const json = JSON.stringify(data, null, 2);
   const base64 = btoa(unescape(encodeURIComponent(json)));
   const blob = new Blob([base64], { type: 'text/plain' });
-  if (typeof window !== 'undefined' && typeof window.saveAs === 'function') {
-    window.saveAs(blob, fileName);
-  } else if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined') {
+    saveAs(blob, fileName);
+  } else {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
