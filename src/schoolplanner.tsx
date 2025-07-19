@@ -590,12 +590,14 @@ const SchoolPlanner = () => {
           event: normalizeSubjectName(soonest.event.summary, true),
         };
         setTabCountdown(info);
+        console.log('Updated tabCountdown:', info);
       } else {
         setNextEvent(null);
         setNextEventDate(null);
         setTimeLeft(null);
         setCountdownSearching(false);
         setTabCountdown(null);
+        console.log('Cleared tabCountdown - no upcoming events');
       }
     }, 1000);
     return () => clearInterval(interval);
@@ -1075,11 +1077,23 @@ const SchoolPlanner = () => {
   // Update document.title for countdown in tab title
   useEffect(() => {
     if (countdownInTitle && tabCountdown && tabCountdown.time && tabCountdown.event) {
-      document.title = `${tabCountdown.time} until ${tabCountdown.event}`;
+      const newTitle = `${tabCountdown.time} until ${tabCountdown.event}`;
+      document.title = newTitle;
+      console.log('Updated document title:', newTitle);
     } else {
       document.title = 'School Planner';
+      console.log('Reset document title to: School Planner');
     }
   }, [countdownInTitle, tabCountdown]);
+
+  // Save tabCountdown to localStorage when it changes
+  useEffect(() => {
+    if (tabCountdown) {
+      localStorage.setItem('tabCountdown', JSON.stringify(tabCountdown));
+    } else {
+      localStorage.removeItem('tabCountdown');
+    }
+  }, [tabCountdown]);
 
   // --- Load tabCountdown from localStorage on mount ---
   useEffect(() => {

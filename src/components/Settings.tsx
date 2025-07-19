@@ -561,7 +561,14 @@ const Settings: React.FC<SettingsProps> = ({
               <input
                 type="checkbox"
                 checked={countdownInTitle}
-                onChange={e => setCountdownInTitle(e.target.checked)}
+                onChange={(e) => {
+                  setCountdownInTitle(e.target.checked);
+                  showSuccess(
+                    'Countdown Setting Updated', 
+                    `Countdown in browser tab has been ${e.target.checked ? 'enabled' : 'disabled'} successfully!`,
+                    { effectiveMode, colors }
+                  );
+                }}
                 className="sr-only peer"
               />
               <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
