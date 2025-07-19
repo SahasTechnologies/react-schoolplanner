@@ -412,8 +412,7 @@ const SchoolPlanner = () => {
         colors={colors}
         infoOrder={infoOrder}
         infoShown={infoShown}
-        showInfoPopup={showInfoPopup}
-        setShowInfoPopup={setShowInfoPopup}
+
         draggedIdx={draggedIdx}
         handleDragStart={handleDragStart}
         handleInfoDragOver={handleInfoDragOver}
@@ -994,7 +993,7 @@ const SchoolPlanner = () => {
     const saved = localStorage.getItem('eventInfoShown');
     return saved ? JSON.parse(saved) : { time: false, location: false, teacher: false };
   });
-  const [showInfoPopup, setShowInfoPopup] = useState(false);
+
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
 
   // State for event details overlay

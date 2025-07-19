@@ -48,8 +48,7 @@ interface SettingsProps {
   colors: any;
   infoOrder: { key: string; label: string }[];
   infoShown: Record<string, boolean>;
-  showInfoPopup: boolean;
-  setShowInfoPopup: (show: boolean) => void;
+
   draggedIdx: number | null;
   handleDragStart: (idx: number) => void;
   handleInfoDragOver: (idx: number) => void;
@@ -85,9 +84,7 @@ const Settings: React.FC<SettingsProps> = ({
   fileInputRef,
   offlineCachingEnabled,
   countdownInTitle,
-  setCountdownInTitle,
-  showInfoPopup,
-  setShowInfoPopup
+  setCountdownInTitle
 }: SettingsProps) => {
 
   const [showNameEditModal, setShowNameEditModal] = React.useState(false);
@@ -163,17 +160,19 @@ const Settings: React.FC<SettingsProps> = ({
           </button>
         </div>
         {/* Export Data Button */}
-        <div>
-          <p className={`font-medium ${colors.containerText}`}>Export Data</p>
-          <p className={`text-sm ${colors.containerText} opacity-80`}>Export your calendar and subject data as a .school file</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className={`font-medium ${colors.containerText}`}>Export Data</p>
+            <p className={`text-sm ${colors.containerText} opacity-80`}>Export your calendar and subject data as a .school file</p>
+          </div>
+          <button
+            onClick={() => setExportModalState((prev) => ({ ...prev, show: true }))}
+            className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
+          >
+            <FileText size={16} />
+            Export
+          </button>
         </div>
-        <button
-          onClick={() => setExportModalState((prev) => ({ ...prev, show: true }))}
-          className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
-        >
-          <FileText size={16} />
-          Export
-        </button>
         {/* Import Data Button (direct file input, no modal) */}
         <div className="flex items-center justify-between mt-4">
           <div>
@@ -266,22 +265,7 @@ const Settings: React.FC<SettingsProps> = ({
               <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
             </label>
           </div>
-          {/* Show Info Popup on Home Toggle */}
-          <div className="flex items-center justify-between">
-            <div>
-              <p className={`font-medium ${colors.containerText}`}>Show Info Popup on Home</p>
-              <p className={`text-sm ${colors.containerText} opacity-80`}>Display the info popup when opening the home screen</p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={showInfoPopup}
-                onChange={e => setShowInfoPopup(e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-            </label>
-          </div>
+
         </div>
       </div>
 
