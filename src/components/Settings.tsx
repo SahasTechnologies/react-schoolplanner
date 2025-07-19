@@ -404,44 +404,71 @@ const Settings: React.FC<SettingsProps> = ({
         </div>
       </div>
       {/* Legal Modals */}
+      <style>{`
+.custom-scrollbar-light::-webkit-scrollbar {
+  width: 10px;
+  background: #f1f1f1;
+}
+.custom-scrollbar-light::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 6px;
+}
+.custom-scrollbar-dark::-webkit-scrollbar {
+  width: 10px;
+  background: #222;
+}
+.custom-scrollbar-dark::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 6px;
+}
+/* Firefox support */
+.custom-scrollbar-light {
+  scrollbar-color: #cbd5e1 #f1f1f1;
+  scrollbar-width: thin;
+}
+.custom-scrollbar-dark {
+  scrollbar-color: #444 #222;
+  scrollbar-width: thin;
+}
+`}</style>
       {showTerms && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative`}>
+          <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}> 
             <button onClick={() => { setShowTerms(false); setMarkdownError(null); }} className="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition text-gray-400">&times;</button>
             {loadingMarkdown === 'terms' ? (
-              <div className="text-center py-8">Loading...</div>
+              <div className="py-8">Loading...</div>
             ) : markdownError ? (
-              <div className="text-red-500 text-center py-8">{markdownError}</div>
+              <div className="text-red-500 py-8">{markdownError}</div>
             ) : (
-              <Markdown className="prose dark:prose-invert max-w-none">{termsContent}</Markdown>
+              <Markdown className="prose dark:prose-invert max-w-none text-left">{termsContent}</Markdown>
             )}
           </div>
         </div>
       )}
       {showPrivacy && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative`}>
+          <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}> 
             <button onClick={() => { setShowPrivacy(false); setMarkdownError(null); }} className="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition text-gray-400">&times;</button>
             {loadingMarkdown === 'privacy' ? (
-              <div className="text-center py-8">Loading...</div>
+              <div className="py-8">Loading...</div>
             ) : markdownError ? (
-              <div className="text-red-500 text-center py-8">{markdownError}</div>
+              <div className="text-red-500 py-8">{markdownError}</div>
             ) : (
-              <Markdown className="prose dark:prose-invert max-w-none">{privacyContent}</Markdown>
+              <Markdown className="prose dark:prose-invert max-w-none text-left">{privacyContent}</Markdown>
             )}
           </div>
         </div>
       )}
       {showLicensing && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative`}>
+          <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}> 
             <button onClick={() => { setShowLicensing(false); setMarkdownError(null); }} className="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition text-gray-400">&times;</button>
             {loadingMarkdown === 'license' ? (
-              <div className="text-center py-8">Loading...</div>
+              <div className="py-8">Loading...</div>
             ) : markdownError ? (
-              <div className="text-red-500 text-center py-8">{markdownError}</div>
+              <div className="text-red-500 py-8">{markdownError}</div>
             ) : (
-              <Markdown className="prose dark:prose-invert max-w-none">{licenseContent}</Markdown>
+              <Markdown className="prose dark:prose-invert max-w-none text-left">{licenseContent}</Markdown>
             )}
           </div>
         </div>

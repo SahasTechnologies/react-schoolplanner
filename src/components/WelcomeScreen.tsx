@@ -113,12 +113,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
                   </symbol>
                 </svg>
               </div>
-              <span className={`text-base underline hover:text-blue-600 transition-colors duration-200 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}
-                onClick={() => setShowTerms(true)}
-                role="button"
-                tabIndex={0}
-                style={{cursor: 'pointer'}}
-              >I agree to the <span className="underline" onClick={e => {e.stopPropagation(); setShowTerms(true);}}>Terms & Conditions</span> and <span className="underline" onClick={e => {e.stopPropagation(); setShowPrivacy(true);}}>Privacy Policy</span></span>
+              <span className={`text-base ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>I agree to the <span className="underline hover:text-blue-600 transition-colors duration-200 cursor-pointer" onClick={e => {e.stopPropagation(); setShowTerms(true);}}>Terms & Conditions</span> and <span className="underline hover:text-blue-600 transition-colors duration-200 cursor-pointer" onClick={e => {e.stopPropagation(); setShowPrivacy(true);}}>Privacy Policy</span></span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
               <div className="checkbox-wrapper-30">
@@ -134,12 +129,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
                   </symbol>
                 </svg>
               </div>
-              <span className={`text-base underline hover:text-blue-600 transition-colors duration-200 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}
-                onClick={() => setShowLicensing(true)}
-                role="button"
-                tabIndex={0}
-                style={{cursor: 'pointer'}}
-              >I agree to be bound by <span className="underline" onClick={e => {e.stopPropagation(); setShowLicensing(true);}}>Licensing</span></span>
+              <span className={`text-base ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>I agree to be bound by <span className="underline hover:text-blue-600 transition-colors duration-200 cursor-pointer" onClick={e => {e.stopPropagation(); setShowLicensing(true);}}>Licensing</span></span>
             </label>
           </div>
           <button
@@ -151,42 +141,42 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
           </button>
           {showTerms && (
             <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-              <div className="bg-white dark:bg-gray-900 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto">
+              <div className={`bg-white dark:bg-gray-900 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}>
                 <button onClick={() => { setShowTerms(false); setMarkdownError(null); }} className="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition text-gray-400">&times;</button>
                 {loadingMarkdown === 'terms' ? (
-                  <div className="text-center py-8">Loading...</div>
+                  <div className="py-8">Loading...</div>
                 ) : markdownError ? (
-                  <div className="text-red-500 text-center py-8">{markdownError}</div>
+                  <div className="text-red-500 py-8">{markdownError}</div>
                 ) : (
-                  <Markdown className="prose dark:prose-invert max-w-none">{termsContent}</Markdown>
+                  <Markdown className="prose dark:prose-invert max-w-none text-left">{termsContent}</Markdown>
                 )}
               </div>
             </div>
           )}
           {showPrivacy && (
             <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-              <div className="bg-white dark:bg-gray-900 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto">
+              <div className={`bg-white dark:bg-gray-900 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}>
                 <button onClick={() => { setShowPrivacy(false); setMarkdownError(null); }} className="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition text-gray-400">&times;</button>
                 {loadingMarkdown === 'privacy' ? (
-                  <div className="text-center py-8">Loading...</div>
+                  <div className="py-8">Loading...</div>
                 ) : markdownError ? (
-                  <div className="text-red-500 text-center py-8">{markdownError}</div>
+                  <div className="text-red-500 py-8">{markdownError}</div>
                 ) : (
-                  <Markdown className="prose dark:prose-invert max-w-none">{privacyContent}</Markdown>
+                  <Markdown className="prose dark:prose-invert max-w-none text-left">{privacyContent}</Markdown>
                 )}
               </div>
             </div>
           )}
           {showLicensing && (
             <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-              <div className="bg-white dark:bg-gray-900 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto">
+              <div className={`bg-white dark:bg-gray-900 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}>
                 <button onClick={() => { setShowLicensing(false); setMarkdownError(null); }} className="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition text-gray-400">&times;</button>
                 {loadingMarkdown === 'license' ? (
-                  <div className="text-center py-8">Loading...</div>
+                  <div className="py-8">Loading...</div>
                 ) : markdownError ? (
-                  <div className="text-red-500 text-center py-8">{markdownError}</div>
+                  <div className="text-red-500 py-8">{markdownError}</div>
                 ) : (
-                  <Markdown className="prose dark:prose-invert max-w-none">{licenseContent}</Markdown>
+                  <Markdown className="prose dark:prose-invert max-w-none text-left">{licenseContent}</Markdown>
                 )}
               </div>
             </div>
@@ -261,6 +251,31 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
             display: block;
             height: 100%;
             width: 100%;
+          }
+          .custom-scrollbar-light::-webkit-scrollbar {
+            width: 10px;
+            background: #f1f1f1;
+          }
+          .custom-scrollbar-light::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 6px;
+          }
+          .custom-scrollbar-dark::-webkit-scrollbar {
+            width: 10px;
+            background: #222;
+          }
+          .custom-scrollbar-dark::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 6px;
+          }
+          /* Firefox support */
+          .custom-scrollbar-light {
+            scrollbar-color: #cbd5e1 #f1f1f1;
+            scrollbar-width: thin;
+          }
+          .custom-scrollbar-dark {
+            scrollbar-color: #444 #222;
+            scrollbar-width: thin;
           }
           `}</style>
         </div>
