@@ -17,6 +17,7 @@ interface WelcomeScreenProps {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   effectiveMode: 'light' | 'dark';
   navigate: (path: string) => void;
+  colors: any;
 }
 
 const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) => {
@@ -34,7 +35,8 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
     handleFileInput,
     fileInputRef,
     effectiveMode,
-    navigate
+    navigate,
+    colors,
   } = props;
 
   const [agreeLegal, setAgreeLegal] = useState(false);
@@ -80,11 +82,11 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
   if (welcomeStep === 'completed') {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-8">
-        <h2 className={`text-3xl font-bold mb-4 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Setup Complete</h2>
-        <p className={`${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'} mb-6`}>You have already uploaded your timetable and name. To change them, go to Settings.</p>
+        <h2 className={`text-3xl font-bold mb-4 ${colors.buttonText}`}>Setup Complete</h2>
+        <p className={`${colors.buttonText} opacity-80 mb-6`}>You have already uploaded your timetable and name. To change them, go to Settings.</p>
         <button
           onClick={() => navigate('/settings')}
-          className="bg-primary hover:bg-primary-dark text-primary-foreground px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+          className={`${colors.button} ${colors.buttonText} px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105`}
         >
           Go to Settings
         </button>
@@ -110,7 +112,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
             disabled={isUpcoming}
             onClick={() => isCompleted && setWelcomeStep(step as typeof welcomeStep)}
             className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary border-2 border-primary
-              ${isActive ? 'bg-primary text-white shadow-lg' : isCompleted ? 'bg-primary/10 text-primary' : 'bg-transparent text-primary opacity-50'}
+              ${isActive ? `${colors.button} ${colors.buttonText} shadow-lg` : isCompleted ? `${colors.button} ${colors.buttonText} opacity-70` : `bg-transparent ${colors.buttonText} opacity-50`}
               ${isCompleted ? 'cursor-pointer hover:scale-105' : 'cursor-default'}
             `}
             aria-label={`Step ${idx + 1}`}
@@ -128,8 +130,8 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
       return (
         <div className="flex flex-col items-center justify-center h-full text-center p-8">
           <StepCircles />
-          <h1 className={`text-5xl font-bold mb-4 animate-fade-in-down ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Welcome to School Planner!</h1>
-          <p className={`text-xl mb-8 animate-fade-in-up ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>Your personal school planner.</p>
+          <h1 className={`text-5xl font-bold mb-4 animate-fade-in-down ${colors.buttonText}`}>Welcome to School Planner!</h1>
+          <p className={`text-xl mb-8 animate-fade-in-up ${colors.buttonText} opacity-80`}>Your personal school planner.</p>
           <div className="mb-6 space-y-4">
             <label className="flex items-center gap-3 cursor-pointer">
               <div className="checkbox-wrapper-30">
@@ -145,7 +147,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
                   </symbol>
                 </svg>
               </div>
-              <span className={`text-base ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>I agree to the <span className="underline hover:text-primary transition-colors duration-200 cursor-pointer" onClick={e => {e.stopPropagation(); setShowTerms(true);}}>Terms & Conditions</span> and <span className="underline hover:text-primary transition-colors duration-200 cursor-pointer" onClick={e => {e.stopPropagation(); setShowPrivacy(true);}}>Privacy Policy</span></span>
+              <span className={`text-base ${colors.buttonText}`}>I agree to the <span className="underline hover:text-primary transition-colors duration-200 cursor-pointer" onClick={e => {e.stopPropagation(); setShowTerms(true);}}>Terms & Conditions</span> and <span className="underline hover:text-primary transition-colors duration-200 cursor-pointer" onClick={e => {e.stopPropagation(); setShowPrivacy(true);}}>Privacy Policy</span></span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
               <div className="checkbox-wrapper-30">
@@ -161,12 +163,12 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
                   </symbol>
                 </svg>
               </div>
-              <span className={`text-base ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>I agree to be bound by <span className="underline hover:text-primary transition-colors duration-200 cursor-pointer" onClick={e => {e.stopPropagation(); setShowLicensing(true);}}>Licensing</span></span>
+              <span className={`text-base ${colors.buttonText}`}>I agree to be bound by <span className="underline hover:text-primary transition-colors duration-200 cursor-pointer" onClick={e => {e.stopPropagation(); setShowLicensing(true);}}>Licensing</span></span>
             </label>
           </div>
           <button
             onClick={() => setWelcomeStep('upload')}
-            className={`bg-primary hover:bg-primary-dark text-primary-foreground px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 ${!(agreeLegal && agreeLicense) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`${colors.button} ${colors.buttonText} px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 ${!(agreeLegal && agreeLicense) ? 'opacity-50 cursor-not-allowed' : ''}`}
             disabled={!(agreeLegal && agreeLicense)}
           >
             Next
@@ -316,8 +318,8 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
       return (
         <div className="flex flex-col items-center justify-center h-full text-center p-8">
           <StepCircles />
-          <h2 className={`text-3xl font-bold mb-6 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Upload or Import Your Timetable</h2>
-          <p className={`mb-4 text-base ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>Upload an ICS calendar or import your .school file.</p>
+          <h2 className={`text-3xl font-bold mb-6 ${colors.buttonText}`}>Upload or Import Your Timetable</h2>
+          <p className={`mb-4 text-base ${colors.buttonText} opacity-80`}>Upload an ICS calendar or import your .school file.</p>
           <div
             className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 w-full max-w-lg ${
               dragOver
@@ -356,8 +358,8 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
             <div className="flex flex-col items-center gap-4">
               <Upload size={48} className={effectiveMode === 'light' ? 'text-gray-400' : 'text-gray-400'} />
               <div>
-                <p className={`text-lg font-medium mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Upload or Import File</p>
-                <p className={`text-sm mb-4 ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>
+                <p className={`text-lg font-medium mb-2 ${colors.buttonText}`}>Upload or Import File</p>
+                <p className={`text-sm mb-4 ${colors.buttonText} opacity-80`}>
                   Drag and drop your <b>.ics</b> or <b>.school</b> file here or click to browse
                 </p>
                 <button
@@ -402,12 +404,12 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
           {loading && (
             <div className="text-center py-8">
               <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${effectiveMode === 'light' ? 'border-black' : 'border-primary'} mx-auto mb-4`}></div>
-              <p className={`${effectiveMode === 'light' ? 'text-black' : 'text-gray-400'}`}>Processing your calendar...</p>
+              <p className={`${colors.buttonText} opacity-80`}>Processing your calendar...</p>
             </div>
           )}
           {error && (
             <div className={`border rounded-lg p-4 mt-6 w-full max-w-lg ${effectiveMode === 'light' ? 'bg-red-100 border-red-400' : 'bg-red-900/20 border-red-500'}`}>
-              <div className={`flex items-center gap-2 ${effectiveMode === 'light' ? 'text-red-600' : 'text-red-400'}`}>
+              <div className={`flex items-center gap-2 ${colors.buttonText}`}>
                 <FileText size={20} />
                 <span className="font-medium">{error}</span>
               </div>
@@ -420,8 +422,8 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
         <div className="flex flex-col items-center justify-center h-full text-center p-8">
           <StepCircles />
           <User size={64} className="text-primary mb-6 animate-bounce-in" />
-          <h2 className={`text-3xl font-bold mb-4 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>What's your name? (Optional)</h2>
-          <p className={`${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-300'} mb-6`}>We'll use this to greet you!</p>
+          <h2 className={`text-3xl font-bold mb-4 ${colors.buttonText}`}>What's your name? (Optional)</h2>
+          <p className={`${colors.buttonText} opacity-80 mb-6`}>We'll use this to greet you!</p>
           <input
             type="text"
             value={userName}

@@ -299,11 +299,22 @@ export const themeColors = (mode: 'dark' | 'light') => ({
 // Helper function to get colors for a specific theme and type
 export const getColors = (theme: ThemeKey, themeType: 'normal' | 'extreme', effectiveMode: 'light' | 'dark') => {
   const colors = colorVars[theme][effectiveMode][themeType];
+  // Button and buttonText colors for theme-aware buttons
+  let button, buttonText;
+  if (effectiveMode === 'light') {
+    button = 'bg-gray-900 hover:bg-gray-800'; // dark button for light mode
+    buttonText = 'text-white';
+  } else {
+    button = 'bg-white/10 hover:bg-white/20'; // light button for dark mode
+    buttonText = 'text-white';
+  }
   return {
     background: colors.background,
     container: colors.container,
     border: colors.border,
     swatch: colors.swatch,
     spin: effectiveMode === 'light' ? 'border-gray-600' : 'border-gray-400',
+    button,
+    buttonText,
   };
 }; 

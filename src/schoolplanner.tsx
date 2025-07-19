@@ -706,6 +706,7 @@ const SchoolPlanner = () => {
         fileInputRef={fileInputRef}
         effectiveMode={effectiveMode}
         navigate={navigate}
+        colors={colors}
       />
     );
   };

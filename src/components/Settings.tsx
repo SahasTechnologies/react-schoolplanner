@@ -173,24 +173,24 @@ const Settings: React.FC<SettingsProps> = ({
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <SettingsIcon className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
-        <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Settings</h2>
+        <SettingsIcon className={colors.buttonText} size={24} />
+        <h2 className={`text-2xl font-semibold ${colors.buttonText}`}>Settings</h2>
       </div>
 
       {/* Data Section */}
       <div className={`${colors.container} rounded-lg ${colors.border} border p-6 mb-4`}>
         <div className="flex items-center gap-2 mb-4">
-          <User className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
-          <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Data</h3>
+          <User className={colors.buttonText} size={20} />
+          <h3 className={`text-lg font-medium ${colors.buttonText}`}>Data</h3>
         </div>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Name</p>
-            <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>{userName || <span className="italic">(not set)</span>}</p>
+            <p className={`font-medium ${colors.buttonText}`}>Name</p>
+            <p className={`text-sm ${colors.buttonText} opacity-80`}>{userName || <span className="italic">(not set)</span>}</p>
           </div>
           <button
             onClick={() => { setEditUserName(userName); setShowNameEditModal(true); }}
-            className="bg-primary hover:bg-primary-dark text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+            className={`${colors.button} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
           >
             <Edit2 size={16} />
             Change Name
@@ -199,8 +199,8 @@ const Settings: React.FC<SettingsProps> = ({
         {/* Export Data Button */}
         <div className="flex items-center justify-between mt-4">
           <div>
-            <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Export Data</p>
-            <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Export your calendar and subject data as a .school file</p>
+            <p className={`font-medium ${colors.buttonText}`}>Export Data</p>
+            <p className={`text-sm ${colors.buttonText} opacity-80`}>Export your calendar and subject data as a .school file</p>
           </div>
           <button
             onClick={() => setExportModalState((prev) => ({ ...prev, show: true }))}
@@ -213,8 +213,8 @@ const Settings: React.FC<SettingsProps> = ({
         {/* Import Data Button (direct file input, no modal) */}
         <div className="flex items-center justify-between mt-4">
           <div>
-            <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Import Data</p>
-            <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Import your .ics or .school file</p>
+            <p className={`font-medium ${colors.buttonText}`}>Import Data</p>
+            <p className={`text-sm ${colors.buttonText} opacity-80`}>Import your .ics or .school file</p>
           </div>
           <>
             <button
@@ -242,8 +242,8 @@ const Settings: React.FC<SettingsProps> = ({
               <WifiOff className={effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} size={18} />
             )}
             <div>
-              <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Save Site for Offline Use</p>
-              <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>
+              <p className={`font-medium ${colors.buttonText}`}>Save Site for Offline Use</p>
+              <p className={`text-sm ${colors.buttonText} opacity-80`}>
                 {serviceWorkerSupported 
                   ? 'Cache the site so it works without internet connection' 
                   : 'Service Worker not supported in this browser'}
@@ -273,8 +273,8 @@ const Settings: React.FC<SettingsProps> = ({
           <div className="flex items-center justify-between mt-4 border-t border-gray-700 pt-4">
             <div className="flex items-center gap-3">
               <div>
-                <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Update Cache</p>
-                <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>
+                <p className={`font-medium ${colors.buttonText}`}>Update Cache</p>
+                <p className={`text-sm ${colors.buttonText} opacity-80`}>
                   Manually update the cached files to the latest version
                 </p>
               </div>
@@ -307,8 +307,8 @@ const Settings: React.FC<SettingsProps> = ({
           {/* Show Countdown on Home Toggle */}
           <div className="flex items-center justify-between">
             <div>
-              <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Show Countdown on Home</p>
-              <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Display the countdown timer on the home screen</p>
+              <p className={`font-medium ${colors.buttonText}`}>Show Countdown on Home</p>
+              <p className={`text-sm ${colors.buttonText} opacity-80`}>Display the countdown timer on the home screen</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -323,8 +323,8 @@ const Settings: React.FC<SettingsProps> = ({
           {/* Show Info Popup on Home Toggle */}
           <div className="flex items-center justify-between">
             <div>
-              <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Show Info Popup on Home</p>
-              <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Display the info popup when opening the home screen</p>
+              <p className={`font-medium ${colors.buttonText}`}>Show Info Popup on Home</p>
+              <p className={`text-sm ${colors.buttonText} opacity-80`}>Display the info popup when opening the home screen</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -343,12 +343,12 @@ const Settings: React.FC<SettingsProps> = ({
       {showNameEditModal && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
           <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
-            <h3 className={`text-xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Edit Name</h3>
+            <h3 className={`text-xl font-semibold ${colors.buttonText} mb-4`}>Edit Name</h3>
             <input
               type="text"
               value={editUserName}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditUserName(e.target.value)}
-              className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6 text-lg ${effectiveMode === 'light' ? 'bg-gray-100 text-black border-gray-300' : 'bg-gray-700 text-white border-gray-600'}`}
+              className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6 text-lg ${colors.inputBackground} ${colors.inputBorder} ${colors.buttonText}`}
               placeholder="Enter your name"
             />
             <div className="flex justify-end gap-3">
@@ -373,7 +373,7 @@ const Settings: React.FC<SettingsProps> = ({
       {exportModalState.show && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
           <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
-            <h3 className={`text-xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'} mb-4`}>Export Data</h3>
+            <h3 className={`text-xl font-semibold ${colors.buttonText} mb-4`}>Export Data</h3>
             <div className="space-y-4 mb-6">
               <label className="flex items-center gap-3">
                 <input type="checkbox" checked={exportModalState.options.subjects} onChange={e => setExportModalState(s => ({ ...s, options: { ...s.options, subjects: e.target.checked } }))} />
@@ -422,7 +422,7 @@ const Settings: React.FC<SettingsProps> = ({
         </div>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <span className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Terms and Conditions</span>
+            <span className={`font-medium ${colors.buttonText}`}>Terms and Conditions</span>
             <button
               onClick={() => setShowTerms(true)}
               className="bg-primary hover:bg-primary-dark text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200"
@@ -431,7 +431,7 @@ const Settings: React.FC<SettingsProps> = ({
             </button>
           </div>
           <div className="flex items-center justify-between">
-            <span className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Privacy Policy</span>
+            <span className={`font-medium ${colors.buttonText}`}>Privacy Policy</span>
             <button
               onClick={() => setShowPrivacy(true)}
               className="bg-primary hover:bg-primary-dark text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200"
@@ -440,7 +440,7 @@ const Settings: React.FC<SettingsProps> = ({
             </button>
           </div>
           <div className="flex items-center justify-between">
-            <span className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Licensing</span>
+            <span className={`font-medium ${colors.buttonText}`}>Licensing</span>
             <button
               onClick={() => setShowLicensing(true)}
               className="bg-primary hover:bg-primary-dark text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200"
@@ -532,8 +532,8 @@ const Settings: React.FC<SettingsProps> = ({
             <div className="flex items-center gap-3">
               <Trash2 className={effectiveMode === 'light' ? 'text-red-600' : 'text-red-400'} size={18} />
               <div>
-                <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Clear Timetable Data</p>
-                <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>This will remove all uploaded calendar data and subjects</p>
+                <p className={`font-medium ${colors.buttonText}`}>Clear Timetable Data</p>
+                <p className={`text-sm ${colors.buttonText} opacity-80`}>This will remove all uploaded calendar data and subjects</p>
               </div>
             </div>
             <button
@@ -548,8 +548,8 @@ const Settings: React.FC<SettingsProps> = ({
             <div className="flex items-center gap-3">
               <Smartphone className={effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400'} size={18} />
               <div>
-                <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Enable Auto-Naming</p>
-                <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Automatically rename subjects based on keywords</p>
+                <p className={`font-medium ${colors.buttonText}`}>Enable Auto-Naming</p>
+                <p className={`text-sm ${colors.buttonText} opacity-80`}>Automatically rename subjects based on keywords</p>
               </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -586,13 +586,13 @@ const Settings: React.FC<SettingsProps> = ({
               {/* themeMode === 'system' && <Monitor className={effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} size={18} /> */}
             </div>
             <div>
-              <p className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Theme</p>
-              <p className={`text-gray-400 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Change the color theme of the app</p>
+              <p className={`font-medium ${colors.buttonText}`}>Theme</p>
+              <p className={`text-sm ${colors.buttonText} opacity-80`}>Change the color theme of the app</p>
             </div>
           </div>
           <button
             onClick={() => setShowThemeModal(true)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${colors.button} text-white`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${colors.button} ${colors.buttonText}`}
           >
             <Palette size={18} />
             Change Theme

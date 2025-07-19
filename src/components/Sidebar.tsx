@@ -17,31 +17,31 @@ const Sidebar: React.FC<SidebarProps> = ({ navigate, location, colors, SettingsI
       <div className="space-y-4 w-full flex-1">
         <button
           onClick={() => navigate('/home')}
-          className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${location.pathname === '/home' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 ${overlayHover}`}`}
+          className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${location.pathname === '/home' ? `${colors.button} ${colors.buttonText}` : `${colors.buttonText} opacity-70 hover:opacity-100 ${overlayHover}`}`}
           title="Home"
         >
-          <Home size={20} className={location.pathname === '/home' ? 'text-white' : colors.icon} />
+          <Home size={20} className={location.pathname === '/home' ? colors.buttonText : colors.buttonText} />
         </button>
         <button
           onClick={() => navigate('/calendar')}
-          className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${location.pathname === '/calendar' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 ${overlayHover}`}`}
+          className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${location.pathname === '/calendar' ? `${colors.button} ${colors.buttonText}` : `${colors.buttonText} opacity-70 hover:opacity-100 ${overlayHover}`}`}
           title="Calendar"
         >
-          <Calendar size={20} className={location.pathname === '/calendar' ? 'text-white' : colors.icon} />
+          <Calendar size={20} className={location.pathname === '/calendar' ? colors.buttonText : colors.buttonText} />
         </button>
         <button
           onClick={() => navigate('/markbook')}
-          className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${location.pathname === '/markbook' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 ${overlayHover}`}`}
+          className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${location.pathname === '/markbook' ? `${colors.button} ${colors.buttonText}` : `${colors.buttonText} opacity-70 hover:opacity-100 ${overlayHover}`}`}
           title="Markbook"
         >
-          <BarChart3 size={20} className={location.pathname === '/markbook' ? 'text-white' : colors.icon} />
+          <BarChart3 size={20} className={location.pathname === '/markbook' ? colors.buttonText : colors.buttonText} />
         </button>
         <button
           onClick={() => navigate('/settings')}
-          className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${location.pathname === '/settings' ? `${colors.button} text-white` : `text-white opacity-70 hover:opacity-100 ${overlayHover}`}`}
+          className={`p-3 rounded-lg transition-colors duration-200 mx-auto block ${location.pathname === '/settings' ? `${colors.button} ${colors.buttonText}` : `${colors.buttonText} opacity-70 hover:opacity-100 ${overlayHover}`}`}
           title="Settings"
         >
-          <SettingsIcon size={20} className={location.pathname === '/settings' ? 'text-white' : colors.icon} />
+          <SettingsIcon size={20} className={location.pathname === '/settings' ? colors.buttonText : colors.buttonText} />
         </button>
       </div>
     </div>
