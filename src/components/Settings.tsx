@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { ThemeKey } from '../utils/themeUtils';
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported, forceCacheUpdate } from '../utils/cacheUtils';
-import { showSuccess, showError } from '../utils/notificationUtils';
+import { showSuccess, showError, showInfo } from '../utils/notificationUtils';
 
 interface ExportModalState {
   show: boolean;
@@ -102,6 +102,7 @@ const Settings: React.FC<SettingsProps> = ({
         setTimeout(() => {
           setIsCachingLoading(false);
         }, 1000);
+        showSuccess('Offline Caching', 'Offline caching enabled successfully! Files are now cached for offline use.', { effectiveMode, colors });
       } else {
         // Show error or revert toggle
         console.error('Failed to enable offline caching');
@@ -110,10 +111,16 @@ const Settings: React.FC<SettingsProps> = ({
       }
     } else {
       // Disable offline caching
-      await unregisterServiceWorker();
-      await clearAllCaches();
+      const unregisterSuccess = await unregisterServiceWorker();
+      const clearSuccess = await clearAllCaches();
       setOfflineCachingEnabled(false);
       setIsCachingLoading(false);
+      
+      if (unregisterSuccess && clearSuccess) {
+        showInfo('Offline Caching', 'Offline caching disabled and all cached files cleared.', { effectiveMode, colors });
+      } else {
+        showError('Offline Caching', 'Failed to completely disable offline caching. Some cached files may remain.', { effectiveMode, colors });
+      }
     }
   };
 

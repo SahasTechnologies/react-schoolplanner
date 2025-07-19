@@ -33,7 +33,7 @@ import { processFile, exportData, generateRandomColour, defaultColours } from '.
 import { getQuoteOfTheDayUrl } from './utils/quoteUtils.ts';
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported } from './utils/cacheUtils.ts';
 import { useNetworkStatus } from './utils/networkUtils.ts';
-import { showSuccess, showError, showInfo } from './utils/notificationUtils';
+import { showSuccess, showError, showInfo, removeNotification } from './utils/notificationUtils';
 
 
 
@@ -120,7 +120,7 @@ const SchoolPlanner = () => {
     setError('');
     
     // Show loading notification
-    showInfo('Uploading File', `Processing ${file.name}...`, { effectiveMode, colors, duration: 0 });
+    const loadingNotificationId = showInfo('Uploading File', `Processing ${file.name}...`, { effectiveMode, colors, duration: 0 });
     
     try {
       const result = await processFile(file, autoNamingEnabled);
@@ -129,6 +129,7 @@ const SchoolPlanner = () => {
         setError(result.error);
         setWelcomeStep('upload_ics');
         setLoading(false);
+        removeNotification(loadingNotificationId);
         showError('Upload Failed', result.error, { effectiveMode, colors });
         return;
       }
@@ -156,12 +157,14 @@ const SchoolPlanner = () => {
       navigate('/home', { replace: true });
       setLoading(false);
       
-      // Show success notification
+      // Remove loading notification and show success notification
+      removeNotification(loadingNotificationId);
       const fileType = file.name.endsWith('.ics') ? 'Calendar' : 'Data';
       showSuccess('Upload Successful', `${fileType} file uploaded successfully! Found ${result.subjects.length} subjects.`, { effectiveMode, colors });
     } catch (err) {
       setError('Failed to import file: ' + err);
       setLoading(false);
+      removeNotification(loadingNotificationId);
       showError('Upload Failed', `Failed to import file: ${err}`, { effectiveMode, colors });
     }
   };
@@ -196,10 +199,14 @@ const SchoolPlanner = () => {
     setOfflineCachingEnabled(false); // Reset offline caching to default
     
     // Clear service worker and cache
-    await unregisterServiceWorker();
-    await clearAllCaches();
+    const unregisterSuccess = await unregisterServiceWorker();
+    const clearSuccess = await clearAllCaches();
     
-    showInfo('Data Cleared', 'All data has been cleared and reset to defaults', { effectiveMode, colors });
+    if (unregisterSuccess && clearSuccess) {
+      showInfo('Data Cleared', 'All data has been cleared and cached files deleted successfully', { effectiveMode, colors });
+    } else {
+      showError('Data Cleared', 'Data cleared but some cached files may remain', { effectiveMode, colors });
+    }
   };
 
 
