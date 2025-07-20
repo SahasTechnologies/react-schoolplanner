@@ -125,10 +125,13 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
     </div>
   );
 
+  // For the main container, add bg-gray-50 in light mode
+  const containerBg = effectiveMode === 'light' ? 'bg-gray-50' : '';
+
   switch (welcomeStep) {
     case 'legal':
       return (
-        <div className="flex flex-col items-center justify-center h-full text-center p-8 relative">
+        <div className={`flex flex-col items-center justify-center h-full text-center p-8 relative ${containerBg}`}>
           <div className="fixed top-0 left-0 w-full flex justify-center z-50 pt-8 pointer-events-none">
             <StepCircles />
           </div>
@@ -177,42 +180,42 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
           </button>
           {showTerms && (
             <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-              <div className={`bg-white dark:bg-gray-900 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}>
+              <div className={`bg-gray-50 dark:bg-gray-900 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}>
                 <button onClick={() => { setShowTerms(false); setMarkdownError(null); }} className="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition text-gray-400">&times;</button>
                 {loadingMarkdown === 'terms' ? (
-                  <div className="py-8">Loading...</div>
+                  <div className="py-8 text-gray-800 dark:text-gray-100">Loading...</div>
                 ) : markdownError ? (
                   <div className="text-red-500 py-8">{markdownError}</div>
                 ) : (
-                  <Markdown className="prose dark:prose-invert max-w-none text-left">{termsContent}</Markdown>
+                  <Markdown className="prose dark:prose-invert max-w-none text-left text-gray-800 dark:text-gray-100">{termsContent}</Markdown>
                 )}
               </div>
             </div>
           )}
           {showPrivacy && (
             <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-              <div className={`bg-white dark:bg-gray-900 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}>
+              <div className={`bg-gray-50 dark:bg-gray-900 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}>
                 <button onClick={() => { setShowPrivacy(false); setMarkdownError(null); }} className="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition text-gray-400">&times;</button>
                 {loadingMarkdown === 'privacy' ? (
-                  <div className="py-8">Loading...</div>
+                  <div className="py-8 text-gray-800 dark:text-gray-100">Loading...</div>
                 ) : markdownError ? (
                   <div className="text-red-500 py-8">{markdownError}</div>
                 ) : (
-                  <Markdown className="prose dark:prose-invert max-w-none text-left">{privacyContent}</Markdown>
+                  <Markdown className="prose dark:prose-invert max-w-none text-left text-gray-800 dark:text-gray-100">{privacyContent}</Markdown>
                 )}
               </div>
             </div>
           )}
           {showLicensing && (
             <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-              <div className={`bg-white dark:bg-gray-900 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}>
+              <div className={`bg-gray-50 dark:bg-gray-900 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}>
                 <button onClick={() => { setShowLicensing(false); setMarkdownError(null); }} className="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition text-gray-400">&times;</button>
                 {loadingMarkdown === 'license' ? (
-                  <div className="py-8">Loading...</div>
+                  <div className="py-8 text-gray-800 dark:text-gray-100">Loading...</div>
                 ) : markdownError ? (
                   <div className="text-red-500 py-8">{markdownError}</div>
                 ) : (
-                  <Markdown className="prose dark:prose-invert max-w-none text-left">{licenseContent}</Markdown>
+                  <Markdown className="prose dark:prose-invert max-w-none text-left text-gray-800 dark:text-gray-100">{licenseContent}</Markdown>
                 )}
               </div>
             </div>
@@ -326,7 +329,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
       );
     case 'upload':
       return (
-        <div className="flex flex-col items-center justify-center h-full text-center p-8 relative">
+        <div className={`flex flex-col items-center justify-center h-full text-center p-8 relative ${containerBg}`}>
           <div className="absolute top-0 left-0 w-full flex justify-center z-10">
             <StepCircles />
           </div>
@@ -431,7 +434,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
       );
     case 'name_input':
       return (
-        <div className="flex flex-col items-center justify-center h-full text-center p-8 relative">
+        <div className={`flex flex-col items-center justify-center h-full text-center p-8 relative ${containerBg}`}>
           <div className="absolute top-0 left-0 w-full flex justify-center z-10">
             <StepCircles />
           </div>

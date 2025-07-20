@@ -68,6 +68,8 @@ interface SettingsProps {
   setOfflineCachingEnabled: (enabled: boolean) => void;
 }
 
+const getContainerBg = (effectiveMode: 'light' | 'dark', colors: any) => effectiveMode === 'light' ? 'bg-gray-50' : colors.container;
+
 const Settings: React.FC<SettingsProps> = ({
   userName,
   setUserName,
@@ -134,7 +136,7 @@ const Settings: React.FC<SettingsProps> = ({
 
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${getContainerBg(effectiveMode, colors)}`}>
       <div className="flex items-center gap-3">
         <SettingsIcon className={colors.text} size={24} />
         <h2 className={`text-2xl font-semibold ${colors.text}`}>Settings</h2>
@@ -410,42 +412,42 @@ const Settings: React.FC<SettingsProps> = ({
 `}</style>
       {showTerms && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}> 
+          <div className={`bg-gray-50 dark:bg-gray-900 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}> 
             <button onClick={() => { setShowTerms(false); setMarkdownError(null); }} className="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition text-gray-400">&times;</button>
             {loadingMarkdown === 'terms' ? (
-              <div className="py-8">Loading...</div>
+              <div className="py-8 text-gray-800 dark:text-gray-100">Loading...</div>
             ) : markdownError ? (
               <div className="text-red-500 py-8">{markdownError}</div>
             ) : (
-              <Markdown className="prose dark:prose-invert max-w-none text-left">{termsContent}</Markdown>
+              <Markdown className="prose dark:prose-invert max-w-none text-left text-gray-800 dark:text-gray-100">{termsContent}</Markdown>
             )}
           </div>
         </div>
       )}
       {showPrivacy && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}> 
+          <div className={`bg-gray-50 dark:bg-gray-900 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}> 
             <button onClick={() => { setShowPrivacy(false); setMarkdownError(null); }} className="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition text-gray-400">&times;</button>
             {loadingMarkdown === 'privacy' ? (
-              <div className="py-8">Loading...</div>
+              <div className="py-8 text-gray-800 dark:text-gray-100">Loading...</div>
             ) : markdownError ? (
               <div className="text-red-500 py-8">{markdownError}</div>
             ) : (
-              <Markdown className="prose dark:prose-invert max-w-none text-left">{privacyContent}</Markdown>
+              <Markdown className="prose dark:prose-invert max-w-none text-left text-gray-800 dark:text-gray-100">{privacyContent}</Markdown>
             )}
           </div>
         </div>
       )}
       {showLicensing && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}> 
+          <div className={`bg-gray-50 dark:bg-gray-900 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}> 
             <button onClick={() => { setShowLicensing(false); setMarkdownError(null); }} className="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition text-gray-400">&times;</button>
             {loadingMarkdown === 'license' ? (
-              <div className="py-8">Loading...</div>
+              <div className="py-8 text-gray-800 dark:text-gray-100">Loading...</div>
             ) : markdownError ? (
               <div className="text-red-500 py-8">{markdownError}</div>
             ) : (
-              <Markdown className="prose dark:prose-invert max-w-none text-left">{licenseContent}</Markdown>
+              <Markdown className="prose dark:prose-invert max-w-none text-left text-gray-800 dark:text-gray-100">{licenseContent}</Markdown>
             )}
           </div>
         </div>
