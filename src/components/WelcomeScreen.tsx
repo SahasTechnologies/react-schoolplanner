@@ -100,7 +100,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
 
   // Add step circles at the top
   const StepCircles = () => (
-    <div className="flex justify-center items-center gap-4 mb-8 mt-2">
+    <div className="fixed top-0 left-0 w-full flex justify-center items-center gap-4 z-50 bg-transparent pt-8" style={{pointerEvents: 'none'}}>
       {stepOrder.map((step, idx) => {
         const isActive = stepIndex === idx;
         const isCompleted = idx < stepIndex;
@@ -117,24 +117,24 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
             `}
             aria-label={`Step ${idx + 1}`}
             tabIndex={isCompleted ? 0 : -1}
+            style={{ fontSize: '1.25rem', width: '2.5rem', height: '2.5rem', pointerEvents: isCompleted ? 'auto' : 'none' }} // Ensure all are same size
           >
-            <span className={isActive ? 'text-white' : 'text-gray-400'}>{idx + 1}</span>
+            <span className={isActive ? 'text-white' : 'text-gray-400'} style={{fontWeight: 700}}>{idx + 1}</span>
           </button>
         );
       })}
     </div>
   );
 
-  // For the main container, add bg-gray-50 in light mode
-  const containerBg = effectiveMode === 'light' ? 'bg-gray-50' : '';
+  // For the main container, remove bg-gray-50 in light mode
+  const containerBg = '';
 
   switch (welcomeStep) {
     case 'legal':
       return (
         <div className={`flex flex-col items-center justify-center h-full text-center p-8 relative ${containerBg}`}>
-          <div className="fixed top-0 left-0 w-full flex justify-center z-50 pt-8 pointer-events-none">
-            <StepCircles />
-          </div>
+          <StepCircles />
+          <div style={{height: '80px'}} />
           <h1 className={`text-5xl font-bold mb-4 animate-fade-in-down ${colors.text}`}>Welcome to School Planner!</h1>
           <p className={`text-xl mb-8 animate-fade-in-up ${colors.text} opacity-80`}>Your personal school planner.</p>
           <div className="mb-6 space-y-4">
@@ -171,13 +171,15 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
               <span className={`text-base ${colors.text}`}>I agree to be bound by <span className="underline hover:text-primary transition-colors duration-200 cursor-pointer" onClick={e => {e.stopPropagation(); setShowLicensing(true);}}>Licensing</span></span>
             </label>
           </div>
-          <button
-            onClick={() => setWelcomeStep('upload')}
-            className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 ${!(agreeLegal && agreeLicense) ? 'opacity-50 cursor-not-allowed' : ''}`}
-            disabled={!(agreeLegal && agreeLicense)}
-          >
-            Next
-          </button>
+          {/* Only show Next button if both checkboxes are checked */}
+          {(agreeLegal && agreeLicense) && (
+            <button
+              onClick={() => setWelcomeStep('upload')}
+              className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105`}
+            >
+              Next
+            </button>
+          )}
           {showTerms && (
             <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
               <div className={`bg-gray-50 dark:bg-gray-900 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}>
@@ -223,8 +225,8 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
           <style>{`
           /* Set theme variables for checkbox for better light mode visibility */
           .checkbox-wrapper-30 {
-            --color-bg: ${colors.container ? (colors.effectiveMode === 'light' ? '#fff' : '#232323') : '#fff'};
-            --color-bg-dark: ${colors.container ? (colors.effectiveMode === 'dark' ? '#232323' : '#fff') : '#232323'};
+            --color-bg: ${effectiveMode === 'light' ? '#f3f4f6' : '#232323'};
+            --color-bg-dark: ${effectiveMode === 'dark' ? '#232323' : '#f3f4f6'};
             --color-border: ${colors.border ? (colors.effectiveMode === 'light' ? '#d1d5db' : '#444') : '#d1d5db'};
             --color-primary: ${colors.buttonAccent ? (colors.effectiveMode === 'light' ? '#2563eb' : '#60a5fa') : '#2563eb'};
             --color-primary-light: ${colors.buttonAccentHover ? (colors.effectiveMode === 'light' ? '#93c5fd' : '#2563eb') : '#93c5fd'};
@@ -330,9 +332,8 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
     case 'upload':
       return (
         <div className={`flex flex-col items-center justify-center h-full text-center p-8 relative ${containerBg}`}>
-          <div className="absolute top-0 left-0 w-full flex justify-center z-10">
-            <StepCircles />
-          </div>
+          <StepCircles />
+          <div style={{height: '80px'}} />
           <h2 className={`text-3xl font-bold mb-6 ${colors.text}`}>Upload or Import Your Timetable</h2>
           <p className={`mb-4 text-base ${colors.text} opacity-80`}>Upload an ICS calendar or import your .school file.</p>
           <div
@@ -379,7 +380,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
                 </p>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="bg-primary hover:bg-primary-dark text-primary-foreground px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 mx-auto"
+                  className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 mx-auto`}
                 >
                   <FileText size={20} />
                   Upload or Import
@@ -435,9 +436,8 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
     case 'name_input':
       return (
         <div className={`flex flex-col items-center justify-center h-full text-center p-8 relative ${containerBg}`}>
-          <div className="absolute top-0 left-0 w-full flex justify-center z-10">
-            <StepCircles />
-          </div>
+          <StepCircles />
+          <div style={{height: '80px'}} />
           <User size={64} className="text-primary mb-6 animate-bounce-in" />
           <h2 className={`text-3xl font-bold mb-4 ${colors.text}`}>What's your name? (Optional)</h2>
           <p className={`${colors.text} opacity-80 mb-6`}>We'll use this to greet you!</p>

@@ -11,7 +11,9 @@ import {
   FileText,
   Wifi,
   WifiOff,
-  Home
+  Home,
+  Shield,
+  BadgeCheck
 } from 'lucide-react';
 import { ThemeKey } from '../utils/themeUtils';
 import { isServiceWorkerSupported, forceCacheUpdate } from '../utils/cacheUtils';
@@ -354,29 +356,41 @@ const Settings: React.FC<SettingsProps> = ({
         </div>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <span className={`font-medium ${colors.buttonText}`}>Terms and Conditions</span>
+            <div className="flex items-center gap-2">
+              <FileText className={colors.text} size={18} />
+              <span className={`font-medium ${colors.text}`}>Terms and Conditions</span>
+            </div>
             <button
               onClick={() => setShowTerms(true)}
-              className={`${colors.buttonAccent} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
+              className={`${colors.buttonAccent} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
             >
+              <FileText size={16} />
               Read
             </button>
           </div>
           <div className="flex items-center justify-between">
-            <span className={`font-medium ${colors.buttonText}`}>Privacy Policy</span>
+            <div className="flex items-center gap-2">
+              <Shield className={colors.text} size={18} />
+              <span className={`font-medium ${colors.text}`}>Privacy Policy</span>
+            </div>
             <button
               onClick={() => setShowPrivacy(true)}
-              className={`${colors.buttonAccent} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
+              className={`${colors.buttonAccent} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
             >
+              <FileText size={16} />
               Read
             </button>
           </div>
           <div className="flex items-center justify-between">
-            <span className={`font-medium ${colors.buttonText}`}>Licensing</span>
+            <div className="flex items-center gap-2">
+              <BadgeCheck className={colors.text} size={18} />
+              <span className={`font-medium ${colors.text}`}>Licensing</span>
+            </div>
             <button
               onClick={() => setShowLicensing(true)}
-              className={`${colors.buttonAccent} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
+              className={`${colors.buttonAccent} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
             >
+              <FileText size={16} />
               Read
             </button>
           </div>
