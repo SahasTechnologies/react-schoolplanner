@@ -521,6 +521,7 @@ const SchoolPlanner = () => {
             {/* Quote of the Day Widget below CountdownBox */}
             <QuoteOfTheDayWidget 
               effectiveMode={effectiveMode}
+              colors={colors}
             />
           </div>
         </div>
@@ -1256,7 +1257,7 @@ const SchoolPlanner = () => {
 // const QUOTE_CACHE_KEY = 'quoteOfTheDayCache'; // Removed unused variable
 // const QUOTE_CACHE_EXPIRY_HOURS = 12; // No longer used
 
-const QuoteOfTheDayWidget: React.FC<{ effectiveMode: 'light' | 'dark' }> = ({ effectiveMode }) => {
+const QuoteOfTheDayWidget: React.FC<{ effectiveMode: 'light' | 'dark', colors: any }> = ({ effectiveMode, colors }) => {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
   const [quoteText, setQuoteText] = React.useState<string | null>(null);
@@ -1324,7 +1325,7 @@ const QuoteOfTheDayWidget: React.FC<{ effectiveMode: 'light' | 'dark' }> = ({ ef
   }, [url, isOnline]);
 
   return (
-    <div className={`${getColors(theme, themeType, effectiveMode).container} rounded-lg ${getColors(theme, themeType, effectiveMode).border} border p-4 mb-4 flex flex-col items-center`}>
+    <div className={`${colors.container} rounded-lg ${colors.border} border p-4 mb-4 flex flex-col items-center`}>
       <div className="flex items-center gap-2 mb-2">
         <div className="font-semibold text-lg" style={{ color: effectiveMode === 'light' ? '#222' : '#fff' }}>Quote of the Day</div>
         {/* Only show offline indicator if actually offline, not when online with offline caching */}

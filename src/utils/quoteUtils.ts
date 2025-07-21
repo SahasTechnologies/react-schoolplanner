@@ -1,5 +1,4 @@
 // Utility to get the correct Quote of the Day iframe URL based on theme
-import { ThemeKey } from './themeUtils';
 
 // Remove all theme-based URLs and getQuoteOfTheDayUrl
 
