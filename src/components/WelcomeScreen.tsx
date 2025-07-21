@@ -348,7 +348,6 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
             onDragLeave={handleDragLeave}
             onDrop={e => {
               handleDrop(e);
-              // If .school file and has name, prefill name and go to name_input
               const file = e.dataTransfer?.files?.[0];
               if (file && file.name.endsWith('.school')) {
                 const reader = new FileReader();
@@ -357,13 +356,9 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
                     const data = JSON.parse(ev.target?.result as string);
                     if (data && data.userName) {
                       setUserName(data.userName);
-                      setWelcomeStep('name_input');
-                    } else {
-                      setWelcomeStep('name_input');
                     }
-                  } catch {
-                    setWelcomeStep('name_input');
-                  }
+                  } catch {}
+                  setWelcomeStep('name_input');
                 };
                 reader.readAsText(file);
               } else {
@@ -399,13 +394,9 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
                           const data = JSON.parse(ev.target?.result as string);
                           if (data && data.userName) {
                             setUserName(data.userName);
-                            setWelcomeStep('name_input');
-                          } else {
-                            setWelcomeStep('name_input');
                           }
-                        } catch {
-                          setWelcomeStep('name_input');
-                        }
+                        } catch {}
+                        setWelcomeStep('name_input');
                       };
                       reader.readAsText(file);
                     } else {
