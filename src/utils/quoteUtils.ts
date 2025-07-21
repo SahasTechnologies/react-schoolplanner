@@ -47,6 +47,11 @@ export function getQuoteOfTheDayUrl(theme: ThemeKey, themeType: 'normal' | 'extr
 
 // Quote cache utilities
 const QUOTE_CACHE_KEY = 'quoteOfTheDayCache';
+const QUOTE_CACHE_EXPIRY_HOURS = 12;
+
+// New cache structure: { [url]: { html, text, url, timestamp } }
+
+type QuoteCacheMap = Record<string, { html: string; text: string; url: string; timestamp: number }>;
 
 export function extractQuoteFromHtml(html: string): string | null {
   // Try to extract the quote text from the Kwize embed HTML
@@ -63,8 +68,9 @@ export function getCachedQuote(url: string): { html: string; text: string; url: 
   try {
     const raw = localStorage.getItem(QUOTE_CACHE_KEY);
     if (raw) {
-      const cache = JSON.parse(raw);
-      if (cache && cache.url === url) {
+      const cacheMap: QuoteCacheMap = JSON.parse(raw);
+      const cache = cacheMap[url];
+      if (cache && isQuoteCacheValid(cache)) {
         return cache;
       }
     }
@@ -73,12 +79,20 @@ export function getCachedQuote(url: string): { html: string; text: string; url: 
 }
 
 export function setCachedQuote(url: string, html: string, text: string) {
-  localStorage.setItem(
-    QUOTE_CACHE_KEY,
-    JSON.stringify({ html, text, url, timestamp: Date.now() })
-  );
+  let cacheMap: QuoteCacheMap = {};
+  try {
+    const raw = localStorage.getItem(QUOTE_CACHE_KEY);
+    if (raw) {
+      cacheMap = JSON.parse(raw);
+    }
+  } catch {}
+  cacheMap[url] = { html, text, url, timestamp: Date.now() };
+  localStorage.setItem(QUOTE_CACHE_KEY, JSON.stringify(cacheMap));
 }
 
-export function isQuoteCacheValid(cache: { html: string; text: string; url: string; timestamp: number } | null, url: string) {
-  return cache && cache.url === url;
+export function isQuoteCacheValid(cache: { html: string; text: string; url: string; timestamp: number } | null) {
+  if (!cache) return false;
+  const now = Date.now();
+  const expiry = QUOTE_CACHE_EXPIRY_HOURS * 60 * 60 * 1000;
+  return now - cache.timestamp < expiry;
 } 

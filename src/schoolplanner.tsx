@@ -1274,9 +1274,11 @@ const QuoteOfTheDayWidget: React.FC<{
     setLoading(true);
     setError(false);
     const cache = getCachedQuote(url);
-    if (cache && isQuoteCacheValid(cache, url)) {
+    if (cache && isQuoteCacheValid(cache)) {
       setQuoteText(cache.text);
       setLoading(false);
+    } else {
+      setQuoteText(null);
     }
     // Always check for update in background if online
     if (isOnline) {
@@ -1284,8 +1286,9 @@ const QuoteOfTheDayWidget: React.FC<{
         .then(res => res.text())
         .then(html => {
           const text = extractQuoteFromHtml(html) || '';
+          const cache = getCachedQuote(url);
           // If quote changed or cache is missing, update
-          if (!cache || !isQuoteCacheValid(cache, url) || cache.text !== text) {
+          if (!cache || !isQuoteCacheValid(cache) || cache.text !== text) {
             setCachedQuote(url, html, text);
             setQuoteText(text);
           }
@@ -1296,7 +1299,7 @@ const QuoteOfTheDayWidget: React.FC<{
           setLoading(false);
           setError(true);
         });
-    } else if (cache && isQuoteCacheValid(cache, url)) {
+    } else if (cache && isQuoteCacheValid(cache)) {
       setLoading(false);
       setError(false);
     } else {
@@ -1309,13 +1312,12 @@ const QuoteOfTheDayWidget: React.FC<{
   // If theme/themeType/effectiveMode changes anywhere in the app, update quote cache if online
   React.useEffect(() => {
     if (!isOnline) return;
-    // This effect will run on any theme change, even if not on home page
     fetch(url)
       .then(res => res.text())
       .then(html => {
         const text = extractQuoteFromHtml(html) || '';
         const cache = getCachedQuote(url);
-        if (!cache || !isQuoteCacheValid(cache, url) || cache.text !== text) {
+        if (!cache || !isQuoteCacheValid(cache) || cache.text !== text) {
           setCachedQuote(url, html, text);
           setQuoteText(text);
         }
