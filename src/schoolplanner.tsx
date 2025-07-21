@@ -1326,9 +1326,6 @@ const QuoteOfTheDayWidget: React.FC<{
     // eslint-disable-next-line
   }, [theme, themeType, effectiveMode, url, isOnline]);
 
-  // Don't show iframe if actually offline and no offline caching
-  const shouldShowIframe = isOnline || offlineCachingEnabled;
-
   return (
     <div className={`${getColors(theme, themeType, effectiveMode).container} rounded-lg ${getColors(theme, themeType, effectiveMode).border} border p-4 mb-4 flex flex-col items-center`}>
       <div className="flex items-center gap-2 mb-2">
