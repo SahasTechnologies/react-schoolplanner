@@ -1256,7 +1256,7 @@ const SchoolPlanner = () => {
 };
 
 // Quote of the Day Widget
-const QUOTE_CACHE_KEY = 'quoteOfTheDayCache';
+// const QUOTE_CACHE_KEY = 'quoteOfTheDayCache'; // Removed unused variable
 // const QUOTE_CACHE_EXPIRY_HOURS = 12; // No longer used
 
 const QuoteOfTheDayWidget: React.FC<{ 
@@ -1267,7 +1267,6 @@ const QuoteOfTheDayWidget: React.FC<{
 }> = ({ theme, themeType, effectiveMode, offlineCachingEnabled = false }) => {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
-  const [quoteHtml, setQuoteHtml] = React.useState<string | null>(null);
   const [quoteText, setQuoteText] = React.useState<string | null>(null);
   const url = getQuoteOfTheDayUrl(theme, themeType, effectiveMode);
   const isOnline = useNetworkStatus();
@@ -1278,7 +1277,6 @@ const QuoteOfTheDayWidget: React.FC<{
     setError(false);
     const cache = getCachedQuote(url);
     if (cache && isQuoteCacheValid(cache, url)) {
-      setQuoteHtml(cache.html);
       setQuoteText(cache.text);
       setLoading(false);
     }
@@ -1290,9 +1288,8 @@ const QuoteOfTheDayWidget: React.FC<{
           const text = extractQuoteFromHtml(html) || '';
           // If quote changed or cache is missing, update
           if (!cache || !isQuoteCacheValid(cache, url) || cache.text !== text) {
-            setQuoteHtml(html);
-            setQuoteText(text);
             setCachedQuote(url, html, text);
+            setQuoteText(text);
           }
           setLoading(false);
           setError(false);
@@ -1322,7 +1319,6 @@ const QuoteOfTheDayWidget: React.FC<{
         const cache = getCachedQuote(url);
         if (!cache || !isQuoteCacheValid(cache, url) || cache.text !== text) {
           setCachedQuote(url, html, text);
-          setQuoteHtml(html);
           setQuoteText(text);
         }
       })
