@@ -30,11 +30,13 @@ import SubjectCard from './components/SubjectCard';
 import EventDetailsOverlay from './components/EventDetailsOverlay';
 import { createOfflineIndicatorElement } from './utils/offlineIndicatorUtils';
 import { processFile, exportData, defaultColours } from './utils/fileUtils.ts';
-import { KWIZE_QUOTE_URL, extractQuoteFromHtml, getCachedQuote, setCachedQuote, isQuoteCacheValid } from './utils/quoteUtils';
+import { getQuoteOfTheDayUrl, getCachedQuote, setCachedQuote, isQuoteCacheValid } from './utils/quoteUtils';
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported } from './utils/cacheUtils.ts';
 import { useNetworkStatus } from './utils/networkUtils.ts';
 import { showSuccess, showError, showInfo, removeNotification } from './utils/notificationUtils';
 import NotFound from './components/NotFound';
+// Remove ThemeContext import
+// import { ThemeContext } from './ThemeContext';
 
 
 
@@ -522,6 +524,8 @@ const SchoolPlanner = () => {
             <QuoteOfTheDayWidget 
               effectiveMode={effectiveMode}
               colors={colors}
+              theme={theme}
+              themeType={themeType}
             />
           </div>
         </div>
@@ -1257,73 +1261,52 @@ const SchoolPlanner = () => {
 // const QUOTE_CACHE_KEY = 'quoteOfTheDayCache'; // Removed unused variable
 // const QUOTE_CACHE_EXPIRY_HOURS = 12; // No longer used
 
-const QuoteOfTheDayWidget: React.FC<{ effectiveMode: 'light' | 'dark', colors: any }> = ({ effectiveMode, colors }) => {
+const QuoteOfTheDayWidget: React.FC<{ effectiveMode: 'light' | 'dark', colors: any, theme: ThemeKey, themeType: 'normal' | 'extreme' }> = ({ effectiveMode, colors, theme, themeType }) => {
+  const [quoteHtml, setQuoteHtml] = React.useState<string | null>(null);
+  const [hasCache, setHasCache] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
-  const [quoteText, setQuoteText] = React.useState<string | null>(null);
-  const [quoteHtml, setQuoteHtml] = React.useState<string | null>(null);
-  const url = KWIZE_QUOTE_URL;
+  const url = getQuoteOfTheDayUrl(theme, themeType, effectiveMode);
   const isOnline = useNetworkStatus();
 
+  // Helper to update cache and UI if needed
+  const updateCacheIfChanged = React.useCallback((url: string, html: string) => {
+    const cache = getCachedQuote(url);
+    if (!cache || cache.html !== html) {
+      setCachedQuote(url, html);
+      setQuoteHtml(html);
+      setHasCache(true);
+    }
+  }, []);
+
+  // On mount and when url changes, check cache and fetch in background
   React.useEffect(() => {
     setLoading(true);
     setError(false);
     const cache = getCachedQuote(url);
     if (cache && isQuoteCacheValid(cache)) {
-      setQuoteText(cache.text);
       setQuoteHtml(cache.html);
+      setHasCache(true);
       setLoading(false);
     } else {
-      setQuoteText(null);
       setQuoteHtml(null);
+      setHasCache(false);
+      setLoading(false);
     }
+    // Always fetch in background if online
     if (isOnline) {
       fetch(url)
         .then(res => res.text())
         .then(html => {
-          const text = extractQuoteFromHtml(html) || '';
-          const cache = getCachedQuote(url);
-          if (!cache || !isQuoteCacheValid(cache) || cache.text !== text) {
-            setCachedQuote(url, html, text);
-            setQuoteText(text);
-            setQuoteHtml(html);
-          } else {
-            setQuoteHtml(cache.html);
-          }
-          setLoading(false);
-          setError(false);
+          updateCacheIfChanged(url, html);
         })
         .catch(() => {
-          setLoading(false);
           setError(true);
         });
-    } else if (cache && isQuoteCacheValid(cache)) {
-      setLoading(false);
-      setError(false);
-    } else {
-      setLoading(false);
-      setError(true);
     }
-  }, [url, isOnline]);
+  }, [url, isOnline, updateCacheIfChanged]);
 
-  React.useEffect(() => {
-    if (!isOnline) return;
-    fetch(url)
-      .then(res => res.text())
-      .then(html => {
-        const text = extractQuoteFromHtml(html) || '';
-        const cache = getCachedQuote(url);
-        if (!cache || !isQuoteCacheValid(cache) || cache.text !== text) {
-          setCachedQuote(url, html, text);
-          setQuoteText(text);
-          setQuoteHtml(html);
-        } else {
-          setQuoteHtml(cache.html);
-        }
-      })
-      .catch(() => {});
-  }, [url, isOnline]);
-
+  // Render logic
   return (
     <div className={`${colors.container} rounded-lg ${colors.border} border p-4 mb-4 flex flex-col items-center`}>
       <div className="flex items-center gap-2 mb-2">
@@ -1343,16 +1326,17 @@ const QuoteOfTheDayWidget: React.FC<{ effectiveMode: 'light' | 'dark', colors: a
           }} />
         )}
       </div>
-      {/* If offline and cached HTML exists, render the HTML widget */}
-      {!isOnline && quoteHtml && !loading && !error ? (
+      {/* If we have cache, show cached HTML. If not, show iframe. */}
+      {hasCache && quoteHtml ? (
         <div className="w-full flex flex-col items-center justify-center py-4" dangerouslySetInnerHTML={{ __html: quoteHtml }} />
-      ) : !isOnline && !quoteHtml && !loading && !error ? (
-        <div className={`text-sm py-2 mb-2 ${effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>Quote unavailable offline</div>
-      ) : quoteText && !loading && !error ? (
-        <div className="w-full flex flex-col items-center justify-center py-4">
-          <blockquote className={`italic text-center ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{quoteText}</blockquote>
-          <a href="https://kwize.com/quote-of-the-day/" target="_blank" rel="noopener noreferrer" className="mt-2 text-xs underline opacity-70">Source: Kwize</a>
-        </div>
+      ) : !hasCache && !loading && !error ? (
+        <iframe
+          src={url}
+          title="Quote of the Day"
+          className="w-full min-h-[180px] rounded border"
+          style={{ background: 'transparent', border: 'none' }}
+          sandbox="allow-scripts allow-same-origin"
+        />
       ) : loading ? (
         <div className="flex flex-col items-center justify-center py-4 w-full">
           <LoaderCircle className={`animate-spin mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`} size={32} />
