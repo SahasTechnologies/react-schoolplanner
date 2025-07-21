@@ -29,7 +29,7 @@ import Sidebar from './components/Sidebar';
 import SubjectCard from './components/SubjectCard';
 import EventDetailsOverlay from './components/EventDetailsOverlay';
 import { createOfflineIndicatorElement } from './utils/offlineIndicatorUtils';
-import { processFile, exportData, generateRandomColour, defaultColours } from './utils/fileUtils.ts';
+import { processFile, exportData, defaultColours } from './utils/fileUtils.ts';
 import { getQuoteOfTheDayUrl } from './utils/quoteUtils.ts';
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported } from './utils/cacheUtils.ts';
 import { useNetworkStatus } from './utils/networkUtils.ts';
