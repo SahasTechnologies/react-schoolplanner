@@ -34,6 +34,7 @@ import { getQuoteOfTheDayUrl } from './utils/quoteUtils.ts';
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported } from './utils/cacheUtils.ts';
 import { useNetworkStatus } from './utils/networkUtils.ts';
 import { showSuccess, showError, showInfo, removeNotification } from './utils/notificationUtils';
+import NotFound from './components/NotFound';
 
 
 
@@ -1142,6 +1143,7 @@ const SchoolPlanner = () => {
       <Routes>
         <Route path="/" element={<Navigate to="/welcome" replace />} />
         <Route path="/welcome" element={renderWelcomeScreen()} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     );
   } else {
@@ -1152,6 +1154,7 @@ const SchoolPlanner = () => {
         <Route path="/calendar" element={renderWeekView()} />
         <Route path="/markbook" element={renderMarkbook()} />
         <Route path="/settings" element={renderSettings()} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     );
   }
