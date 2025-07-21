@@ -30,7 +30,7 @@ import SubjectCard from './components/SubjectCard';
 import EventDetailsOverlay from './components/EventDetailsOverlay';
 import { createOfflineIndicatorElement } from './utils/offlineIndicatorUtils';
 import { processFile, exportData, defaultColours } from './utils/fileUtils.ts';
-import { getQuoteOfTheDayUrl, extractQuoteFromHtml, getCachedQuote, setCachedQuote, isQuoteCacheValid } from './utils/quoteUtils';
+import { KWIZE_QUOTE_URL, extractQuoteFromHtml, getCachedQuote, setCachedQuote, isQuoteCacheValid } from './utils/quoteUtils';
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported } from './utils/cacheUtils.ts';
 import { useNetworkStatus } from './utils/networkUtils.ts';
 import { showSuccess, showError, showInfo, removeNotification } from './utils/notificationUtils';
@@ -520,9 +520,7 @@ const SchoolPlanner = () => {
             />
             {/* Quote of the Day Widget below CountdownBox */}
             <QuoteOfTheDayWidget 
-              theme={theme} 
-              themeType={themeType} 
-              effectiveMode={effectiveMode} 
+              effectiveMode={effectiveMode}
             />
           </div>
         </div>
@@ -1258,18 +1256,13 @@ const SchoolPlanner = () => {
 // const QUOTE_CACHE_KEY = 'quoteOfTheDayCache'; // Removed unused variable
 // const QUOTE_CACHE_EXPIRY_HOURS = 12; // No longer used
 
-const QuoteOfTheDayWidget: React.FC<{ 
-  theme: ThemeKey; 
-  themeType: 'normal' | 'extreme'; 
-  effectiveMode: 'light' | 'dark';
-}> = ({ theme, themeType, effectiveMode }) => {
+const QuoteOfTheDayWidget: React.FC<{ effectiveMode: 'light' | 'dark' }> = ({ effectiveMode }) => {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
   const [quoteText, setQuoteText] = React.useState<string | null>(null);
-  const url = getQuoteOfTheDayUrl(theme, themeType, effectiveMode);
+  const url = KWIZE_QUOTE_URL;
   const isOnline = useNetworkStatus();
 
-  // Load from cache on mount and whenever url changes
   React.useEffect(() => {
     setLoading(true);
     setError(false);
@@ -1280,14 +1273,12 @@ const QuoteOfTheDayWidget: React.FC<{
     } else {
       setQuoteText(null);
     }
-    // Always check for update in background if online
     if (isOnline) {
       fetch(url)
         .then(res => res.text())
         .then(html => {
           const text = extractQuoteFromHtml(html) || '';
           const cache = getCachedQuote(url);
-          // If quote changed or cache is missing, update
           if (!cache || !isQuoteCacheValid(cache) || cache.text !== text) {
             setCachedQuote(url, html, text);
             setQuoteText(text);
@@ -1306,10 +1297,8 @@ const QuoteOfTheDayWidget: React.FC<{
       setLoading(false);
       setError(true);
     }
-    // eslint-disable-next-line
   }, [url, isOnline]);
 
-  // If theme/themeType/effectiveMode changes anywhere in the app, update quote cache if online
   React.useEffect(() => {
     if (!isOnline) return;
     fetch(url)
@@ -1323,8 +1312,7 @@ const QuoteOfTheDayWidget: React.FC<{
         }
       })
       .catch(() => {});
-    // eslint-disable-next-line
-  }, [theme, themeType, effectiveMode, url, isOnline]);
+  }, [url, isOnline]);
 
   return (
     <div className={`${getColors(theme, themeType, effectiveMode).container} rounded-lg ${getColors(theme, themeType, effectiveMode).border} border p-4 mb-4 flex flex-col items-center`}>
