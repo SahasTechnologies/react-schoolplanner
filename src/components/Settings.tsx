@@ -70,8 +70,6 @@ interface SettingsProps {
   setOfflineCachingEnabled: (enabled: boolean) => void;
 }
 
-const getContainerBg = (effectiveMode: 'light' | 'dark', colors: any) => effectiveMode === 'light' ? 'bg-gray-50' : colors.container;
-
 const Settings: React.FC<SettingsProps> = ({
   userName,
   setUserName,
@@ -139,7 +137,7 @@ const Settings: React.FC<SettingsProps> = ({
 
 
   return (
-    <div className={`space-y-6 ${getContainerBg(effectiveMode, colors)}`}>
+    <div className={`space-y-6 ${colors.background}`}>
       <div className="flex items-center gap-3">
         <SettingsIcon className={colors.text} size={24} />
         <h2 className={`text-2xl font-semibold ${colors.text}`}>Settings</h2>
