@@ -162,8 +162,7 @@ const SchoolPlanner = () => {
         localStorage.setItem('userName', result.userName);
       }
       
-      setWelcomeStep('completed');
-      navigate('/home', { replace: true });
+      setWelcomeStep('name_input');
       setLoading(false);
       
       // Remove loading notification and show success notification

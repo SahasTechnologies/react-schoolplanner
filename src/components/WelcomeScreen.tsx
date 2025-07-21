@@ -175,7 +175,8 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
           {(agreeLegal && agreeLicense) && (
             <button
               onClick={() => setWelcomeStep('upload')}
-              className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105`}
+              className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 animate-fade-in-up-fast`}
+              style={{animation: 'fadeInUpFast 0.2s cubic-bezier(0.4,0,0.2,1)'}}
             >
               Next
             </button>
@@ -237,7 +238,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
             --brdr: var(--color-border);
             --brdr-actv: var(--color-primary);
             --brdr-hovr: var(--color-primary-light);
-            --tick: ${effectiveMode === 'light' ? '#1e2235' : '#fff'};
+            --tick: ${effectiveMode === 'light' ? '#222' : '#fff'};
             --dur: calc((var(--size, 2)/2) * 0.6s);
             display: inline-block;
             width: calc(var(--size, 1) * 22px);
@@ -325,6 +326,19 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
           .custom-scrollbar-dark {
             scrollbar-color: #444 #222;
             scrollbar-width: thin;
+          }
+          @keyframes fadeInUpFast {
+            from {
+              opacity: 0;
+              transform: translateY(40px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          .animate-fade-in-up-fast {
+            animation: fadeInUpFast 0.2s cubic-bezier(0.4,0,0.2,1);
           }
           `}</style>
         </div>
