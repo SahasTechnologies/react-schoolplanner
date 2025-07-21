@@ -1260,6 +1260,7 @@ const QuoteOfTheDayWidget: React.FC<{ effectiveMode: 'light' | 'dark' }> = ({ ef
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
   const [quoteText, setQuoteText] = React.useState<string | null>(null);
+  const [quoteHtml, setQuoteHtml] = React.useState<string | null>(null);
   const url = KWIZE_QUOTE_URL;
   const isOnline = useNetworkStatus();
 
@@ -1269,9 +1270,11 @@ const QuoteOfTheDayWidget: React.FC<{ effectiveMode: 'light' | 'dark' }> = ({ ef
     const cache = getCachedQuote(url);
     if (cache && isQuoteCacheValid(cache)) {
       setQuoteText(cache.text);
+      setQuoteHtml(cache.html);
       setLoading(false);
     } else {
       setQuoteText(null);
+      setQuoteHtml(null);
     }
     if (isOnline) {
       fetch(url)
@@ -1282,6 +1285,9 @@ const QuoteOfTheDayWidget: React.FC<{ effectiveMode: 'light' | 'dark' }> = ({ ef
           if (!cache || !isQuoteCacheValid(cache) || cache.text !== text) {
             setCachedQuote(url, html, text);
             setQuoteText(text);
+            setQuoteHtml(html);
+          } else {
+            setQuoteHtml(cache.html);
           }
           setLoading(false);
           setError(false);
@@ -1309,6 +1315,9 @@ const QuoteOfTheDayWidget: React.FC<{ effectiveMode: 'light' | 'dark' }> = ({ ef
         if (!cache || !isQuoteCacheValid(cache) || cache.text !== text) {
           setCachedQuote(url, html, text);
           setQuoteText(text);
+          setQuoteHtml(html);
+        } else {
+          setQuoteHtml(cache.html);
         }
       })
       .catch(() => {});
@@ -1333,13 +1342,12 @@ const QuoteOfTheDayWidget: React.FC<{ effectiveMode: 'light' | 'dark' }> = ({ ef
           }} />
         )}
       </div>
-      {!isOnline && (
-        <div className={`text-sm py-2 mb-2 ${effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-          Quote unavailable offline
-        </div>
-      )}
-      {/* Show cached quote if available, otherwise fallback to spinner or error */}
-      {quoteText && !loading && !error ? (
+      {/* If offline and cached HTML exists, render the HTML widget */}
+      {!isOnline && quoteHtml && !loading && !error ? (
+        <div className="w-full flex flex-col items-center justify-center py-4" dangerouslySetInnerHTML={{ __html: quoteHtml }} />
+      ) : !isOnline && !quoteHtml && !loading && !error ? (
+        <div className={`text-sm py-2 mb-2 ${effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>Quote unavailable offline</div>
+      ) : quoteText && !loading && !error ? (
         <div className="w-full flex flex-col items-center justify-center py-4">
           <blockquote className={`italic text-center ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{quoteText}</blockquote>
           <a href="https://kwize.com/quote-of-the-day/" target="_blank" rel="noopener noreferrer" className="mt-2 text-xs underline opacity-70">Source: Kwize</a>
