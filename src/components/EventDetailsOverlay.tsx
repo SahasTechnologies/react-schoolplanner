@@ -100,10 +100,10 @@ const EventDetailsOverlay: React.FC<EventDetailsOverlayProps> = ({ event, onClos
           </span>
           <span style={{ opacity: 0.35, display: 'flex', alignItems: 'center' }}>{subjectIcon}</span>
         </div>
-        <div className={`mb-6 p-4 rounded-2xl ${colors.background}`}> 
-          {infoFields.map(f => f.node)}
+        <div className={`mb-6 p-4 rounded-2xl ${colors.background} ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}> 
+          {infoFields.map(f => f.node && React.cloneElement(f.node, { className: (f.node.props.className || '') + (effectiveMode === 'light' ? ' text-black' : ' text-white') }))}
         </div>
-        <div className="mb-2 mt-2 text-lg font-semibold">Note</div>
+        <div className={`mb-2 mt-2 text-lg font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Note</div>
         <textarea
           className={`w-full min-h-[100px] rounded-lg p-3 resize-vertical focus:outline-none focus:ring-2 focus:ring-blue-500 ${effectiveMode === 'light' ? 'bg-gray-100 text-black border-gray-300' : 'bg-gray-700 text-white border-gray-600'}`}
           value={note}

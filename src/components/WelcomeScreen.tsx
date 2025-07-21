@@ -443,7 +443,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
         <div className={`flex flex-col items-center justify-center h-full text-center p-8 relative ${containerBg}`}>
           <StepCircles />
           <div style={{height: '80px'}} />
-          <User size={64} className="text-primary mb-6 animate-bounce-in" />
+          <User size={64} className={`${colors.buttonAccent} mb-6 animate-bounce-in`} />
           <h2 className={`text-3xl font-bold mb-4 ${colors.text}`}>What's your name? (Optional)</h2>
           <p className={`${colors.text} opacity-80 mb-6`}>We'll use this to greet you!</p>
           <input
@@ -455,7 +455,8 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
           />
           <button
             onClick={() => setWelcomeStep('completed')}
-            className="bg-primary hover:bg-primary-dark text-primary-foreground px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+            className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 animate-fade-in-up-fast`}
+            style={{animation: 'fadeInUpFast 0.2s cubic-bezier(0.4,0,0.2,1)'}}
           >
             Next
           </button>
