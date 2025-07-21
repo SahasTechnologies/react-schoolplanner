@@ -91,6 +91,18 @@ const SchoolPlanner = () => {
 
 
 
+  // Deterministic color fallback for unknown subjects
+  function getDeterministicColour(subjectName: string): string {
+    // Simple hash function (djb2)
+    let hash = 5381;
+    for (let i = 0; i < subjectName.length; i++) {
+      hash = ((hash << 5) + hash) + subjectName.charCodeAt(i);
+    }
+    const idx = Math.abs(hash) % defaultColours.length;
+    return defaultColours[idx];
+  }
+
+
   const getEventColour = (title: string): string => { // Changed to 'getEventColour'
     // Handle break events specially
     if (title === 'Break') {
@@ -98,7 +110,7 @@ const SchoolPlanner = () => {
     }
     const normalizedTitle = normalizeSubjectName(title, autoNamingEnabled);
     const subject = subjects.find((s: Subject) => normalizeSubjectName(s.name, autoNamingEnabled) === normalizedTitle);
-    return subject ? subject.colour : generateRandomColour(); // Changed to 'subject.colour'
+    return subject ? subject.colour : getDeterministicColour(normalizedTitle); // Use deterministic fallback
   };
 
 

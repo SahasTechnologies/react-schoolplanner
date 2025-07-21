@@ -443,7 +443,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
         <div className={`flex flex-col items-center justify-center h-full text-center p-8 relative ${containerBg}`}>
           <StepCircles />
           <div style={{height: '80px'}} />
-          <User size={64} className={`${colors.buttonAccent} mb-6 animate-bounce-in`} />
+          <User size={64} className={`${effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400'} mb-6 animate-bounce-in`} />
           <h2 className={`text-3xl font-bold mb-4 ${colors.text}`}>What's your name? (Optional)</h2>
           <p className={`${colors.text} opacity-80 mb-6`}>We'll use this to greet you!</p>
           <input

@@ -4,7 +4,7 @@ _Last Updated: 19 March 2025_
 
 This Privacy Policy governs the manner in which this software collects, uses, maintains, and discloses information collected from users (“Users”) of the Software. All data is stored locally on your device and is not transmitted or processed on external servers. The data is not encrypted, so ensure your device’s security. No personal data is sold or traded.
 
-We incorporate fonts and icons provided by Google. Please review their respective Privacy Policies for more information.
+We incorporate fonts and icons provided by Lucide, and have other dependencies. Please review their respective Privacy Policies for more information.
 
 By using the Software, you agree to this Privacy Policy. If you do not agree, please do not use the Software.
 

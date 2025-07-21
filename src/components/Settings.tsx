@@ -88,7 +88,8 @@ const Settings: React.FC<SettingsProps> = ({
   fileInputRef,
   offlineCachingEnabled,
   countdownInTitle,
-  setCountdownInTitle
+  setCountdownInTitle,
+  setOfflineCachingEnabled
 }: SettingsProps) => {
 
   const [showNameEditModal, setShowNameEditModal] = React.useState(false);
@@ -200,21 +201,35 @@ const Settings: React.FC<SettingsProps> = ({
             />
           </>
         </div>
+        {/* Divider for spacing before cache settings */}
+        <hr className={`my-6 border-t ${colors.border}`} />
         {/* Offline Caching Toggle */}
-        <div className="flex items-center gap-3">
-          {offlineCachingEnabled ? (
-            <Wifi className={effectiveMode === 'light' ? 'text-green-600' : 'text-green-400'} size={18} />
-          ) : (
-            <WifiOff className={effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} size={18} />
-          )}
-          <div>
-            <p className={`font-medium ${colors.containerText}`}>Save Site for Offline Use</p>
-            <p className={`text-sm ${colors.containerText} opacity-80`}>
-              {serviceWorkerSupported 
-                ? 'Cache the site so it works without internet connection' 
-                : 'Service Worker not supported in this browser'}
-            </p>
+        <div className="flex items-center justify-between mt-4">
+          <div className="flex items-center gap-3">
+            {offlineCachingEnabled ? (
+              <Wifi className={effectiveMode === 'light' ? 'text-green-600' : 'text-green-400'} size={18} />
+            ) : (
+              <WifiOff className={effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} size={18} />
+            )}
+            <div>
+              <p className={`font-medium ${colors.containerText}`}>Save Site for Offline Use</p>
+              <p className={`text-sm ${colors.containerText} opacity-80`}>
+                {serviceWorkerSupported 
+                  ? 'Cache the site so it works without internet connection' 
+                  : 'Service Worker not supported in this browser'}
+              </p>
+            </div>
           </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={offlineCachingEnabled}
+              onChange={e => setOfflineCachingEnabled(e.target.checked)}
+              className="sr-only peer"
+              disabled={!serviceWorkerSupported}
+            />
+            <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+          </label>
         </div>
         
         {/* Update Cache Button - only show if caching is enabled */}
