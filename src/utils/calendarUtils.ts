@@ -239,9 +239,19 @@ export function getTodayOrNextEvents(weekData: WeekData | null): { dayLabel: str
   if (isWeekday(dayIdx)) {
     const todayEvents = dayEvents[dayIdx - 1];
     if (todayEvents.length > 0) {
-      // If any event is still upcoming or ongoing, show today
-      const lastEventEnd = todayEvents[todayEvents.length - 1].dtend || todayEvents[todayEvents.length - 1].dtstart;
-      if (now <= lastEventEnd) {
+      // Find the latest end time among today's events
+      let lastEventEnd = null;
+      for (const ev of todayEvents) {
+        if (ev.dtend) {
+          if (!lastEventEnd || ev.dtend > lastEventEnd) lastEventEnd = ev.dtend;
+        } else {
+          // If no dtend, treat as end of today
+          const endOfDay = new Date(ev.dtstart);
+          endOfDay.setHours(23, 59, 59, 999);
+          if (!lastEventEnd || endOfDay > lastEventEnd) lastEventEnd = endOfDay;
+        }
+      }
+      if (lastEventEnd && now <= lastEventEnd) {
         return { dayLabel: 'Today', events: todayEvents };
       }
     }
