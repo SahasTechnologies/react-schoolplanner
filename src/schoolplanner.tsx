@@ -523,7 +523,6 @@ const SchoolPlanner = () => {
               theme={theme} 
               themeType={themeType} 
               effectiveMode={effectiveMode} 
-              offlineCachingEnabled={offlineCachingEnabled}
             />
           </div>
         </div>
@@ -1263,8 +1262,7 @@ const QuoteOfTheDayWidget: React.FC<{
   theme: ThemeKey; 
   themeType: 'normal' | 'extreme'; 
   effectiveMode: 'light' | 'dark';
-  offlineCachingEnabled?: boolean;
-}> = ({ theme, themeType, effectiveMode, offlineCachingEnabled = false }) => {
+}> = ({ theme, themeType, effectiveMode }) => {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
   const [quoteText, setQuoteText] = React.useState<string | null>(null);
