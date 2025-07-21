@@ -82,8 +82,8 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
   if (welcomeStep === 'completed') {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-8">
-        <h2 className={`text-3xl font-bold mb-4 ${colors.buttonText}`}>Setup Complete</h2>
-        <p className={`${colors.buttonText} opacity-80 mb-6`}>You have already uploaded your timetable and name. To change them, go to Settings.</p>
+        <h2 className={`text-3xl font-bold mb-4 ${colors.text}`}>Setup Complete</h2>
+        <p className={`${colors.text} opacity-80 mb-6`}>You have already uploaded your timetable and name. To change them, go to Settings.</p>
         <button
           onClick={() => navigate('/settings')}
           className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-8 py-4 rounded-full text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105`}
@@ -135,8 +135,8 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
           <div className="fixed top-0 left-0 w-full flex justify-center z-50 pt-8 pointer-events-none">
             <StepCircles />
           </div>
-          <h1 className={`text-5xl font-bold mb-4 animate-fade-in-down ${colors.buttonText}`}>Welcome to School Planner!</h1>
-          <p className={`text-xl mb-8 animate-fade-in-up ${colors.buttonText} opacity-80`}>Your personal school planner.</p>
+          <h1 className={`text-5xl font-bold mb-4 animate-fade-in-down ${colors.text}`}>Welcome to School Planner!</h1>
+          <p className={`text-xl mb-8 animate-fade-in-up ${colors.text} opacity-80`}>Your personal school planner.</p>
           <div className="mb-6 space-y-4">
             <label className="flex items-center gap-3 cursor-pointer">
               <div className="checkbox-wrapper-30">
@@ -333,8 +333,8 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
           <div className="absolute top-0 left-0 w-full flex justify-center z-10">
             <StepCircles />
           </div>
-          <h2 className={`text-3xl font-bold mb-6 ${colors.buttonText}`}>Upload or Import Your Timetable</h2>
-          <p className={`mb-4 text-base ${colors.buttonText} opacity-80`}>Upload an ICS calendar or import your .school file.</p>
+          <h2 className={`text-3xl font-bold mb-6 ${colors.text}`}>Upload or Import Your Timetable</h2>
+          <p className={`mb-4 text-base ${colors.text} opacity-80`}>Upload an ICS calendar or import your .school file.</p>
           <div
             className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 w-full max-w-lg ${
               dragOver
@@ -373,8 +373,8 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
             <div className="flex flex-col items-center gap-4">
               <Upload size={48} className={effectiveMode === 'light' ? 'text-gray-400' : 'text-gray-400'} />
               <div>
-                <p className={`text-lg font-medium mb-2 ${colors.buttonText}`}>Upload or Import File</p>
-                <p className={`text-sm mb-4 ${colors.buttonText} opacity-80`}>
+                <p className={`text-lg font-medium mb-2 ${colors.text}`}>Upload or Import File</p>
+                <p className={`text-sm mb-4 ${colors.text} opacity-80`}>
                   Drag and drop your <b>.ics</b> or <b>.school</b> file here or click to browse
                 </p>
                 <button
@@ -419,12 +419,12 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
           {loading && (
             <div className="text-center py-8">
               <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${effectiveMode === 'light' ? 'border-black' : 'border-primary'} mx-auto mb-4`}></div>
-              <p className={`${colors.buttonText} opacity-80`}>Processing your calendar...</p>
+              <p className={`${colors.text} opacity-80`}>Processing your calendar...</p>
             </div>
           )}
           {error && (
             <div className={`border rounded-lg p-4 mt-6 w-full max-w-lg ${effectiveMode === 'light' ? 'bg-red-100 border-red-400' : 'bg-red-900/20 border-red-500'}`}>
-              <div className={`flex items-center gap-2 ${colors.buttonText}`}>
+              <div className={`flex items-center gap-2 ${colors.text}`}>
                 <FileText size={20} />
                 <span className="font-medium">{error}</span>
               </div>
@@ -439,8 +439,8 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
             <StepCircles />
           </div>
           <User size={64} className="text-primary mb-6 animate-bounce-in" />
-          <h2 className={`text-3xl font-bold mb-4 ${colors.buttonText}`}>What's your name? (Optional)</h2>
-          <p className={`${colors.buttonText} opacity-80 mb-6`}>We'll use this to greet you!</p>
+          <h2 className={`text-3xl font-bold mb-4 ${colors.text}`}>What's your name? (Optional)</h2>
+          <p className={`${colors.text} opacity-80 mb-6`}>We'll use this to greet you!</p>
           <input
             type="text"
             value={userName}
