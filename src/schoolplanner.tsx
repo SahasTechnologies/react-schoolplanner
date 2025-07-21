@@ -1353,31 +1353,19 @@ const QuoteOfTheDayWidget: React.FC<{
           Quote unavailable offline
         </div>
       )}
-      {/* Show cached quote if available, otherwise fallback to iframe or loading */}
+      {/* Show cached quote if available, otherwise fallback to spinner or error */}
       {quoteText && !loading && !error ? (
         <div className="w-full flex flex-col items-center justify-center py-4">
           <blockquote className={`italic text-center ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{quoteText}</blockquote>
           <a href="https://kwize.com/quote-of-the-day/" target="_blank" rel="noopener noreferrer" className="mt-2 text-xs underline opacity-70">Source: Kwize</a>
         </div>
-      ) : shouldShowIframe && loading && !error ? (
+      ) : loading ? (
         <div className="flex flex-col items-center justify-center py-4 w-full">
           <LoaderCircle className={`animate-spin mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`} size={32} />
           <span className={`${effectiveMode === 'light' ? 'text-black' : 'text-gray-400'}`}>Loading...</span>
         </div>
-      ) : shouldShowIframe && error ? (
+      ) : error ? (
         <div className="text-red-500 text-sm py-2">Failed to load quote widget.</div>
-      ) : shouldShowIframe ? (
-        <iframe
-          title="Quote of the Day"
-          src={url}
-          width="100%"
-          height="120"
-          style={{ border: 'none', borderRadius: '8px' }}
-          loading="lazy"
-          sandbox="allow-scripts allow-same-origin"
-          onLoad={() => { setLoading(false); setError(false); }}
-          onError={() => { setLoading(false); setError(true); }}
-        ></iframe>
       ) : null}
     </div>
   );
