@@ -43,4 +43,42 @@ const quoteUrlLight: Record<string, string> = {
 export function getQuoteOfTheDayUrl(theme: ThemeKey, themeType: 'normal' | 'extreme', effectiveMode: 'light' | 'dark') {
   const key = themeType === 'extreme' ? `extreme${theme}` : theme;
   return effectiveMode === 'dark' ? quoteUrlDark[key] : quoteUrlLight[key];
+}
+
+// Quote cache utilities
+const QUOTE_CACHE_KEY = 'quoteOfTheDayCache';
+
+export function extractQuoteFromHtml(html: string): string | null {
+  // Try to extract the quote text from the Kwize embed HTML
+  const match = html.match(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/i);
+  if (match) {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = match[1];
+    return tempDiv.textContent?.trim() || null;
+  }
+  return null;
+}
+
+export function getCachedQuote(url: string): { html: string; text: string; url: string; timestamp: number } | null {
+  try {
+    const raw = localStorage.getItem(QUOTE_CACHE_KEY);
+    if (raw) {
+      const cache = JSON.parse(raw);
+      if (cache && cache.url === url) {
+        return cache;
+      }
+    }
+  } catch {}
+  return null;
+}
+
+export function setCachedQuote(url: string, html: string, text: string) {
+  localStorage.setItem(
+    QUOTE_CACHE_KEY,
+    JSON.stringify({ html, text, url, timestamp: Date.now() })
+  );
+}
+
+export function isQuoteCacheValid(cache: { html: string; text: string; url: string; timestamp: number } | null, url: string) {
+  return cache && cache.url === url;
 } 

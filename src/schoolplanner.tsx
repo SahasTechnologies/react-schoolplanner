@@ -30,7 +30,7 @@ import SubjectCard from './components/SubjectCard';
 import EventDetailsOverlay from './components/EventDetailsOverlay';
 import { createOfflineIndicatorElement } from './utils/offlineIndicatorUtils';
 import { processFile, exportData, defaultColours } from './utils/fileUtils.ts';
-import { getQuoteOfTheDayUrl } from './utils/quoteUtils.ts';
+import { getQuoteOfTheDayUrl, extractQuoteFromHtml, getCachedQuote, setCachedQuote, isQuoteCacheValid } from './utils/quoteUtils';
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported } from './utils/cacheUtils.ts';
 import { useNetworkStatus } from './utils/networkUtils.ts';
 import { showSuccess, showError, showInfo, removeNotification } from './utils/notificationUtils';
@@ -1256,6 +1256,9 @@ const SchoolPlanner = () => {
 };
 
 // Quote of the Day Widget
+const QUOTE_CACHE_KEY = 'quoteOfTheDayCache';
+// const QUOTE_CACHE_EXPIRY_HOURS = 12; // No longer used
+
 const QuoteOfTheDayWidget: React.FC<{ 
   theme: ThemeKey; 
   themeType: 'normal' | 'extreme'; 
@@ -1264,10 +1267,70 @@ const QuoteOfTheDayWidget: React.FC<{
 }> = ({ theme, themeType, effectiveMode, offlineCachingEnabled = false }) => {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
+  const [quoteHtml, setQuoteHtml] = React.useState<string | null>(null);
+  const [quoteText, setQuoteText] = React.useState<string | null>(null);
   const url = getQuoteOfTheDayUrl(theme, themeType, effectiveMode);
   const isOnline = useNetworkStatus();
 
-  // Don't show iframe if actually offline
+  // Load from cache on mount and whenever url changes
+  React.useEffect(() => {
+    setLoading(true);
+    setError(false);
+    const cache = getCachedQuote(url);
+    if (cache && isQuoteCacheValid(cache, url)) {
+      setQuoteHtml(cache.html);
+      setQuoteText(cache.text);
+      setLoading(false);
+    }
+    // Always check for update in background if online
+    if (isOnline) {
+      fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const text = extractQuoteFromHtml(html) || '';
+          // If quote changed or cache is missing, update
+          if (!cache || !isQuoteCacheValid(cache, url) || cache.text !== text) {
+            setQuoteHtml(html);
+            setQuoteText(text);
+            setCachedQuote(url, html, text);
+          }
+          setLoading(false);
+          setError(false);
+        })
+        .catch(() => {
+          setLoading(false);
+          setError(true);
+        });
+    } else if (cache && isQuoteCacheValid(cache, url)) {
+      setLoading(false);
+      setError(false);
+    } else {
+      setLoading(false);
+      setError(true);
+    }
+    // eslint-disable-next-line
+  }, [url, isOnline]);
+
+  // If theme/themeType/effectiveMode changes anywhere in the app, update quote cache if online
+  React.useEffect(() => {
+    if (!isOnline) return;
+    // This effect will run on any theme change, even if not on home page
+    fetch(url)
+      .then(res => res.text())
+      .then(html => {
+        const text = extractQuoteFromHtml(html) || '';
+        const cache = getCachedQuote(url);
+        if (!cache || !isQuoteCacheValid(cache, url) || cache.text !== text) {
+          setCachedQuote(url, html, text);
+          setQuoteHtml(html);
+          setQuoteText(text);
+        }
+      })
+      .catch(() => {});
+    // eslint-disable-next-line
+  }, [theme, themeType, effectiveMode, url, isOnline]);
+
+  // Don't show iframe if actually offline and no offline caching
   const shouldShowIframe = isOnline || offlineCachingEnabled;
 
   return (
@@ -1294,16 +1357,20 @@ const QuoteOfTheDayWidget: React.FC<{
           Quote unavailable offline
         </div>
       )}
-      {shouldShowIframe && loading && !error && (
+      {/* Show cached quote if available, otherwise fallback to iframe or loading */}
+      {quoteText && !loading && !error ? (
+        <div className="w-full flex flex-col items-center justify-center py-4">
+          <blockquote className={`italic text-center ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{quoteText}</blockquote>
+          <a href="https://kwize.com/quote-of-the-day/" target="_blank" rel="noopener noreferrer" className="mt-2 text-xs underline opacity-70">Source: Kwize</a>
+        </div>
+      ) : shouldShowIframe && loading && !error ? (
         <div className="flex flex-col items-center justify-center py-4 w-full">
           <LoaderCircle className={`animate-spin mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`} size={32} />
           <span className={`${effectiveMode === 'light' ? 'text-black' : 'text-gray-400'}`}>Loading...</span>
         </div>
-      )}
-      {shouldShowIframe && error && (
+      ) : shouldShowIframe && error ? (
         <div className="text-red-500 text-sm py-2">Failed to load quote widget.</div>
-      )}
-      {shouldShowIframe && (
+      ) : shouldShowIframe ? (
         <iframe
           title="Quote of the Day"
           src={url}
@@ -1315,7 +1382,7 @@ const QuoteOfTheDayWidget: React.FC<{
           onLoad={() => { setLoading(false); setError(false); }}
           onError={() => { setLoading(false); setError(true); }}
         ></iframe>
-      )}
+      ) : null}
     </div>
   );
 };
