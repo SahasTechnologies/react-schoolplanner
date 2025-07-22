@@ -68,7 +68,7 @@ interface SettingsProps {
   handleFileInput: (e: React.ChangeEvent<HTMLInputElement> | File | null) => void;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   offlineCachingEnabled: boolean;
-  setOfflineCachingEnabled: (enabled: boolean) => void;
+  setOfflineCachingEnabled: (enabled: boolean) => Promise<void>;
 }
 
 const Settings: React.FC<SettingsProps> = ({
