@@ -251,14 +251,6 @@ export function getTodayOrNextEvents(weekData: WeekData | null): { dayLabel: str
           if (!lastEventEnd || endOfDay > lastEventEnd) lastEventEnd = endOfDay;
         }
       }
-      // Debug logging
-      console.log('NOW:', now);
-      console.log('Today events:', todayEvents.map(ev => ({
-        start: ev.dtstart,
-        end: ev.dtend,
-        fallbackEnd: !ev.dtend ? (() => { const d = new Date(ev.dtstart); d.setHours(23,59,59,999); return d; })() : undefined
-      })));
-      console.log('Computed lastEventEnd:', lastEventEnd);
       if (lastEventEnd && now <= lastEventEnd) {
         return { dayLabel: 'Today', events: todayEvents };
       }
