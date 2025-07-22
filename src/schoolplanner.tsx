@@ -1260,18 +1260,30 @@ const QuoteOfTheDayWidget: React.FC<{
   effectiveMode: 'light' | 'dark';
 }> = ({ theme, themeType, effectiveMode }) => {
   const [isLoading, setIsLoading] = React.useState(true);
+  const [hasError, setHasError] = React.useState(false);
   const url = getQuoteOfTheDayUrl(theme, themeType, effectiveMode);
   const colors = getColors(theme, themeType, effectiveMode);
+
+  const handleLoad = () => setIsLoading(false);
+  const handleError = () => {
+    setIsLoading(false);
+    setHasError(true);
+  };
 
   return (
     <div className={`${colors.container} rounded-lg ${colors.border} border p-4 mb-4 flex flex-col items-center`}>
       <div className="flex items-center gap-2 mb-2">
         <div className="font-semibold text-lg" style={{ color: effectiveMode === 'light' ? '#222' : '#fff' }}>Quote of the Day</div>
       </div>
-      <div className="relative w-full h-[120px]">
+      <div className="relative w-full h-[120px] flex items-center justify-center">
         {isLoading && (
           <div className="absolute inset-0 flex justify-center items-center">
             <LoaderCircle className="animate-spin" size={32} color={colors.text} />
+          </div>
+        )}
+        {hasError && (
+          <div className="text-center" style={{ color: colors.text }}>
+            Could not load quote.
           </div>
         )}
         <iframe
@@ -1279,11 +1291,18 @@ const QuoteOfTheDayWidget: React.FC<{
           src={url}
           width="100%"
           height="120"
-          style={{ border: 'none', borderRadius: '8px', visibility: isLoading ? 'hidden' : 'visible' }}
+          style={{
+            border: 'none',
+            borderRadius: '8px',
+            visibility: isLoading || hasError ? 'hidden' : 'visible',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+          }}
           loading="lazy"
           sandbox="allow-scripts allow-same-origin"
-          onLoad={() => setIsLoading(false)}
-          onError={() => setIsLoading(false)} // Also hide spinner on error
+          onLoad={handleLoad}
+          onError={handleError}
         ></iframe>
       </div>
     </div>

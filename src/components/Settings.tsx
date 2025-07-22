@@ -95,6 +95,7 @@ const Settings: React.FC<SettingsProps> = ({
   const [editUserName, setEditUserName] = React.useState(userName);
   const [serviceWorkerSupported] = React.useState(isServiceWorkerSupported());
   const [isUpdatingCache, setIsUpdatingCache] = React.useState(false);
+  const [isToggleLoading, setIsToggleLoading] = React.useState(false);
 
   const [showTerms, setShowTerms] = React.useState(false);
   const [showPrivacy, setShowPrivacy] = React.useState(false);
@@ -206,7 +207,7 @@ const Settings: React.FC<SettingsProps> = ({
         {/* Offline Caching Toggle */}
         <div className="flex items-center justify-between mt-4">
           <div className="flex items-center gap-3">
-            {isUpdatingCache ? (
+            {isToggleLoading ? (
               <LoaderCircle className="animate-spin text-blue-500" size={18} />
             ) : offlineCachingEnabled ? (
               <Wifi className={effectiveMode === 'light' ? 'text-green-600' : 'text-green-400'} size={18} />
@@ -226,9 +227,14 @@ const Settings: React.FC<SettingsProps> = ({
             <input
               type="checkbox"
               checked={offlineCachingEnabled}
-              onChange={e => setOfflineCachingEnabled(e.target.checked)}
+              onChange={async (e) => {
+                const checked = e.target.checked;
+                setIsToggleLoading(true);
+                await setOfflineCachingEnabled(checked);
+                setIsToggleLoading(false);
+              }}
               className="sr-only peer"
-              disabled={!serviceWorkerSupported}
+              disabled={!serviceWorkerSupported || isToggleLoading}
             />
             <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
           </label>
