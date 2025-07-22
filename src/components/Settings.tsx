@@ -247,7 +247,7 @@ const Settings: React.FC<SettingsProps> = ({
               className="sr-only peer"
               disabled={!serviceWorkerSupported || isToggleLoading}
             />
-            <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+            <div className={`w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:${colors.buttonAccent}`}></div>
           </label>
         </div>
         
@@ -307,7 +307,7 @@ const Settings: React.FC<SettingsProps> = ({
                 onChange={e => setCountdownInTitle(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className={`w-11 h-6 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all ${colors.buttonAccent}`}></div>
+              <div className={`w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:${colors.buttonAccent}`}></div>
             </label>
           </div>
 
@@ -350,7 +350,7 @@ const Settings: React.FC<SettingsProps> = ({
                   onChange={e => setShowFirstInfoBeside(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className={`w-11 h-6 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all ${colors.buttonAccent}`}></div>
+                <div className={`w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:${colors.buttonAccent}`}></div>
               </label>
             </div>
 
@@ -378,7 +378,7 @@ const Settings: React.FC<SettingsProps> = ({
                       onChange={() => handleToggleInfoShown(item.key)}
                       className="sr-only peer"
                     />
-                    <div className={`w-9 h-5 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-4 after:w-4 after:transition-all ${colors.buttonAccent}`}></div>
+                    <div className={`w-9 h-5 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:${colors.buttonAccent}`}></div>
                   </label>
                 </div>
               ))}
@@ -521,90 +521,48 @@ const Settings: React.FC<SettingsProps> = ({
       </div>
       {/* Legal Modals */}
       <style>{`
-.markdown-content h1 {
-  font-size: 2em;
-  font-weight: bold;
-  margin-bottom: 1em;
-  margin-top: 0.5em;
+.markdown-content h1, .markdown-content h2, .markdown-content h3, .markdown-content h4, .markdown-content h5, .markdown-content h6 {
+  text-align: left;
+  margin-bottom: 0.5em; /* Space after heading */
+  margin-top: 1.5em;   /* Space before heading */
+  padding-left: 0;     /* No indent */
+  margin-left: 0;      /* No indent */
+  font-weight: 600;      /* Semibold for clarity */
 }
-.markdown-content h2 {
-  font-size: 1.5em;
-  font-weight: bold;
-  margin-bottom: 0.75em;
-  margin-top: 1em;
-}
-.markdown-content h3 {
-  font-size: 1.25em;
-  font-weight: bold;
-  margin-bottom: 0.5em;
-  margin-top: 1em;
+.markdown-content p, .markdown-content ul, .markdown-content ol, .markdown-content blockquote {
+  text-align: left;
+  margin-left: 1rem; /* Indent content */
+  margin-top: 0;
+  font-weight: 400;  /* Normal weight */
 }
 .markdown-content p {
   margin-bottom: 1em;
   line-height: 1.6;
 }
 .markdown-content ul, .markdown-content ol {
-  margin-bottom: 1em;
-  padding-left: 2em;
+  padding-left: 1.5rem; /* Indent list items */
 }
-.markdown-content li {
-  margin-bottom: 0.5em;
-}
-.markdown-content a {
-  color: #3b82f6;
-  text-decoration: underline;
-}
-.markdown-content a:hover {
-  text-decoration: none;
-}
-.markdown-content code {
-  background: rgba(0,0,0,0.1);
-  padding: 0.2em 0.4em;
-  border-radius: 0.2em;
-  font-size: 0.9em;
-}
-.markdown-content pre {
-  background: rgba(0,0,0,0.1);
-  padding: 1em;
-  border-radius: 0.5em;
-  margin-bottom: 1em;
-  overflow-x: auto;
-}
-.markdown-content pre code {
-  background: none;
-  padding: 0;
-}
-.markdown-content blockquote {
-  border-left: 4px solid #3b82f6;
-  padding-left: 1em;
-  margin-left: 0;
-  margin-bottom: 1em;
-  font-style: italic;
-}
-.markdown-content table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 1em;
-}
-.markdown-content th, .markdown-content td {
-  border: 1px solid rgba(0,0,0,0.1);
-  padding: 0.5em;
-  text-align: left;
-}
-.markdown-content th {
-  background: rgba(0,0,0,0.05);
+/* Firefox scrollbar */
+.custom-scrollbar-light, .custom-scrollbar-dark {
+  scrollbar-width: thin;
+  scrollbar-color: ${colors.buttonAccent} ${colors.container};
 }
 `}</style>
       {showTerms && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
           <div className={`bg-gray-50 dark:bg-gray-900 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}> 
-            <button onClick={() => { setShowTerms(false); setMarkdownError(null); }} className="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition text-gray-400">&times;</button>
+            <button 
+              onClick={() => { setShowTerms(false); setMarkdownError(null); }} 
+              className="absolute top-4 right-4 opacity-70 hover:opacity-100 transition"
+            >
+              <X className={effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} size={24} />
+            </button>
             {loadingMarkdown === 'terms' ? (
               <div className="py-8 text-gray-800 dark:text-gray-100">Loading...</div>
             ) : markdownError ? (
               <div className="text-red-500 py-8">{markdownError}</div>
             ) : (
-              <div className={`prose dark:prose-invert max-w-none text-left text-gray-800 dark:text-gray-100 markdown-content`}>
+              <div className="markdown-content text-gray-800 dark:text-gray-100">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{termsContent}</ReactMarkdown>
               </div>
             )}
@@ -620,7 +578,7 @@ const Settings: React.FC<SettingsProps> = ({
             ) : markdownError ? (
               <div className="text-red-500 py-8">{markdownError}</div>
             ) : (
-              <div className={`prose dark:prose-invert max-w-none text-left text-gray-800 dark:text-gray-100 markdown-content`}>
+              <div className="markdown-content text-gray-800 dark:text-gray-100">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{privacyContent}</ReactMarkdown>
               </div>
             )}
@@ -636,7 +594,7 @@ const Settings: React.FC<SettingsProps> = ({
             ) : markdownError ? (
               <div className="text-red-500 py-8">{markdownError}</div>
             ) : (
-              <div className={`prose dark:prose-invert max-w-none text-left text-gray-800 dark:text-gray-100 markdown-content`}>
+              <div className="markdown-content text-gray-800 dark:text-gray-100">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{licenseContent}</ReactMarkdown>
               </div>
             )}
@@ -689,7 +647,7 @@ const Settings: React.FC<SettingsProps> = ({
                 }}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:${colors.buttonAccent}`}></div>
             </label>
           </div>
           <div className="flex items-center justify-between mt-4">
@@ -714,7 +672,7 @@ const Settings: React.FC<SettingsProps> = ({
                 }}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:${colors.buttonAccent}`}></div>
             </label>
           </div>
         </div>

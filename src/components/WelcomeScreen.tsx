@@ -191,7 +191,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
                 ) : markdownError ? (
                   <div className="text-red-500 py-8">{markdownError}</div>
                 ) : (
-                  <div className="markdown-content"><ReactMarkdown remarkPlugins={[remarkGfm]}>{termsContent}</ReactMarkdown></div>
+                  <div className="markdown-content text-gray-800 dark:text-gray-100"><ReactMarkdown remarkPlugins={[remarkGfm]}>{termsContent}</ReactMarkdown></div>
                 )}
               </div>
             </div>
@@ -205,7 +205,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
                 ) : markdownError ? (
                   <div className="text-red-500 py-8">{markdownError}</div>
                 ) : (
-                  <div className="markdown-content"><ReactMarkdown remarkPlugins={[remarkGfm]}>{privacyContent}</ReactMarkdown></div>
+                  <div className="markdown-content text-gray-800 dark:text-gray-100"><ReactMarkdown remarkPlugins={[remarkGfm]}>{privacyContent}</ReactMarkdown></div>
                 )}
               </div>
             </div>
@@ -219,7 +219,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
                 ) : markdownError ? (
                   <div className="text-red-500 py-8">{markdownError}</div>
                 ) : (
-                  <div className="markdown-content"><ReactMarkdown remarkPlugins={[remarkGfm]}>{licenseContent}</ReactMarkdown></div>
+                  <div className="markdown-content text-gray-800 dark:text-gray-100"><ReactMarkdown remarkPlugins={[remarkGfm]}>{licenseContent}</ReactMarkdown></div>
                 )}
               </div>
             </div>
@@ -340,6 +340,93 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
           }
           .animate-fade-in-up-fast {
             animation: fadeInUpFast 0.2s cubic-bezier(0.4,0,0.2,1);
+          }
+          .markdown-content h1, .markdown-content h2, .markdown-content h3, .markdown-content h4, .markdown-content h5, .markdown-content h6 {
+            text-align: left;
+            margin-bottom: 0.5em;
+            margin-top: 1em;
+            padding-left: 0;
+          }
+          .markdown-content p, .markdown-content ul, .markdown-content ol, .markdown-content blockquote, .markdown-content table {
+            text-align: left;
+            margin-left: 2em;
+            margin-top: 0;
+          }
+          .markdown-content p {
+            margin-bottom: 1em;
+            line-height: 1.6;
+          }
+          .markdown-content ul, .markdown-content ol {
+            margin-bottom: 1em;
+            padding-left: 2em;
+          }
+          .markdown-content li {
+            margin-bottom: 0.5em;
+          }
+          .markdown-content a {
+            color: #3b82f6;
+            text-decoration: underline;
+          }
+          .markdown-content a:hover {
+            text-decoration: none;
+          }
+          .markdown-content code {
+            background: rgba(0,0,0,0.1);
+            padding: 0.2em 0.4em;
+            border-radius: 0.2em;
+            font-size: 0.9em;
+          }
+          .markdown-content pre {
+            background: rgba(0,0,0,0.1);
+            padding: 1em;
+            border-radius: 0.5em;
+            margin-bottom: 1em;
+            overflow-x: auto;
+          }
+          .markdown-content pre code {
+            background: none;
+            padding: 0;
+          }
+          .markdown-content blockquote {
+            border-left: 4px solid #3b82f6;
+            padding-left: 1em;
+            margin-left: 2em;
+            margin-bottom: 1em;
+            font-style: italic;
+          }
+          .markdown-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1em;
+          }
+          .markdown-content th, .markdown-content td {
+            border: 1px solid rgba(0,0,0,0.1);
+            padding: 0.5em;
+            text-align: left;
+          }
+          .markdown-content th {
+            background: rgba(0,0,0,0.05);
+          }
+          .markdown-content h1, .markdown-content h2, .markdown-content h3, .markdown-content h4, .markdown-content h5, .markdown-content h6 {
+            text-align: left;
+            margin-bottom: 0.5em; /* Space after heading */
+            margin-top: 1.5em;   /* Space before heading */
+            padding-left: 0;     /* No indent */
+            margin-left: 0;      /* No indent */
+            font-weight: 600;      /* Semibold for clarity */
+          }
+          .markdown-content p, .markdown-content ul, .markdown-content ol, .markdown-content blockquote {
+            text-align: left;
+            margin-left: 1rem; /* Indent content */
+            margin-top: 0;
+            font-weight: 400;  /* Normal weight */
+          }
+          .markdown-content p {
+            margin-bottom: 1em;
+            line-height: 1.6;
+          }
+          .markdown-content ul, .markdown-content ol {
+            padding-left: 1.5rem; /* Indent list items */
           }
           `}</style>
         </div>
