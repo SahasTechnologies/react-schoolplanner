@@ -75,15 +75,18 @@ export const processICSFile = async (
             break;
           }
         }
-        // If no week contains today, fall back to the week with the most events
+        // If no week contains today, pick the next week in the future
         if (!bestWeek) {
-          let maxEvents = 0;
           for (const week of allActualWeeks) {
-            if (week.events.length > maxEvents) {
+            if (week.monday > today) {
               bestWeek = week;
-              maxEvents = week.events.length;
+              break;
             }
           }
+        }
+        // If all weeks are in the past, pick the last week (most recent)
+        if (!bestWeek && allActualWeeks.length > 0) {
+          bestWeek = allActualWeeks[allActualWeeks.length - 1];
         }
         
         if (!bestWeek) {
