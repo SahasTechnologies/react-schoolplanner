@@ -234,16 +234,13 @@ export function getTodayOrNextEvents(weekData: WeekData | null): { dayLabel: str
     }
   });
   // Sort events for each day
-  dayEvents.forEach(list => list.sort((a, b) => a.dtstart.getTime() - b.dtstart.getTime()));
+  dayEvents.forEach(list => list.sort((a, b) => new Date(a.dtstart).getTime() - new Date(b.dtstart).getTime()));
   // Try today first
   if (isWeekday(dayIdx)) {
     const todayEvents = dayEvents[dayIdx - 1];
     if (todayEvents.length > 0) {
-      // If any event is still upcoming or ongoing, show today
-      const lastEventEnd = todayEvents[todayEvents.length - 1].dtend || todayEvents[todayEvents.length - 1].dtstart;
-      if (now <= lastEventEnd) {
-        return { dayLabel: 'Today', events: todayEvents };
-      }
+      // Always show today's events if any exist
+      return { dayLabel: 'Today', events: todayEvents };
     }
   }
   // Otherwise, show the next weekday with events (usually tomorrow)

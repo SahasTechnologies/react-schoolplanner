@@ -523,7 +523,6 @@ const SchoolPlanner = () => {
               theme={theme} 
               themeType={themeType} 
               effectiveMode={effectiveMode} 
-              offlineCachingEnabled={offlineCachingEnabled}
             />
           </div>
         </div>
@@ -1260,62 +1259,22 @@ const QuoteOfTheDayWidget: React.FC<{
   theme: ThemeKey; 
   themeType: 'normal' | 'extreme'; 
   effectiveMode: 'light' | 'dark';
-  offlineCachingEnabled?: boolean;
-}> = ({ theme, themeType, effectiveMode, offlineCachingEnabled = false }) => {
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState(false);
+}> = ({ theme, themeType, effectiveMode }) => {
   const url = getQuoteOfTheDayUrl(theme, themeType, effectiveMode);
-  const isOnline = useNetworkStatus();
-
-  // Don't show iframe if actually offline
-  const shouldShowIframe = isOnline || offlineCachingEnabled;
-
   return (
     <div className={`${getColors(theme, themeType, effectiveMode).container} rounded-lg ${getColors(theme, themeType, effectiveMode).border} border p-4 mb-4 flex flex-col items-center`}>
       <div className="flex items-center gap-2 mb-2">
         <div className="font-semibold text-lg" style={{ color: effectiveMode === 'light' ? '#222' : '#fff' }}>Quote of the Day</div>
-        {/* Only show offline indicator if actually offline, not when online with offline caching */}
-        {!isOnline && (
-          <div ref={(el) => {
-            if (el) {
-              el.innerHTML = '';
-              const indicator = createOfflineIndicatorElement({
-                effectiveMode,
-                showText: false,
-                size: 'small'
-              });
-              el.appendChild(indicator);
-            }
-          }} />
-        )}
       </div>
-      {!isOnline && (
-        <div className={`text-sm py-2 mb-2 ${effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
-          Quote unavailable offline
-        </div>
-      )}
-      {shouldShowIframe && loading && !error && (
-        <div className="flex flex-col items-center justify-center py-4 w-full">
-          <LoaderCircle className={`animate-spin mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`} size={32} />
-          <span className={`${effectiveMode === 'light' ? 'text-black' : 'text-gray-400'}`}>Loading...</span>
-        </div>
-      )}
-      {shouldShowIframe && error && (
-        <div className="text-red-500 text-sm py-2">Failed to load quote widget.</div>
-      )}
-      {shouldShowIframe && (
-        <iframe
-          title="Quote of the Day"
-          src={url}
-          width="100%"
-          height="120"
-          style={{ border: 'none', borderRadius: '8px' }}
-          loading="lazy"
-          sandbox="allow-scripts allow-same-origin"
-          onLoad={() => { setLoading(false); setError(false); }}
-          onError={() => { setLoading(false); setError(true); }}
-        ></iframe>
-      )}
+      <iframe
+        title="Quote of the Day"
+        src={url}
+        width="100%"
+        height="120"
+        style={{ border: 'none', borderRadius: '8px' }}
+        loading="lazy"
+        sandbox="allow-scripts allow-same-origin"
+      ></iframe>
     </div>
   );
 };
