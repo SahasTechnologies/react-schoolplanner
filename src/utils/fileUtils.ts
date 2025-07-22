@@ -64,11 +64,25 @@ export const processICSFile = async (
         }
         
         let bestWeek: WeekData | null = null;
-        let maxEvents = 0;
+        const today = new Date();
+        // Try to find the week that contains today
         for (const week of allActualWeeks) {
-          if (week.events.length > maxEvents) {
+          if (
+            week.monday <= today &&
+            week.friday >= today
+          ) {
             bestWeek = week;
-            maxEvents = week.events.length;
+            break;
+          }
+        }
+        // If no week contains today, fall back to the week with the most events
+        if (!bestWeek) {
+          let maxEvents = 0;
+          for (const week of allActualWeeks) {
+            if (week.events.length > maxEvents) {
+              bestWeek = week;
+              maxEvents = week.events.length;
+            }
           }
         }
         
