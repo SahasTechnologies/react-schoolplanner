@@ -19,7 +19,8 @@ import {
 import { ThemeKey } from '../utils/themeUtils';
 import { isServiceWorkerSupported, forceCacheUpdate } from '../utils/cacheUtils';
 import { showSuccess, showError } from '../utils/notificationUtils';
-import Markdown from 'markdown-to-jsx';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useState, useEffect } from 'react';
 
 interface ExportModalState {
@@ -88,10 +89,20 @@ const Settings: React.FC<SettingsProps> = ({
   offlineCachingEnabled,
   countdownInTitle,
   setCountdownInTitle,
-  setOfflineCachingEnabled
+  setOfflineCachingEnabled,
+  showFirstInfoBeside,
+  setShowFirstInfoBeside,
+  infoOrder,
+  infoShown,
+  handleDragStart,
+  handleInfoDragOver,
+  handleDragEnd,
+  handleToggleInfoShown,
+  draggedIdx
 }: SettingsProps) => {
 
   const [showNameEditModal, setShowNameEditModal] = React.useState(false);
+  const [showInfoBlocksModal, setShowInfoBlocksModal] = React.useState(false);
   const [editUserName, setEditUserName] = React.useState(userName);
   const [serviceWorkerSupported] = React.useState(isServiceWorkerSupported());
   const [isUpdatingCache, setIsUpdatingCache] = React.useState(false);
@@ -106,6 +117,8 @@ const Settings: React.FC<SettingsProps> = ({
   const [licenseContent, setLicenseContent] = useState<string>('');
   const [loadingMarkdown, setLoadingMarkdown] = useState<string | null>(null);
   const [markdownError, setMarkdownError] = useState<string | null>(null);
+
+  const [showInfoBlocksModal, setShowInfoBlocksModal] = React.useState(false);
 
   // Fetch markdown when modal opens
   useEffect(() => {
@@ -296,12 +309,94 @@ const Settings: React.FC<SettingsProps> = ({
                 onChange={e => setCountdownInTitle(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              <div className={`w-11 h-6 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all ${colors.buttonAccent}`}></div>
             </label>
           </div>
 
+          {/* Info Blocks Settings Button */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={`font-medium ${colors.containerText}`}>Event Info Display</p>
+              <p className={`text-sm ${colors.containerText} opacity-80`}>Configure how event information is shown</p>
+            </div>
+            <button
+              onClick={() => setShowInfoBlocksModal(true)}
+              className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
+            >
+              <FileText size={16} />
+              Configure
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Info Blocks Modal */}
+      {showInfoBlocksModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
+            <h3 className={`text-xl font-semibold ${colors.buttonText} mb-2`}>Event Info Display</h3>
+            <p className={`text-sm ${colors.containerText} opacity-80 mb-6`}>
+              Configure which information is shown for each event. Drag items to reorder them, and toggle which ones you want to see. The first enabled item can optionally be shown beside the event name.
+            </p>
+
+            {/* Show First Info Beside Toggle */}
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <p className={`font-medium ${colors.containerText}`}>Show First Info Beside Name</p>
+                <p className={`text-sm ${colors.containerText} opacity-80`}>Display the first enabled info next to the event name</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showFirstInfoBeside}
+                  onChange={e => setShowFirstInfoBeside(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className={`w-11 h-6 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all ${colors.buttonAccent}`}></div>
+              </label>
+            </div>
+
+            {/* Info Blocks Order */}
+            <div className={`p-4 rounded-lg ${colors.background} space-y-2 mb-6`}>
+              {infoOrder.map((item, idx) => (
+                <div
+                  key={item.key}
+                  draggable
+                  onDragStart={() => handleDragStart(idx)}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    handleInfoDragOver(idx);
+                  }}
+                  onDragEnd={handleDragEnd}
+                  className={`flex items-center justify-between p-2 rounded ${colors.container} cursor-move ${draggedIdx === idx ? 'opacity-50' : ''}`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm font-medium ${colors.containerText}`}>{item.label}</span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={infoShown[item.key]}
+                      onChange={() => handleToggleInfoShown(item.key)}
+                      className="sr-only peer"
+                    />
+                    <div className={`w-9 h-5 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-4 after:w-4 after:transition-all ${colors.buttonAccent}`}></div>
+                  </label>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowInfoBlocksModal(false)}
+                className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Name Edit Modal */}
       {showNameEditModal && (
@@ -428,30 +523,78 @@ const Settings: React.FC<SettingsProps> = ({
       </div>
       {/* Legal Modals */}
       <style>{`
-.custom-scrollbar-light::-webkit-scrollbar {
-  width: 10px;
-  background: #f1f1f1;
+.markdown-content h1 {
+  font-size: 2em;
+  font-weight: bold;
+  margin-bottom: 1em;
+  margin-top: 0.5em;
 }
-.custom-scrollbar-light::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 6px;
+.markdown-content h2 {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin-bottom: 0.75em;
+  margin-top: 1em;
 }
-.custom-scrollbar-dark::-webkit-scrollbar {
-  width: 10px;
-  background: #222;
+.markdown-content h3 {
+  font-size: 1.25em;
+  font-weight: bold;
+  margin-bottom: 0.5em;
+  margin-top: 1em;
 }
-.custom-scrollbar-dark::-webkit-scrollbar-thumb {
-  background: #444;
-  border-radius: 6px;
+.markdown-content p {
+  margin-bottom: 1em;
+  line-height: 1.6;
 }
-/* Firefox support */
-.custom-scrollbar-light {
-  scrollbar-color: #cbd5e1 #f1f1f1;
-  scrollbar-width: thin;
+.markdown-content ul, .markdown-content ol {
+  margin-bottom: 1em;
+  padding-left: 2em;
 }
-.custom-scrollbar-dark {
-  scrollbar-color: #444 #222;
-  scrollbar-width: thin;
+.markdown-content li {
+  margin-bottom: 0.5em;
+}
+.markdown-content a {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+.markdown-content a:hover {
+  text-decoration: none;
+}
+.markdown-content code {
+  background: rgba(0,0,0,0.1);
+  padding: 0.2em 0.4em;
+  border-radius: 0.2em;
+  font-size: 0.9em;
+}
+.markdown-content pre {
+  background: rgba(0,0,0,0.1);
+  padding: 1em;
+  border-radius: 0.5em;
+  margin-bottom: 1em;
+  overflow-x: auto;
+}
+.markdown-content pre code {
+  background: none;
+  padding: 0;
+}
+.markdown-content blockquote {
+  border-left: 4px solid #3b82f6;
+  padding-left: 1em;
+  margin-left: 0;
+  margin-bottom: 1em;
+  font-style: italic;
+}
+.markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1em;
+}
+.markdown-content th, .markdown-content td {
+  border: 1px solid rgba(0,0,0,0.1);
+  padding: 0.5em;
+  text-align: left;
+}
+.markdown-content th {
+  background: rgba(0,0,0,0.05);
 }
 `}</style>
       {showTerms && (
@@ -463,7 +606,9 @@ const Settings: React.FC<SettingsProps> = ({
             ) : markdownError ? (
               <div className="text-red-500 py-8">{markdownError}</div>
             ) : (
-              <Markdown className="prose dark:prose-invert max-w-none text-left text-gray-800 dark:text-gray-100">{termsContent}</Markdown>
+              <div className={`prose dark:prose-invert max-w-none text-left text-gray-800 dark:text-gray-100 markdown-content`}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{termsContent}</ReactMarkdown>
+              </div>
             )}
           </div>
         </div>
@@ -477,7 +622,9 @@ const Settings: React.FC<SettingsProps> = ({
             ) : markdownError ? (
               <div className="text-red-500 py-8">{markdownError}</div>
             ) : (
-              <Markdown className="prose dark:prose-invert max-w-none text-left text-gray-800 dark:text-gray-100">{privacyContent}</Markdown>
+              <div className={`prose dark:prose-invert max-w-none text-left text-gray-800 dark:text-gray-100 markdown-content`}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{privacyContent}</ReactMarkdown>
+              </div>
             )}
           </div>
         </div>
@@ -491,7 +638,9 @@ const Settings: React.FC<SettingsProps> = ({
             ) : markdownError ? (
               <div className="text-red-500 py-8">{markdownError}</div>
             ) : (
-              <Markdown className="prose dark:prose-invert max-w-none text-left text-gray-800 dark:text-gray-100">{licenseContent}</Markdown>
+              <div className={`prose dark:prose-invert max-w-none text-left text-gray-800 dark:text-gray-100 markdown-content`}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{licenseContent}</ReactMarkdown>
+              </div>
             )}
           </div>
         </div>
