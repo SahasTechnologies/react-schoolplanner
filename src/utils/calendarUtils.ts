@@ -237,7 +237,18 @@ export function getTodayOrNextEvents(weekData: WeekData | null): { dayLabel: str
   dayEvents.forEach(list => list.sort((a, b) => a.dtstart.getTime() - b.dtstart.getTime()));
   // Try today first
   if (isWeekday(dayIdx)) {
-    const todayEvents = dayEvents[dayIdx - 1];
+    // Only include events whose date matches today (not just weekday)
+    const todayYear = now.getFullYear();
+    const todayMonth = now.getMonth();
+    const todayDate = now.getDate();
+    const todayEvents = dayEvents[dayIdx - 1].filter(ev => {
+      const evDate = new Date(ev.dtstart);
+      return (
+        evDate.getFullYear() === todayYear &&
+        evDate.getMonth() === todayMonth &&
+        evDate.getDate() === todayDate
+      );
+    });
     if (todayEvents.length > 0) {
       // Find the latest end time among today's events
       let lastEventEnd = null;
@@ -251,6 +262,15 @@ export function getTodayOrNextEvents(weekData: WeekData | null): { dayLabel: str
           if (!lastEventEnd || endOfDay > lastEventEnd) lastEventEnd = endOfDay;
         }
       }
+      // Debug logging
+      console.log('[getTodayOrNextEvents] NOW:', now);
+      console.log('[getTodayOrNextEvents] Today events:', todayEvents.map(ev => ({
+        summary: ev.summary,
+        start: ev.dtstart,
+        end: ev.dtend,
+        fallbackEnd: !ev.dtend ? (() => { const d = new Date(ev.dtstart); d.setHours(23,59,59,999); return d; })() : undefined
+      })));
+      console.log('[getTodayOrNextEvents] Computed lastEventEnd:', lastEventEnd);
       if (lastEventEnd && now <= lastEventEnd) {
         return { dayLabel: 'Today', events: todayEvents };
       }
