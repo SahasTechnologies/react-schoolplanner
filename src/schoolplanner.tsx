@@ -1270,7 +1270,7 @@ const QuoteOfTheDayWidget: React.FC<{
       </div>
       {isLoading && (
         <div className="flex justify-center items-center h-[120px]">
-          <LoaderCircle className="animate-spin" size={32} color={colors.icon} />
+          <LoaderCircle className="animate-spin" size={32} color={colors.text} />
         </div>
       )}
       <iframe
