@@ -118,8 +118,6 @@ const Settings: React.FC<SettingsProps> = ({
   const [loadingMarkdown, setLoadingMarkdown] = useState<string | null>(null);
   const [markdownError, setMarkdownError] = useState<string | null>(null);
 
-  const [showInfoBlocksModal, setShowInfoBlocksModal] = React.useState(false);
-
   // Fetch markdown when modal opens
   useEffect(() => {
     if (showTerms && !termsContent) {

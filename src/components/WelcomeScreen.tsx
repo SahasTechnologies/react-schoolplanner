@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Upload, FileText, User } from 'lucide-react';
-import Markdown from 'markdown-to-jsx';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface WelcomeScreenProps {
   welcomeStep: 'upload' | 'name_input' | 'legal' | 'completed';
@@ -190,7 +191,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
                 ) : markdownError ? (
                   <div className="text-red-500 py-8">{markdownError}</div>
                 ) : (
-                  <Markdown className="prose dark:prose-invert max-w-none text-left text-gray-800 dark:text-gray-100">{termsContent}</Markdown>
+                  <div className="markdown-content"><ReactMarkdown remarkPlugins={[remarkGfm]}>{termsContent}</ReactMarkdown></div>
                 )}
               </div>
             </div>
@@ -204,7 +205,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
                 ) : markdownError ? (
                   <div className="text-red-500 py-8">{markdownError}</div>
                 ) : (
-                  <Markdown className="prose dark:prose-invert max-w-none text-left text-gray-800 dark:text-gray-100">{privacyContent}</Markdown>
+                  <div className="markdown-content"><ReactMarkdown remarkPlugins={[remarkGfm]}>{privacyContent}</ReactMarkdown></div>
                 )}
               </div>
             </div>
@@ -218,7 +219,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
                 ) : markdownError ? (
                   <div className="text-red-500 py-8">{markdownError}</div>
                 ) : (
-                  <Markdown className="prose dark:prose-invert max-w-none text-left text-gray-800 dark:text-gray-100">{licenseContent}</Markdown>
+                  <div className="markdown-content"><ReactMarkdown remarkPlugins={[remarkGfm]}>{licenseContent}</ReactMarkdown></div>
                 )}
               </div>
             </div>
