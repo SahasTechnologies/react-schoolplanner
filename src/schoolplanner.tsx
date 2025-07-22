@@ -1259,20 +1259,29 @@ const QuoteOfTheDayWidget: React.FC<{
   themeType: 'normal' | 'extreme'; 
   effectiveMode: 'light' | 'dark';
 }> = ({ theme, themeType, effectiveMode }) => {
+  const [isLoading, setIsLoading] = React.useState(true);
   const url = getQuoteOfTheDayUrl(theme, themeType, effectiveMode);
+  const colors = getColors(theme, themeType, effectiveMode);
+
   return (
-    <div className={`${getColors(theme, themeType, effectiveMode).container} rounded-lg ${getColors(theme, themeType, effectiveMode).border} border p-4 mb-4 flex flex-col items-center`}>
+    <div className={`${colors.container} rounded-lg ${colors.border} border p-4 mb-4 flex flex-col items-center`}>
       <div className="flex items-center gap-2 mb-2">
         <div className="font-semibold text-lg" style={{ color: effectiveMode === 'light' ? '#222' : '#fff' }}>Quote of the Day</div>
       </div>
+      {isLoading && (
+        <div className="flex justify-center items-center h-[120px]">
+          <LoaderCircle className="animate-spin" size={32} color={colors.icon} />
+        </div>
+      )}
       <iframe
         title="Quote of the Day"
         src={url}
         width="100%"
         height="120"
-        style={{ border: 'none', borderRadius: '8px' }}
+        style={{ border: 'none', borderRadius: '8px', display: isLoading ? 'none' : 'block' }}
         loading="lazy"
         sandbox="allow-scripts allow-same-origin"
+        onLoad={() => setIsLoading(false)}
       ></iframe>
     </div>
   );

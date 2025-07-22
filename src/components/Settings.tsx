@@ -13,7 +13,8 @@ import {
   WifiOff,
   Home,
   Shield,
-  BadgeCheck
+  BadgeCheck,
+  LoaderCircle
 } from 'lucide-react';
 import { ThemeKey } from '../utils/themeUtils';
 import { isServiceWorkerSupported, forceCacheUpdate } from '../utils/cacheUtils';
@@ -93,6 +94,7 @@ const Settings: React.FC<SettingsProps> = ({
   const [showNameEditModal, setShowNameEditModal] = React.useState(false);
   const [editUserName, setEditUserName] = React.useState(userName);
   const [serviceWorkerSupported] = React.useState(isServiceWorkerSupported());
+  const [isUpdatingCache, setIsUpdatingCache] = React.useState(false);
 
   const [showTerms, setShowTerms] = React.useState(false);
   const [showPrivacy, setShowPrivacy] = React.useState(false);
@@ -204,7 +206,9 @@ const Settings: React.FC<SettingsProps> = ({
         {/* Offline Caching Toggle */}
         <div className="flex items-center justify-between mt-4">
           <div className="flex items-center gap-3">
-            {offlineCachingEnabled ? (
+            {isUpdatingCache ? (
+              <LoaderCircle className="animate-spin text-blue-500" size={18} />
+            ) : offlineCachingEnabled ? (
               <Wifi className={effectiveMode === 'light' ? 'text-green-600' : 'text-green-400'} size={18} />
             ) : (
               <WifiOff className={effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} size={18} />
@@ -243,17 +247,24 @@ const Settings: React.FC<SettingsProps> = ({
             </div>
             <button
               onClick={async () => {
+                setIsUpdatingCache(true);
                 const success = await forceCacheUpdate();
                 if (success) {
                   showSuccess('Cache Update', 'Cache updated successfully!', { effectiveMode, colors });
                 } else {
                   showError('Cache Update', 'Failed to update cache. Please try again.', { effectiveMode, colors });
                 }
+                setIsUpdatingCache(false);
               }}
               className="bg-primary hover:bg-primary-dark text-primary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+              disabled={isUpdatingCache}
             >
-              <FileText size={16} />
-              Update Cache
+              {isUpdatingCache ? (
+                <LoaderCircle className="animate-spin" size={16} />
+              ) : (
+                <FileText size={16} />
+              )}
+              {isUpdatingCache ? 'Updating...' : 'Update Cache'}
             </button>
           </div>
         )}
