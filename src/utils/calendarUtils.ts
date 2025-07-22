@@ -40,8 +40,58 @@ export const parseICS = (icsContent: string): CalendarEvent[] => {
       currentEvent = {} as Partial<CalendarEvent>;
     } else if (line === 'END:VEVENT' && currentEvent) {
       if (currentEvent.dtstart && currentEvent.summary) { // dtend is optional
-        events.push(currentEvent as CalendarEvent);
-        console.log('Added event:', currentEvent.summary, 'from', currentEvent.dtstart, 'to', currentEvent.dtend);
+        const baseEvent = currentEvent as CalendarEvent & { rrule?: string };
+
+        // Helper to clone an event with a date offset
+        const cloneWithOffset = (offsetDays: number) => {
+          const newStart = new Date(baseEvent.dtstart);
+          newStart.setDate(newStart.getDate() + offsetDays);
+          let newEnd: Date | undefined = undefined;
+          if (baseEvent.dtend) {
+            newEnd = new Date(baseEvent.dtend);
+            newEnd.setDate(newEnd.getDate() + offsetDays);
+          }
+          return {
+            dtstart: newStart,
+            dtend: newEnd,
+            summary: baseEvent.summary,
+            location: baseEvent.location,
+            description: baseEvent.description,
+          } as CalendarEvent;
+        };
+
+        // Always add the original event first
+        events.push({
+          dtstart: baseEvent.dtstart,
+          dtend: baseEvent.dtend,
+          summary: baseEvent.summary,
+          location: baseEvent.location,
+          description: baseEvent.description,
+        });
+
+        // Expand RRULE with BYDAY if present (simple weekly expansion within the same week)
+        if (baseEvent.rrule && baseEvent.rrule.includes('BYDAY=')) {
+          // Extract BYDAY list
+          const match = baseEvent.rrule.match(/BYDAY=([^;]+)/);
+          if (match) {
+            const byDays = match[1].split(',');
+            const dayMap: Record<string, number> = {
+              SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6,
+            };
+            const baseDay = baseEvent.dtstart.getDay();
+            byDays.forEach(symbol => {
+              const targetDay = dayMap[symbol.trim().toUpperCase()];
+              if (targetDay === undefined) return; // Unknown symbol
+              let offset = targetDay - baseDay;
+              if (offset < 0) offset += 7; // Handle wrap-around to later in the same week
+              if (offset === 0) return; // Skip the original day (already added)
+
+              events.push(cloneWithOffset(offset));
+            });
+          }
+        }
+
+        console.log('Added event(s):', baseEvent.summary);
       }
       currentEvent = null;
     } else if (currentEvent && line.includes(':')) {
@@ -59,6 +109,9 @@ export const parseICS = (icsContent: string): CalendarEvent[] => {
         currentEvent.location = value.replace(/\\n/g, ' ').replace(/\\,/g, ',').replace(/\\\\/g, '\\');
       } else if (key === 'DESCRIPTION') {
         currentEvent.description = value.replace(/\\n/g, ' ').replace(/\\,/g, ',').replace(/\\\\/g, '\\');
+      } else if (key.startsWith('RRULE')) {
+        // Capture the full RRULE string (everything after the colon)
+        (currentEvent as any).rrule = value;
       }
     }
   }

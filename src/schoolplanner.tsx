@@ -95,7 +95,7 @@ const SchoolPlanner = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
     if (hour < 18) return 'Good afternoon';
-    if (hour < 22) return 'Good evening';
+    if (hour < 20) return 'Good evening';
     return 'Good night';
   };
 
@@ -299,22 +299,32 @@ const SchoolPlanner = () => {
     const dayEvents: CalendarEvent[][] = [[], [], [], [], []];
 
     if (weekData) {
+      console.log('Debug: All events:', weekData.events);
       weekData.events.forEach((event: CalendarEvent) => {
+        // Use the event's local date directly to determine the weekday
         const eventDate = new Date(event.dtstart);
         if (isNaN(eventDate.getTime())) {
           console.warn('Skipping event with invalid date in render:', event);
           return;
         }
-        const dayOfWeek = eventDate.getDay();
-        let dayIndex;
-        if (dayOfWeek === 0 || dayOfWeek === 6) {
-          return;
-        } else {
-          dayIndex = dayOfWeek - 1;
-        }
+        const dayOfWeek = eventDate.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+        console.log(`Debug: Event local date ${eventDate.toLocaleString()}, dayOfWeek=${dayOfWeek}, summary=${event.summary}`);
+        
+        // Fix: Correctly map Sunday (0) to -1 and Saturday (6) to 5
+        const dayIndex = dayOfWeek === 0 ? -1 : dayOfWeek - 1;
+        
+        // Only skip weekends, allow all weekdays (indexes 0-4)
         if (dayIndex >= 0 && dayIndex < 5) {
           dayEvents[dayIndex].push(event);
+          console.log(`Debug: Added event to day ${dayIndex} (${['Mon','Tue','Wed','Thu','Fri'][dayIndex]})`, event);
+        } else {
+          console.log(`Debug: Skipped event with dayIndex ${dayIndex}, dayOfWeek=${dayOfWeek}`, event);
         }
+      });
+
+      // Log the final arrays for each day
+      dayEvents.forEach((events, idx) => {
+        console.log(`Debug: Day ${idx} (${['Mon','Tue','Wed','Thu','Fri'][idx]}) has ${events.length} events`);
       });
     }
 

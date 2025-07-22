@@ -14,7 +14,8 @@ import {
   Home,
   Shield,
   BadgeCheck,
-  LoaderCircle
+  LoaderCircle,
+  GripVertical
 } from 'lucide-react';
 import { ThemeKey } from '../utils/themeUtils';
 import { isServiceWorkerSupported, forceCacheUpdate } from '../utils/cacheUtils';
@@ -99,7 +100,7 @@ const Settings: React.FC<SettingsProps> = ({
   handleDragEnd,
   handleToggleInfoShown,
   draggedIdx
-}: SettingsProps) => {
+}) => {
 
   const [showNameEditModal, setShowNameEditModal] = React.useState(false);
   const [showInfoBlocksModal, setShowInfoBlocksModal] = React.useState(false);
@@ -111,14 +112,12 @@ const Settings: React.FC<SettingsProps> = ({
   const [showTerms, setShowTerms] = React.useState(false);
   const [showPrivacy, setShowPrivacy] = React.useState(false);
   const [showLicensing, setShowLicensing] = React.useState(false);
-  // Add state for markdown content
   const [termsContent, setTermsContent] = useState<string>('');
   const [privacyContent, setPrivacyContent] = useState<string>('');
   const [licenseContent, setLicenseContent] = useState<string>('');
   const [loadingMarkdown, setLoadingMarkdown] = useState<string | null>(null);
   const [markdownError, setMarkdownError] = useState<string | null>(null);
 
-  // Fetch markdown when modal opens
   useEffect(() => {
     if (showTerms && !termsContent) {
       setLoadingMarkdown('terms');
@@ -146,12 +145,32 @@ const Settings: React.FC<SettingsProps> = ({
     }
   }, [showTerms, showPrivacy, showLicensing]);
 
-
-
-
-
   return (
     <div className={`space-y-6 ${colors.background}`}>
+       <style>{`
+        .markdown-content h1, .markdown-content h2, .markdown-content h3 {
+          text-align: left; margin-bottom: 0.5em; margin-top: 1.5em; padding-left: 0; margin-left: 0; font-weight: 600;
+        }
+        .markdown-content p, .markdown-content ul, .markdown-content ol, .markdown-content blockquote {
+          text-align: left; margin-left: 1rem; margin-top: 0; font-weight: 400;
+        }
+        .markdown-content p { margin-bottom: 1em; line-height: 1.6; }
+        .markdown-content ul, .markdown-content ol { padding-left: 1.5rem; }
+        .custom-scrollbar-light::-webkit-scrollbar, .custom-scrollbar-dark::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar-light::-webkit-scrollbar-track, .custom-scrollbar-dark::-webkit-scrollbar-track {
+          background: ${colors.container}; border-radius: 4px;
+        }
+        .custom-scrollbar-light::-webkit-scrollbar-thumb, .custom-scrollbar-dark::-webkit-scrollbar-thumb {
+          background: ${colors.buttonAccent}; border-radius: 4px;
+        }
+        .custom-scrollbar-light::-webkit-scrollbar-thumb:hover, .custom-scrollbar-dark::-webkit-scrollbar-thumb:hover {
+          background: ${colors.buttonAccentHover};
+        }
+        .custom-scrollbar-light, .custom-scrollbar-dark {
+          scrollbar-width: thin; scrollbar-color: ${colors.buttonAccent} ${colors.container};
+        }
+      `}</style>
+      
       <div className="flex items-center gap-3">
         <SettingsIcon className={colors.text} size={24} />
         <h2 className={`text-2xl font-semibold ${colors.text}`}>Settings</h2>
@@ -176,7 +195,6 @@ const Settings: React.FC<SettingsProps> = ({
             Change Name
           </button>
         </div>
-        {/* Export Data Button */}
         <div className="flex items-center justify-between">
           <div>
             <p className={`font-medium ${colors.containerText}`}>Export Data</p>
@@ -190,7 +208,6 @@ const Settings: React.FC<SettingsProps> = ({
             Export
           </button>
         </div>
-        {/* Import Data Button (direct file input, no modal) */}
         <div className="flex items-center justify-between mt-4">
           <div>
             <p className={`font-medium ${colors.containerText}`}>Import Data</p>
@@ -213,45 +230,21 @@ const Settings: React.FC<SettingsProps> = ({
             />
           </>
         </div>
-        {/* Divider for spacing before cache settings */}
         <hr className={`my-6 border-t ${colors.border}`} />
-        {/* Offline Caching Toggle */}
         <div className="flex items-center justify-between mt-4">
           <div className="flex items-center gap-3">
-            {isToggleLoading ? (
-              <LoaderCircle className="animate-spin text-blue-500" size={18} />
-            ) : offlineCachingEnabled ? (
-              <Wifi className={effectiveMode === 'light' ? 'text-green-600' : 'text-green-400'} size={18} />
-            ) : (
-              <WifiOff className={effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} size={18} />
-            )}
+            {isToggleLoading ? <LoaderCircle className="animate-spin text-blue-500" size={18} /> : offlineCachingEnabled ? <Wifi className={effectiveMode === 'light' ? 'text-green-600' : 'text-green-400'} size={18} /> : <WifiOff className={effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} size={18} />}
             <div>
               <p className={`font-medium ${colors.containerText}`}>Save Site for Offline Use</p>
-              <p className={`text-sm ${colors.containerText} opacity-80`}>
-                {serviceWorkerSupported 
-                  ? 'Cache the site so it works without internet connection' 
-                  : 'Service Worker not supported in this browser'}
-              </p>
+              <p className={`text-sm ${colors.containerText} opacity-80`}>{serviceWorkerSupported ? 'Cache the site so it works without internet connection' : 'Service Worker not supported in this browser'}</p>
             </div>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={offlineCachingEnabled}
-              onChange={async (e) => {
-                const checked = e.target.checked;
-                setIsToggleLoading(true);
-                await setOfflineCachingEnabled(checked);
-                setIsToggleLoading(false);
-              }}
-              className="sr-only peer"
-              disabled={!serviceWorkerSupported || isToggleLoading}
-            />
-            <div className={`w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:${colors.buttonAccent}`}></div>
+            <input type="checkbox" checked={offlineCachingEnabled} onChange={async (e) => { const checked = e.target.checked; setIsToggleLoading(true); await setOfflineCachingEnabled(checked); setIsToggleLoading(false); }} className="sr-only peer" disabled={!serviceWorkerSupported || isToggleLoading} />
+            <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all" style={offlineCachingEnabled ? { backgroundColor: colors.buttonAccent } : {}}></div>
           </label>
         </div>
         
-        {/* Update Cache Button - only show if caching is enabled */}
         {offlineCachingEnabled && serviceWorkerSupported && (
           <div className="flex items-center justify-between mt-4 border-t border-gray-700 pt-4">
             <div className="flex items-center gap-3">
@@ -294,24 +287,16 @@ const Settings: React.FC<SettingsProps> = ({
           <h3 className={`text-lg font-medium ${colors.text}`}>Home Settings</h3>
         </div>
         <div className="space-y-4">
-          {/* Show Countdown on Home Toggle */}
           <div className="flex items-center justify-between">
             <div>
               <p className={`font-medium ${colors.containerText}`}>Show Countdown on Home</p>
               <p className={`text-sm ${colors.containerText} opacity-80`}>Display the countdown timer on the home screen</p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={countdownInTitle}
-                onChange={e => setCountdownInTitle(e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className={`w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:${colors.buttonAccent}`}></div>
+              <input type="checkbox" checked={countdownInTitle} onChange={e => setCountdownInTitle(e.target.checked)} className="sr-only peer" />
+              <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all" style={countdownInTitle ? { backgroundColor: colors.buttonAccent } : {}}></div>
             </label>
           </div>
-
-          {/* Info Blocks Settings Button */}
           <div className="flex items-center justify-between">
             <div>
               <p className={`font-medium ${colors.containerText}`}>Event Info Display</p>
@@ -334,27 +319,18 @@ const Settings: React.FC<SettingsProps> = ({
           <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
             <h3 className={`text-xl font-semibold ${colors.buttonText} mb-2`}>Event Info Display</h3>
             <p className={`text-sm ${colors.containerText} opacity-80 mb-6`}>
-              Configure which information is shown for each event. Drag items to reorder them, and toggle which ones you want to see. The first enabled item can optionally be shown beside the event name.
+              Configure which information is shown for each event. Drag items to reorder them.
             </p>
-
-            {/* Show First Info Beside Toggle */}
             <div className="flex items-center justify-between mb-6">
               <div>
                 <p className={`font-medium ${colors.containerText}`}>Show First Info Beside Name</p>
                 <p className={`text-sm ${colors.containerText} opacity-80`}>Display the first enabled info next to the event name</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={showFirstInfoBeside}
-                  onChange={e => setShowFirstInfoBeside(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className={`w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:${colors.buttonAccent}`}></div>
+                <input type="checkbox" checked={showFirstInfoBeside} onChange={e => setShowFirstInfoBeside(e.target.checked)} className="sr-only peer" />
+                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all" style={showFirstInfoBeside ? { backgroundColor: colors.buttonAccent } : {}}></div>
               </label>
             </div>
-
-            {/* Info Blocks Order */}
             <div className={`p-4 rounded-lg ${colors.background} space-y-2 mb-6`}>
               {infoOrder.map((item, idx) => (
                 <div
@@ -366,24 +342,19 @@ const Settings: React.FC<SettingsProps> = ({
                     handleInfoDragOver(idx);
                   }}
                   onDragEnd={handleDragEnd}
-                  className={`flex items-center justify-between p-2 rounded ${colors.container} cursor-move ${draggedIdx === idx ? 'opacity-50' : ''}`}
+                  className={`flex items-center justify-between p-2 rounded ${colors.container} cursor-grab ${draggedIdx === idx ? 'opacity-50' : ''}`}
                 >
                   <div className="flex items-center gap-2">
+                    <GripVertical className={colors.text} size={20} />
                     <span className={`text-sm font-medium ${colors.containerText}`}>{item.label}</span>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={infoShown[item.key]}
-                      onChange={() => handleToggleInfoShown(item.key)}
-                      className="sr-only peer"
-                    />
-                    <div className={`w-9 h-5 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:${colors.buttonAccent}`}></div>
+                    <input type="checkbox" checked={infoShown[item.key]} onChange={() => handleToggleInfoShown(item.key)} className="sr-only peer" />
+                    <div className="w-9 h-5 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-4 after:w-4 after:transition-all" style={infoShown[item.key] ? { backgroundColor: colors.buttonAccent } : {}}></div>
                   </label>
                 </div>
               ))}
             </div>
-
             <div className="flex justify-end">
               <button
                 onClick={() => setShowInfoBlocksModal(false)}
@@ -519,35 +490,8 @@ const Settings: React.FC<SettingsProps> = ({
           </div>
         </div>
       </div>
+      
       {/* Legal Modals */}
-      <style>{`
-.markdown-content h1, .markdown-content h2, .markdown-content h3, .markdown-content h4, .markdown-content h5, .markdown-content h6 {
-  text-align: left;
-  margin-bottom: 0.5em; /* Space after heading */
-  margin-top: 1.5em;   /* Space before heading */
-  padding-left: 0;     /* No indent */
-  margin-left: 0;      /* No indent */
-  font-weight: 600;      /* Semibold for clarity */
-}
-.markdown-content p, .markdown-content ul, .markdown-content ol, .markdown-content blockquote {
-  text-align: left;
-  margin-left: 1rem; /* Indent content */
-  margin-top: 0;
-  font-weight: 400;  /* Normal weight */
-}
-.markdown-content p {
-  margin-bottom: 1em;
-  line-height: 1.6;
-}
-.markdown-content ul, .markdown-content ol {
-  padding-left: 1.5rem; /* Indent list items */
-}
-/* Firefox scrollbar */
-.custom-scrollbar-light, .custom-scrollbar-dark {
-  scrollbar-width: thin;
-  scrollbar-color: ${colors.buttonAccent} ${colors.container};
-}
-`}</style>
       {showTerms && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
           <div className={`bg-gray-50 dark:bg-gray-900 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}> 
@@ -572,7 +516,9 @@ const Settings: React.FC<SettingsProps> = ({
       {showPrivacy && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
           <div className={`bg-gray-50 dark:bg-gray-900 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}> 
-            <button onClick={() => { setShowPrivacy(false); setMarkdownError(null); }} className="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition text-gray-400">&times;</button>
+            <button onClick={() => { setShowPrivacy(false); setMarkdownError(null); }} className="absolute top-4 right-4 opacity-70 hover:opacity-100 transition">
+              <X className={effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} size={24} />
+            </button>
             {loadingMarkdown === 'privacy' ? (
               <div className="py-8 text-gray-800 dark:text-gray-100">Loading...</div>
             ) : markdownError ? (
@@ -587,8 +533,10 @@ const Settings: React.FC<SettingsProps> = ({
       )}
       {showLicensing && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className={`bg-gray-50 dark:bg-gray-900 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}> 
-            <button onClick={() => { setShowLicensing(false); setMarkdownError(null); }} className="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition text-gray-400">&times;</button>
+          <div className={`bg-gray-50 dark:bg-gray-900 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}>
+            <button onClick={() => { setShowLicensing(false); setMarkdownError(null); }} className="absolute top-4 right-4 opacity-70 hover:opacity-100 transition">
+              <X className={effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} size={24} />
+            </button>
             {loadingMarkdown === 'license' ? (
               <div className="py-8 text-gray-800 dark:text-gray-100">Loading...</div>
             ) : markdownError ? (
@@ -634,20 +582,8 @@ const Settings: React.FC<SettingsProps> = ({
               </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={autoNamingEnabled}
-                onChange={(e) => {
-                  setAutoNamingEnabled(e.target.checked);
-                  showSuccess(
-                    'Auto-Naming Updated', 
-                    `Auto-naming has been ${e.target.checked ? 'enabled' : 'disabled'} successfully!`,
-                    { effectiveMode, colors }
-                  );
-                }}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:${colors.buttonAccent}`}></div>
+              <input type="checkbox" checked={autoNamingEnabled} onChange={(e) => { setAutoNamingEnabled(e.target.checked); showSuccess( 'Auto-Naming Updated', `Auto-naming has been ${e.target.checked ? 'enabled' : 'disabled'} successfully!`, { effectiveMode, colors } ); }} className="sr-only peer" />
+              <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all" style={autoNamingEnabled ? { backgroundColor: colors.buttonAccent } : {}}></div>
             </label>
           </div>
           <div className="flex items-center justify-between mt-4">
@@ -659,20 +595,8 @@ const Settings: React.FC<SettingsProps> = ({
               </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={countdownInTitle}
-                onChange={(e) => {
-                  setCountdownInTitle(e.target.checked);
-                  showSuccess(
-                    'Countdown Setting Updated', 
-                    `Countdown in browser tab has been ${e.target.checked ? 'enabled' : 'disabled'} successfully!`,
-                    { effectiveMode, colors }
-                  );
-                }}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:${colors.buttonAccent}`}></div>
+              <input type="checkbox" checked={countdownInTitle} onChange={(e) => { setCountdownInTitle(e.target.checked); showSuccess( 'Countdown Setting Updated', `Countdown in browser tab has been ${e.target.checked ? 'enabled' : 'disabled'} successfully!`, { effectiveMode, colors } ); }} className="sr-only peer" />
+              <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all" style={countdownInTitle ? { backgroundColor: colors.buttonAccent } : {}}></div>
             </label>
           </div>
         </div>
@@ -687,9 +611,6 @@ const Settings: React.FC<SettingsProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              {/* themeMode === 'light' && <Sun className={effectiveMode === 'light' ? 'text-yellow-600' : 'text-yellow-400'} size={18} /> */}
-              {/* themeMode === 'dark' && <Moon className={effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400'} size={18} /> */}
-              {/* themeMode === 'system' && <Monitor className={effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} size={18} /> */}
             </div>
             <div>
               <p className={`font-medium ${colors.containerText}`}>Theme</p>
