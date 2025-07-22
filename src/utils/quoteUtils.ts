@@ -43,43 +43,4 @@ const quoteUrlLight: Record<string, string> = {
 export function getQuoteOfTheDayUrl(theme: ThemeKey, themeType: 'normal' | 'extreme', effectiveMode: 'light' | 'dark') {
   const key = themeType === 'extreme' ? `extreme${theme}` : theme;
   return effectiveMode === 'dark' ? quoteUrlDark[key] : quoteUrlLight[key];
-}
-
-// Quote cache utilities
-const QUOTE_CACHE_KEY = 'quoteOfTheDayCache';
-const QUOTE_CACHE_EXPIRY_HOURS = 12;
-
-type QuoteCacheMap = Record<string, { html: string; url: string; timestamp: number }>;
-
-export function getCachedQuote(url: string): { html: string; url: string; timestamp: number } | null {
-  try {
-    const raw = localStorage.getItem(QUOTE_CACHE_KEY);
-    if (raw) {
-      const cacheMap: QuoteCacheMap = JSON.parse(raw);
-      const cache = cacheMap[url];
-      if (cache && isQuoteCacheValid(cache)) {
-        return cache;
-      }
-    }
-  } catch {}
-  return null;
-}
-
-export function setCachedQuote(url: string, html: string) {
-  let cacheMap: QuoteCacheMap = {};
-  try {
-    const raw = localStorage.getItem(QUOTE_CACHE_KEY);
-    if (raw) {
-      cacheMap = JSON.parse(raw);
-    }
-  } catch {}
-  cacheMap[url] = { html, url, timestamp: Date.now() };
-  localStorage.setItem(QUOTE_CACHE_KEY, JSON.stringify(cacheMap));
-}
-
-export function isQuoteCacheValid(cache: { html: string; url: string; timestamp: number } | null) {
-  if (!cache) return false;
-  const now = Date.now();
-  const expiry = QUOTE_CACHE_EXPIRY_HOURS * 60 * 60 * 1000;
-  return now - cache.timestamp < expiry;
 } 

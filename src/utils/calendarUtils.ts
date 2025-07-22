@@ -237,29 +237,11 @@ export function getTodayOrNextEvents(weekData: WeekData | null): { dayLabel: str
   dayEvents.forEach(list => list.sort((a, b) => a.dtstart.getTime() - b.dtstart.getTime()));
   // Try today first
   if (isWeekday(dayIdx)) {
-    // Only include events whose date matches today (not just weekday)
-    const todayYear = now.getFullYear();
-    const todayMonth = now.getMonth();
-    const todayDate = now.getDate();
-    const todayEvents = dayEvents[dayIdx - 1].filter(ev => {
-      const evDate = new Date(ev.dtstart);
-      return (
-        evDate.getFullYear() === todayYear &&
-        evDate.getMonth() === todayMonth &&
-        evDate.getDate() === todayDate
-      );
-    });
+    const todayEvents = dayEvents[dayIdx - 1];
     if (todayEvents.length > 0) {
-      // Check if any of today's events are still ongoing or upcoming
-      const anyOngoingOrUpcoming = todayEvents.some(ev => {
-        if (ev.dtend) {
-          return now < ev.dtend;
-        } else {
-          // If no dtend, treat as not finished if now < start
-          return now < ev.dtstart;
-        }
-      });
-      if (anyOngoingOrUpcoming) {
+      // If any event is still upcoming or ongoing, show today
+      const lastEventEnd = todayEvents[todayEvents.length - 1].dtend || todayEvents[todayEvents.length - 1].dtstart;
+      if (now <= lastEventEnd) {
         return { dayLabel: 'Today', events: todayEvents };
       }
     }

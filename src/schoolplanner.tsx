@@ -30,13 +30,11 @@ import SubjectCard from './components/SubjectCard';
 import EventDetailsOverlay from './components/EventDetailsOverlay';
 import { createOfflineIndicatorElement } from './utils/offlineIndicatorUtils';
 import { processFile, exportData, defaultColours } from './utils/fileUtils.ts';
-import { getQuoteOfTheDayUrl, getCachedQuote, setCachedQuote, isQuoteCacheValid } from './utils/quoteUtils';
+import { getQuoteOfTheDayUrl } from './utils/quoteUtils.ts';
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported } from './utils/cacheUtils.ts';
 import { useNetworkStatus } from './utils/networkUtils.ts';
 import { showSuccess, showError, showInfo, removeNotification } from './utils/notificationUtils';
 import NotFound from './components/NotFound';
-// Remove ThemeContext import
-// import { ThemeContext } from './ThemeContext';
 
 
 
@@ -522,10 +520,10 @@ const SchoolPlanner = () => {
             />
             {/* Quote of the Day Widget below CountdownBox */}
             <QuoteOfTheDayWidget 
-              effectiveMode={effectiveMode}
-              colors={colors}
-              theme={theme}
-              themeType={themeType}
+              theme={theme} 
+              themeType={themeType} 
+              effectiveMode={effectiveMode} 
+              offlineCachingEnabled={offlineCachingEnabled}
             />
           </div>
         </div>
@@ -1258,57 +1256,22 @@ const SchoolPlanner = () => {
 };
 
 // Quote of the Day Widget
-// const QUOTE_CACHE_KEY = 'quoteOfTheDayCache'; // Removed unused variable
-// const QUOTE_CACHE_EXPIRY_HOURS = 12; // No longer used
-
-const QuoteOfTheDayWidget: React.FC<{ effectiveMode: 'light' | 'dark', colors: any, theme: ThemeKey, themeType: 'normal' | 'extreme' }> = ({ effectiveMode, colors, theme, themeType }) => {
-  const [quoteHtml, setQuoteHtml] = React.useState<string | null>(null);
-  const [hasCache, setHasCache] = React.useState(false);
+const QuoteOfTheDayWidget: React.FC<{ 
+  theme: ThemeKey; 
+  themeType: 'normal' | 'extreme'; 
+  effectiveMode: 'light' | 'dark';
+  offlineCachingEnabled?: boolean;
+}> = ({ theme, themeType, effectiveMode, offlineCachingEnabled = false }) => {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
   const url = getQuoteOfTheDayUrl(theme, themeType, effectiveMode);
   const isOnline = useNetworkStatus();
 
-  // Helper to update cache and UI if needed
-  const updateCacheIfChanged = React.useCallback((url: string, html: string) => {
-    const cache = getCachedQuote(url);
-    if (!cache || cache.html !== html) {
-      setCachedQuote(url, html);
-      setQuoteHtml(html);
-      setHasCache(true);
-    }
-  }, []);
+  // Don't show iframe if actually offline
+  const shouldShowIframe = isOnline || offlineCachingEnabled;
 
-  // On mount and when url changes, check cache and fetch in background
-  React.useEffect(() => {
-    setLoading(true);
-    setError(false);
-    const cache = getCachedQuote(url);
-    if (cache && isQuoteCacheValid(cache)) {
-      setQuoteHtml(cache.html);
-      setHasCache(true);
-      setLoading(false);
-    } else {
-      setQuoteHtml(null);
-      setHasCache(false);
-      setLoading(false);
-    }
-    // Always fetch in background if online
-    if (isOnline) {
-      fetch(url)
-        .then(res => res.text())
-        .then(html => {
-          updateCacheIfChanged(url, html);
-        })
-        .catch(() => {
-          setError(true);
-        });
-    }
-  }, [url, isOnline, updateCacheIfChanged]);
-
-  // Render logic
   return (
-    <div className={`${colors.container} rounded-lg ${colors.border} border p-4 mb-4 flex flex-col items-center`}>
+    <div className={`${getColors(theme, themeType, effectiveMode).container} rounded-lg ${getColors(theme, themeType, effectiveMode).border} border p-4 mb-4 flex flex-col items-center`}>
       <div className="flex items-center gap-2 mb-2">
         <div className="font-semibold text-lg" style={{ color: effectiveMode === 'light' ? '#222' : '#fff' }}>Quote of the Day</div>
         {/* Only show offline indicator if actually offline, not when online with offline caching */}
@@ -1326,25 +1289,33 @@ const QuoteOfTheDayWidget: React.FC<{ effectiveMode: 'light' | 'dark', colors: a
           }} />
         )}
       </div>
-      {/* If we have cache, show cached HTML. If not, show iframe. */}
-      {hasCache && quoteHtml ? (
-        <div className="w-full flex flex-col items-center justify-center py-4" dangerouslySetInnerHTML={{ __html: quoteHtml }} />
-      ) : !hasCache && !loading && !error ? (
-        <iframe
-          src={url}
-          title="Quote of the Day"
-          className="w-full min-h-[180px] rounded border"
-          style={{ background: 'transparent', border: 'none' }}
-          sandbox="allow-scripts allow-same-origin"
-        />
-      ) : loading ? (
+      {!isOnline && (
+        <div className={`text-sm py-2 mb-2 ${effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+          Quote unavailable offline
+        </div>
+      )}
+      {shouldShowIframe && loading && !error && (
         <div className="flex flex-col items-center justify-center py-4 w-full">
           <LoaderCircle className={`animate-spin mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`} size={32} />
           <span className={`${effectiveMode === 'light' ? 'text-black' : 'text-gray-400'}`}>Loading...</span>
         </div>
-      ) : error ? (
+      )}
+      {shouldShowIframe && error && (
         <div className="text-red-500 text-sm py-2">Failed to load quote widget.</div>
-      ) : null}
+      )}
+      {shouldShowIframe && (
+        <iframe
+          title="Quote of the Day"
+          src={url}
+          width="100%"
+          height="120"
+          style={{ border: 'none', borderRadius: '8px' }}
+          loading="lazy"
+          sandbox="allow-scripts allow-same-origin"
+          onLoad={() => { setLoading(false); setError(false); }}
+          onError={() => { setLoading(false); setError(true); }}
+        ></iframe>
+      )}
     </div>
   );
 };
