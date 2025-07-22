@@ -34,6 +34,8 @@ import { getQuoteOfTheDayUrl } from './utils/quoteUtils.ts';
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported } from './utils/cacheUtils.ts';
 import { showSuccess, showError, showInfo, removeNotification } from './utils/notificationUtils';
 import NotFound from './components/NotFound';
+import ExamPanel from './components/ExamPanel';
+import { Exam } from './types';
 
 
 
@@ -51,6 +53,58 @@ const SchoolPlanner = () => {
   const location = useLocation();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   
+  // NEW: State for exam side panel
+  const [selectedSubjectForExam, setSelectedSubjectForExam] = useState<Subject | null>(null);
+
+  // Exams by subject id
+  const [examsBySubject, setExamsBySubject] = useState<Record<string, Exam[]>>(() => {
+    const saved = localStorage.getItem('examsBySubject');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  // Persist examsBySubject
+  useEffect(() => {
+    localStorage.setItem('examsBySubject', JSON.stringify(examsBySubject));
+  }, [examsBySubject]);
+
+  const handleSubjectSelect = (subject: Subject) => {
+    setSelectedSubjectForExam(subject);
+  };
+
+  const addExam = () => {
+    if (!selectedSubjectForExam) return;
+    const newExam: Exam = {
+      id: Date.now().toString(),
+      name: '',
+      mark: null,
+      total: null,
+      weighting: null,
+    };
+    setExamsBySubject((prev) => {
+      const arr = prev[selectedSubjectForExam.id] ? [...prev[selectedSubjectForExam.id]] : [];
+      return { ...prev, [selectedSubjectForExam.id]: [...arr, newExam] };
+    });
+  };
+
+  const updateExam = (examId: string, field: keyof Exam, value: string) => {
+    if (!selectedSubjectForExam) return;
+    setExamsBySubject((prev) => {
+      const list = prev[selectedSubjectForExam.id] || [];
+      const updated = list.map((e) =>
+        e.id === examId ? { ...e, [field]: field === 'name' ? value : value === '' ? null : parseFloat(value) } : e
+      );
+      return { ...prev, [selectedSubjectForExam.id]: updated };
+    });
+  };
+
+  const removeExam = (examId: string) => {
+    if (!selectedSubjectForExam) return;
+    setExamsBySubject((prev) => {
+      const list = (prev[selectedSubjectForExam.id] || []).filter((e) => e.id !== examId);
+      return { ...prev, [selectedSubjectForExam.id]: list };
+    });
+  };
+
   // State for subject editing modal
   const [showSubjectEditModal, setShowSubjectEditModal] = useState(false);
   const [selectedSubjectForEdit, setSelectedSubjectForEdit] = useState<Subject | null>(null);
@@ -387,24 +441,41 @@ const SchoolPlanner = () => {
           <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Markbook</h2>
         </div>
 
-        <div className="space-y-4">
-          {subjects.length === 0 ? (
-            <div className="text-center py-16">
-              <BarChart3 size={64} className="mx-auto mb-4 text-gray-600" />
-              <p className={`text-gray-400 text-lg ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>No subjects found</p>
-              <p className={`text-gray-500 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Upload a calendar file to see your subjects</p>
-            </div>
-          ) : (
-            subjects.map((subject: Subject) => (
-              <SubjectCard
-                key={subject.id}
-                subject={subject}
-                effectiveMode={effectiveMode}
-                colors={colors}
-                onEdit={startEditingSubject}
-              />
-            ))
-          )}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Left: Subjects list */}
+          <div className="space-y-4">
+            {subjects.length === 0 ? (
+              <div className="text-center py-16">
+                <BarChart3 size={64} className="mx-auto mb-4 text-gray-600" />
+                <p className={`text-gray-400 text-lg ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>No subjects found</p>
+                <p className={`text-gray-500 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Upload a calendar file to see your subjects</p>
+              </div>
+            ) : (
+              subjects.map((subject: Subject) => (
+                <SubjectCard
+                  key={subject.id}
+                  subject={subject}
+                  effectiveMode={effectiveMode}
+                  colors={colors}
+                  onEdit={startEditingSubject}
+                  onSelect={handleSubjectSelect}
+                />
+              ))
+            )}
+          </div>
+
+          {/* Right: Exams panel */}
+          <div className="">
+            <ExamPanel
+              subject={selectedSubjectForExam}
+              exams={selectedSubjectForExam ? examsBySubject[selectedSubjectForExam.id] || [] : []}
+              onAddExam={addExam}
+              onUpdateExam={updateExam}
+              onRemoveExam={removeExam}
+              effectiveMode={effectiveMode}
+              colors={colors}
+            />
+          </div>
         </div>
 
         <SubjectEditModal
@@ -1269,6 +1340,7 @@ const SchoolPlanner = () => {
           subjects={subjects}
         />
       )}
+      {/* Exam side panel moved inside markbook grid */}
     </div>
   );
 };
