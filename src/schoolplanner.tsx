@@ -1254,9 +1254,9 @@ const SchoolPlanner = () => {
 };
 
 // Quote of the Day Widget
-const QuoteOfTheDayWidget: React.FC<{ 
-  theme: ThemeKey; 
-  themeType: 'normal' | 'extreme'; 
+const QuoteOfTheDayWidget: React.FC<{
+  theme: ThemeKey;
+  themeType: 'normal' | 'extreme';
   effectiveMode: 'light' | 'dark';
 }> = ({ theme, themeType, effectiveMode }) => {
   const [isLoading, setIsLoading] = React.useState(true);
@@ -1268,21 +1268,24 @@ const QuoteOfTheDayWidget: React.FC<{
       <div className="flex items-center gap-2 mb-2">
         <div className="font-semibold text-lg" style={{ color: effectiveMode === 'light' ? '#222' : '#fff' }}>Quote of the Day</div>
       </div>
-      {isLoading && (
-        <div className="flex justify-center items-center h-[120px]">
-          <LoaderCircle className="animate-spin" size={32} color={colors.text} />
-        </div>
-      )}
-      <iframe
-        title="Quote of the Day"
-        src={url}
-        width="100%"
-        height="120"
-        style={{ border: 'none', borderRadius: '8px', display: isLoading ? 'none' : 'block' }}
-        loading="lazy"
-        sandbox="allow-scripts allow-same-origin"
-        onLoad={() => setIsLoading(false)}
-      ></iframe>
+      <div className="relative w-full h-[120px]">
+        {isLoading && (
+          <div className="absolute inset-0 flex justify-center items-center">
+            <LoaderCircle className="animate-spin" size={32} color={colors.text} />
+          </div>
+        )}
+        <iframe
+          title="Quote of the Day"
+          src={url}
+          width="100%"
+          height="120"
+          style={{ border: 'none', borderRadius: '8px', visibility: isLoading ? 'hidden' : 'visible' }}
+          loading="lazy"
+          sandbox="allow-scripts allow-same-origin"
+          onLoad={() => setIsLoading(false)}
+          onError={() => setIsLoading(false)} // Also hide spinner on error
+        ></iframe>
+      </div>
     </div>
   );
 };
