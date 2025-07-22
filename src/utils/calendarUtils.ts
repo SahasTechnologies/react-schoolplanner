@@ -250,28 +250,16 @@ export function getTodayOrNextEvents(weekData: WeekData | null): { dayLabel: str
       );
     });
     if (todayEvents.length > 0) {
-      // Find the latest end time among today's events
-      let lastEventEnd = null;
-      for (const ev of todayEvents) {
+      // Check if any of today's events are still ongoing or upcoming
+      const anyOngoingOrUpcoming = todayEvents.some(ev => {
         if (ev.dtend) {
-          if (!lastEventEnd || ev.dtend > lastEventEnd) lastEventEnd = ev.dtend;
+          return now < ev.dtend;
         } else {
-          // If no dtend, treat as end of today
-          const endOfDay = new Date(ev.dtstart);
-          endOfDay.setHours(23, 59, 59, 999);
-          if (!lastEventEnd || endOfDay > lastEventEnd) lastEventEnd = endOfDay;
+          // If no dtend, treat as not finished if now < start
+          return now < ev.dtstart;
         }
-      }
-      // Debug logging
-      console.log('[getTodayOrNextEvents] NOW:', now);
-      console.log('[getTodayOrNextEvents] Today events:', todayEvents.map(ev => ({
-        summary: ev.summary,
-        start: ev.dtstart,
-        end: ev.dtend,
-        fallbackEnd: !ev.dtend ? (() => { const d = new Date(ev.dtstart); d.setHours(23,59,59,999); return d; })() : undefined
-      })));
-      console.log('[getTodayOrNextEvents] Computed lastEventEnd:', lastEventEnd);
-      if (lastEventEnd && now <= lastEventEnd) {
+      });
+      if (anyOngoingOrUpcoming) {
         return { dayLabel: 'Today', events: todayEvents };
       }
     }
