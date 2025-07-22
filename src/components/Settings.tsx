@@ -213,7 +213,7 @@ const Settings: React.FC<SettingsProps> = ({
             <p className={`font-medium ${colors.containerText}`}>Import Data</p>
             <p className={`text-sm ${colors.containerText} opacity-80`}>Import your .ics or .school file</p>
           </div>
-          <>
+          <div>
             <button
               onClick={() => fileInputRef.current?.click()}
               className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
@@ -228,7 +228,7 @@ const Settings: React.FC<SettingsProps> = ({
               onChange={handleFileInput}
               className="hidden"
             />
-          </>
+          </div>
         </div>
         <hr className={`my-6 border-t ${colors.border}`} />
         <div className="flex items-center justify-between mt-4">
