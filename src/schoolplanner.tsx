@@ -5,7 +5,7 @@ import * as React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { 
   Calendar, FileText, Home, BarChart3,
-  Settings as SettingsIcon, LoaderCircle
+  Settings as SettingsIcon, LoaderCircle, Shield
 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { ThemeKey, getColors } from './utils/themeUtils';
@@ -36,12 +36,17 @@ import { showSuccess, showError, showInfo, removeNotification } from './utils/no
 import NotFound from './components/NotFound';
 import ExamPanel from './components/ExamPanel';
 import { Exam } from './types';
+import bcrypt from 'bcryptjs';
 
+// Add password hashing function using bcrypt
+const hashPassword = (password: string): string => {
+  const salt = bcrypt.genSaltSync(10);
+  return bcrypt.hashSync(password, salt);
+};
 
-
-
-
-
+const comparePassword = (password: string, hash: string): boolean => {
+  return bcrypt.compareSync(password, hash);
+};
 
 const SchoolPlanner = () => {
   const [weekData, setWeekData] = useState<WeekData | null>(null);
@@ -437,6 +442,61 @@ const SchoolPlanner = () => {
 
 
   const renderMarkbook = () => {
+    // If password protection is enabled and markbook is locked, show lock screen
+    if (markbookPasswordEnabled && isMarkbookLocked) {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+            <BarChart3 className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
+            <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Markbook</h2>
+          </div>
+          <div className={`${colors.container} rounded-lg ${colors.border} border p-8 flex flex-col items-center justify-center`}>
+            <Shield className={effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400'} size={48} />
+            <h3 className={`text-xl font-semibold ${colors.text} mb-4`}>Password Protected</h3>
+            <p className={`text-sm ${colors.containerText} opacity-80 mb-6 text-center`}>
+              Enter your password to view your marks
+            </p>
+            <div className="w-full max-w-sm">
+              <input
+                type="password"
+                value={unlockAttempt}
+                onChange={(e) => setUnlockAttempt(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const storedHash = localStorage.getItem('markbookPassword');
+                    if (storedHash && comparePassword(unlockAttempt, storedHash)) {
+                      setIsMarkbookLocked(false);
+                      setUnlockAttempt('');
+                    } else {
+                      showError('Incorrect Password', 'Please try again', { effectiveMode, colors });
+                    }
+                  }
+                }}
+                className={`w-full px-4 py-3 rounded-lg border ${colors.border} focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4 text-lg ${colors.container} ${colors.text}`}
+                placeholder="Enter password"
+                autoComplete="off"
+              />
+              <button
+                onClick={() => {
+                  const storedHash = localStorage.getItem('markbookPassword');
+                  if (storedHash && comparePassword(unlockAttempt, storedHash)) {
+                    setIsMarkbookLocked(false);
+                    setUnlockAttempt('');
+                  } else {
+                    showError('Incorrect Password', 'Please try again', { effectiveMode, colors });
+                  }
+                }}
+                className={`w-full ${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-3 rounded-lg font-medium transition-colors duration-200`}
+              >
+                Unlock
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Original markbook content
     // Helper: calculate average mark percentage for a subject (null if no marks)
     const getAverageMark = (subject: Subject): number | null => {
       const exams = examsBySubject[subject.id] || [];
@@ -490,7 +550,7 @@ const SchoolPlanner = () => {
               <select
                 value={subjectSortOption}
                 onChange={(e) => setSubjectSortOption(e.target.value as any)}
-                className={`border ${colors.border} rounded-md px-2 py-1 text-sm bg-transparent focus:outline-none`}
+                className={`border ${colors.border} rounded-md px-2 py-1 text-sm ${effectiveMode === 'light' ? 'bg-white text-black' : 'bg-gray-800 text-white'} focus:outline-none`}
               >
                 <option value="marks-asc">Marks Ascending</option>
                 <option value="marks-desc">Marks Descending</option>
@@ -499,7 +559,7 @@ const SchoolPlanner = () => {
               </select>
             </div>
 
-            <div className="space-y-4 overflow-y-auto pr-2 max-h-[70vh]">
+            <div className="space-y-4 overflow-y-auto pr-2 max-h-[70vh] h-full">
               {sortedSubjects.length === 0 ? (
                 <div className="text-center py-16">
                   <BarChart3 size={64} className="mx-auto mb-4 text-gray-600" />
@@ -588,6 +648,14 @@ const SchoolPlanner = () => {
         handleFileInput={handleFileInput}
         offlineCachingEnabled={offlineCachingEnabled}
         setOfflineCachingEnabled={handleOfflineCachingToggle}
+        markbookPasswordEnabled={markbookPasswordEnabled}
+        setMarkbookPasswordEnabled={setMarkbookPasswordEnabled}
+        markbookPassword={markbookPassword}
+        setMarkbookPassword={setMarkbookPassword}
+        showPasswordModal={showPasswordModal}
+        setShowPasswordModal={setShowPasswordModal}
+        newPassword={newPassword}
+        setNewPassword={setNewPassword}
       />
     );
   };
@@ -1281,6 +1349,89 @@ const SchoolPlanner = () => {
     setExportModalState(s => ({ ...s, show: false }));
     showSuccess('Export Successful', `Data exported to ${fileName}`, { effectiveMode, colors });
   };
+
+  // Add state for markbook password protection
+  const [markbookPasswordEnabled, setMarkbookPasswordEnabled] = useState(() => {
+    const saved = localStorage.getItem('markbookPasswordEnabled');
+    return saved === 'true';
+  });
+  const [markbookPassword, setMarkbookPassword] = useState(() => {
+    return localStorage.getItem('markbookPassword') || '';
+  });
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [isMarkbookLocked, setIsMarkbookLocked] = useState(true);
+  const [unlockAttempt, setUnlockAttempt] = useState('');
+
+  // Anti-inspection measures - only when lock screen is active
+  useEffect(() => {
+    if (!markbookPasswordEnabled || !isMarkbookLocked || location.pathname !== '/markbook') {
+      return;
+    }
+
+    const preventDevTools = () => {
+      // Detect if DevTools is open
+      const devtools = /./;
+      devtools.toString = () => {
+        // Only prevent if we're on the lock screen
+        if (markbookPasswordEnabled && isMarkbookLocked && location.pathname === '/markbook') {
+          navigate('/home');
+          showError('Security Alert', 'DevTools detected while locked. Access denied.', { effectiveMode, colors });
+        }
+        return '';
+      };
+      console.log('%c', devtools);
+    };
+
+    // Detect keyboard shortcuts
+    const preventKeyboardShortcuts = (e: KeyboardEvent) => {
+      // Only prevent if we're on the lock screen
+      if (markbookPasswordEnabled && isMarkbookLocked && location.pathname === '/markbook') {
+        if (
+          (e.ctrlKey && e.shiftKey && e.key === 'I') || // Ctrl+Shift+I
+          (e.ctrlKey && e.shiftKey && e.key === 'J') || // Ctrl+Shift+J
+          (e.ctrlKey && e.shiftKey && e.key === 'C') || // Ctrl+Shift+C
+          (e.ctrlKey && e.key === 'U') || // Ctrl+U
+          e.key === 'F12' // F12
+        ) {
+          e.preventDefault();
+          navigate('/home');
+          showError('Security Alert', 'DevTools shortcut detected while locked. Access denied.', { effectiveMode, colors });
+        }
+      }
+    };
+
+    // Add event listeners
+    document.addEventListener('keydown', preventKeyboardShortcuts);
+    const interval = setInterval(preventDevTools, 1000);
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('keydown', preventKeyboardShortcuts);
+      clearInterval(interval);
+    };
+  }, [location.pathname, markbookPasswordEnabled, isMarkbookLocked]);
+
+  // Persist password settings (using hashed password)
+  useEffect(() => {
+    localStorage.setItem('markbookPasswordEnabled', markbookPasswordEnabled.toString());
+  }, [markbookPasswordEnabled]);
+
+  useEffect(() => {
+    if (markbookPassword) {
+      localStorage.setItem('markbookPassword', hashPassword(markbookPassword));
+    } else {
+      localStorage.removeItem('markbookPassword');
+    }
+  }, [markbookPassword]);
+
+  // Lock markbook when navigating away
+  useEffect(() => {
+    if (location.pathname !== '/markbook') {
+      setIsMarkbookLocked(true);
+      setUnlockAttempt('');
+    }
+  }, [location.pathname]);
 
   // Main content routes
   // Only show welcome screen if not completed

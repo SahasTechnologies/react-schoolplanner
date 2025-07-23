@@ -15,7 +15,8 @@ import {
   Shield,
   BadgeCheck,
   LoaderCircle,
-  GripVertical
+  GripVertical,
+  BarChart3
 } from 'lucide-react';
 import { ThemeKey } from '../utils/themeUtils';
 import { isServiceWorkerSupported, forceCacheUpdate } from '../utils/cacheUtils';
@@ -71,6 +72,15 @@ interface SettingsProps {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   offlineCachingEnabled: boolean;
   setOfflineCachingEnabled: (enabled: boolean) => Promise<void>;
+  // Add new password protection props
+  markbookPasswordEnabled: boolean;
+  setMarkbookPasswordEnabled: (enabled: boolean) => void;
+  markbookPassword: string;
+  setMarkbookPassword: (password: string) => void;
+  showPasswordModal: boolean;
+  setShowPasswordModal: (show: boolean) => void;
+  newPassword: string;
+  setNewPassword: (password: string) => void;
 }
 
 const Settings: React.FC<SettingsProps> = ({
@@ -99,7 +109,15 @@ const Settings: React.FC<SettingsProps> = ({
   handleInfoDragOver,
   handleDragEnd,
   handleToggleInfoShown,
-  draggedIdx
+  draggedIdx,
+  markbookPasswordEnabled,
+  setMarkbookPasswordEnabled,
+  markbookPassword,
+  setMarkbookPassword,
+  showPasswordModal,
+  setShowPasswordModal,
+  newPassword,
+  setNewPassword
 }) => {
 
   const [showNameEditModal, setShowNameEditModal] = React.useState(false);
@@ -546,6 +564,77 @@ const Settings: React.FC<SettingsProps> = ({
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{licenseContent}</ReactMarkdown>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Markbook Settings */}
+      <div className={`${colors.container} rounded-lg ${colors.border} border p-6 mb-4`}>
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart3 className={colors.text} size={20} />
+          <h3 className={`text-lg font-medium ${colors.text}`}>Markbook Settings</h3>
+        </div>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Shield className={effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400'} size={18} />
+              <div>
+                <p className={`font-medium ${colors.containerText}`}>Password Protection</p>
+                <p className={`text-sm ${colors.containerText} opacity-80`}>Require a password to view marks</p>
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" checked={markbookPasswordEnabled} onChange={(e) => { setMarkbookPasswordEnabled(e.target.checked); if (!e.target.checked) setMarkbookPassword(''); }} className="sr-only peer" />
+              <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all" style={markbookPasswordEnabled ? { backgroundColor: colors.buttonAccent } : {}}></div>
+            </label>
+          </div>
+          {markbookPasswordEnabled && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div>
+                  <p className={`font-medium ${colors.containerText}`}>Markbook Password</p>
+                  <p className={`text-sm ${colors.containerText} opacity-80`}>Set a password to protect your marks</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowPasswordModal(true)}
+                className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
+              >
+                <Edit2 size={16} />
+                Set Password
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Password Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
+            <h3 className={`text-xl font-semibold ${colors.buttonText} mb-4`}>Set Markbook Password</h3>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6 text-lg ${colors.inputBackground} ${colors.inputBorder} ${colors.buttonText}`}
+              placeholder="Enter password"
+            />
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => { setShowPasswordModal(false); setNewPassword(''); }}
+                className="bg-secondary hover:bg-secondary-dark text-secondary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+              >Cancel</button>
+              <button
+                onClick={() => { 
+                  setMarkbookPassword(newPassword);
+                  setShowPasswordModal(false);
+                  setNewPassword('');
+                  showSuccess('Password Updated', 'Your markbook password has been updated successfully!', { effectiveMode, colors });
+                }}
+                className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
+              >Save</button>
+            </div>
           </div>
         </div>
       )}
