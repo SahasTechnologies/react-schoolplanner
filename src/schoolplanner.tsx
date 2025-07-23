@@ -473,7 +473,6 @@ const SchoolPlanner = () => {
               onUpdateExam={updateExam}
               onRemoveExam={removeExam}
               effectiveMode={effectiveMode}
-              colors={colors}
             />
           </div>
         </div>
