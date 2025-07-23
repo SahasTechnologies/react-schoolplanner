@@ -273,49 +273,80 @@ export const formatTime = (date: Date): string => {
 export function getTodayOrNextEvents(weekData: WeekData | null): { dayLabel: string, events: CalendarEvent[] } {
   if (!weekData) return { dayLabel: '', events: [] };
   const now = new Date();
+  console.log('Current time:', now.toLocaleString());
+  
   // Get local day index (0=Sunday, 1=Monday, ..., 6=Saturday)
   let dayIdx = now.getDay();
   // Only consider Mon-Fri (1-5)
   const isWeekday = (d: number) => d >= 1 && d <= 5;
   // Build a map: dayIdx (1-5) -> events[]
   const dayEvents: CalendarEvent[][] = [[], [], [], [], []];
+  
+  // Helper to check if a date is today
+  const isToday = (date: Date) => {
+    return date.getDate() === now.getDate() &&
+           date.getMonth() === now.getMonth() &&
+           date.getFullYear() === now.getFullYear();
+  };
+  
   weekData.events.forEach((event: CalendarEvent) => {
     const eventDate = new Date(event.dtstart);
-    const eventDay = eventDate.getDay();
-    if (eventDay >= 1 && eventDay <= 5) {
-      dayEvents[eventDay - 1].push(event);
+    // Only add events that are today or in the future
+    if (eventDate >= now || isToday(eventDate)) {
+      const eventDay = eventDate.getDay();
+      if (eventDay >= 1 && eventDay <= 5) {
+        dayEvents[eventDay - 1].push(event);
+      }
     }
   });
+  
   // Sort events for each day
   dayEvents.forEach(list => list.sort((a, b) => new Date(a.dtstart).getTime() - new Date(b.dtstart).getTime()));
   
   // Check today first if it's a weekday
   if (isWeekday(dayIdx)) {
-    const todayEvents = dayEvents[dayIdx - 1];
+    const todayEvents = dayEvents[dayIdx - 1].filter(event => isToday(new Date(event.dtstart)));
     if (todayEvents.length > 0) {
       // Check if all today's events are over
       const allEventsOver = todayEvents.every(event => {
-        const endTime = event.dtend || new Date(event.dtstart.getTime() + 3600000); // Default 1 hour if no end time
-        return new Date(endTime) < now;
+        // Ensure we're working with Date objects
+        const endTime = event.dtend ? new Date(event.dtend) : new Date(new Date(event.dtstart).getTime() + 3600000); // Default 1 hour if no end time
+        const isOver = endTime.getTime() < now.getTime();
+        console.log('Event:', event.summary, 'End time:', endTime.toLocaleString(), 'Is over?', isOver);
+        return isOver;
       });
+      
+      console.log('All events over?', allEventsOver);
       
       if (!allEventsOver) {
         // Still have events today that haven't ended
         return { dayLabel: 'Today', events: todayEvents };
       }
+      
+      console.log('All today\'s events are over, looking for next day');
     }
   }
   
   // If today's events are over or there are none, show next day with events
-  for (let offset = 1; offset <= 5; ++offset) {
-    let nextIdx = ((dayIdx - 1 + offset) % 5);
+  // Start from tomorrow's index
+  const tomorrowIdx = dayIdx % 5;
+  for (let i = 0; i < 5; i++) {
+    const nextIdx = (tomorrowIdx + i) % 5;
     if (dayEvents[nextIdx].length > 0) {
-      const label = offset === 1 ? 'Tomorrow' : ['Monday','Tuesday','Wednesday','Thursday','Friday'][nextIdx];
+      // Get the actual day name
+      const nextDate = new Date(dayEvents[nextIdx][0].dtstart);
+      const isNextDayTomorrow = nextDate.getDate() === now.getDate() + 1 &&
+                               nextDate.getMonth() === now.getMonth() &&
+                               nextDate.getFullYear() === now.getFullYear();
+      
+      const label = isNextDayTomorrow ? 'Tomorrow' : ['Monday','Tuesday','Wednesday','Thursday','Friday'][nextIdx];
+      console.log('Found next day with events:', label);
       return { dayLabel: `${label}'s Schedule`, events: dayEvents[nextIdx] };
     }
   }
   
   // Fallback: no events
+  console.log('No events found for any day');
   return { dayLabel: '', events: [] };
 }
 

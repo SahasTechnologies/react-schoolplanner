@@ -52,6 +52,7 @@ const SchoolPlanner = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [sortOrder, setSortOrder] = useState('alphabetical-asc');
   
   // NEW: State for exam side panel
   const [selectedSubjectForExam, setSelectedSubjectForExam] = useState<Subject | null>(null);
@@ -153,6 +154,36 @@ const SchoolPlanner = () => {
     return 'Good night';
   };
 
+  const calculateSubjectAverage = (subjectId: string): number | null => {
+    const exams = examsBySubject[subjectId];
+    if (!exams || exams.length === 0) return null;
+
+    const examsWithData = exams.filter(e => e.mark !== null && e.total !== null && e.total > 0);
+    if (examsWithData.length === 0) return null;
+
+    const hasWeighting = examsWithData.some(e => e.weighting !== null && e.weighting > 0);
+
+    if (hasWeighting) {
+      const weightedExams = examsWithData.filter(e => e.weighting !== null && e.weighting > 0);
+      
+      if (weightedExams.length === 0) {
+          const totalPercentage = examsWithData.reduce((sum, e) => sum + (e.mark! / e.total!), 0);
+          return (totalPercentage / examsWithData.length) * 100;
+      }
+
+      const totalWeight = weightedExams.reduce((sum, e) => sum + (e.weighting || 0), 0);
+      if (totalWeight === 0) {
+        const totalPercentage = weightedExams.reduce((sum, e) => sum + (e.mark! / e.total!), 0);
+        return (totalPercentage / weightedExams.length) * 100;
+      }
+
+      const weightedMark = weightedExams.reduce((sum, e) => sum + (e.mark! / e.total!) * (e.weighting || 0), 0);
+      return (weightedMark / totalWeight) * 100;
+    } else {
+      const totalPercentage = examsWithData.reduce((sum, e) => sum + (e.mark! / e.total!), 0);
+      return (totalPercentage / examsWithData.length) * 100;
+    }
+  };
 
 
   // Deterministic color fallback for unknown subjects
@@ -434,6 +465,28 @@ const SchoolPlanner = () => {
 
 
   const renderMarkbook = () => {
+    const sortedSubjects = React.useMemo(() => {
+      return [...subjects].sort((a, b) => {
+        if (sortOrder === 'alphabetical-asc') {
+          return a.name.localeCompare(b.name);
+        }
+        if (sortOrder === 'alphabetical-desc') {
+          return b.name.localeCompare(a.name);
+        }
+        if (sortOrder === 'marks-asc' || sortOrder === 'marks-desc') {
+          const avgA = calculateSubjectAverage(a.id);
+          const avgB = calculateSubjectAverage(b.id);
+
+          if (avgA === null && avgB === null) return 0;
+          if (avgA === null) return 1;
+          if (avgB === null) return -1;
+
+          return sortOrder === 'marks-asc' ? avgA - avgB : avgB - avgA;
+        }
+        return 0;
+      });
+    }, [subjects, sortOrder, examsBySubject]);
+
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
@@ -451,16 +504,37 @@ const SchoolPlanner = () => {
                 <p className={`text-gray-500 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Upload a calendar file to see your subjects</p>
               </div>
             ) : (
-              subjects.map((subject: Subject) => (
-                <SubjectCard
-                  key={subject.id}
-                  subject={subject}
-                  effectiveMode={effectiveMode}
-                  colors={colors}
-                  onEdit={startEditingSubject}
-                  onSelect={handleSubjectSelect}
-                />
-              ))
+              <>
+                <div className="flex justify-between items-center pr-4">
+                  <h3 className={`text-lg font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Subjects</h3>
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="sort-order" className={`text-sm ${effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>Sort by</label>
+                    <select
+                      id="sort-order"
+                      value={sortOrder}
+                      onChange={(e) => setSortOrder(e.target.value)}
+                      className={`${colors.container} ${colors.border} border rounded-md px-2 py-1 text-sm ${effectiveMode === 'light' ? 'text-black' : 'text-white'} focus:ring-2 ${colors.ring} bg-transparent`}
+                    >
+                      <option value="alphabetical-asc">Alphabetical (A-Z)</option>
+                      <option value="alphabetical-desc">Alphabetical (Z-A)</option>
+                      <option value="marks-asc">Marks (Low-High)</option>
+                      <option value="marks-desc">Marks (High-Low)</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="space-y-4 overflow-y-auto pr-2" style={{ maxHeight: 'calc(100vh - 280px)' }}>
+                  {sortedSubjects.map((subject: Subject) => (
+                    <SubjectCard
+                      key={subject.id}
+                      subject={subject}
+                      effectiveMode={effectiveMode}
+                      colors={colors}
+                      onEdit={startEditingSubject}
+                      onSelect={handleSubjectSelect}
+                    />
+                  ))}
+                </div>
+              </>
             )}
           </div>
 
