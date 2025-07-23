@@ -112,7 +112,6 @@ const Settings: React.FC<SettingsProps> = ({
   draggedIdx,
   markbookPasswordEnabled,
   setMarkbookPasswordEnabled,
-  markbookPassword,
   setMarkbookPassword,
   showPasswordModal,
   setShowPasswordModal,

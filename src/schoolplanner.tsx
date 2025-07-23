@@ -442,6 +442,43 @@ const SchoolPlanner = () => {
 
 
   const renderMarkbook = () => {
+    // Helper: calculate average mark percentage for a subject (null if no marks)
+    const getAverageMark = (subject: Subject): number | null => {
+      const exams = examsBySubject[subject.id] || [];
+      const valid = exams.filter(e => e.mark !== null && e.total !== null && e.total !== 0);
+      if (valid.length === 0) return null;
+      const percentages = valid.map(e => ((e.mark as number) / (e.total as number)) * 100);
+      return percentages.reduce((a, b) => a + b, 0) / percentages.length;
+    };
+
+    // Apply sorting based on selected option
+    const sortedSubjects = [...subjects].sort((a, b) => {
+      switch (subjectSortOption) {
+        case 'alphabetical-asc':
+          return normalizeSubjectName(a.name, autoNamingEnabled).localeCompare(normalizeSubjectName(b.name, autoNamingEnabled));
+        case 'alphabetical-desc':
+          return normalizeSubjectName(b.name, autoNamingEnabled).localeCompare(normalizeSubjectName(a.name, autoNamingEnabled));
+        case 'marks-asc': {
+          const avgA = getAverageMark(a);
+          const avgB = getAverageMark(b);
+          if (avgA === null && avgB === null) return 0;
+          if (avgA === null) return 1;
+          if (avgB === null) return -1;
+          return avgA - avgB;
+        }
+        case 'marks-desc': {
+          const avgA = getAverageMark(a);
+          const avgB = getAverageMark(b);
+          if (avgA === null && avgB === null) return 0;
+          if (avgA === null) return 1;
+          if (avgB === null) return -1;
+          return avgB - avgA;
+        }
+        default:
+          return 0;
+      }
+    });
+
     // If password protection is enabled and markbook is locked, show lock screen
     if (markbookPasswordEnabled && isMarkbookLocked) {
       return (
@@ -496,44 +533,7 @@ const SchoolPlanner = () => {
       );
     }
 
-    // Original markbook content
-    // Helper: calculate average mark percentage for a subject (null if no marks)
-    const getAverageMark = (subject: Subject): number | null => {
-      const exams = examsBySubject[subject.id] || [];
-      const valid = exams.filter(e => e.mark !== null && e.total !== null && e.total !== 0);
-      if (valid.length === 0) return null;
-      const percentages = valid.map(e => ((e.mark as number) / (e.total as number)) * 100);
-      return percentages.reduce((a, b) => a + b, 0) / percentages.length;
-    };
-
-    // Apply sorting based on selected option
-    const sortedSubjects = [...subjects].sort((a, b) => {
-      switch (subjectSortOption) {
-        case 'alphabetical-asc':
-          return normalizeSubjectName(a.name, autoNamingEnabled).localeCompare(normalizeSubjectName(b.name, autoNamingEnabled));
-        case 'alphabetical-desc':
-          return normalizeSubjectName(b.name, autoNamingEnabled).localeCompare(normalizeSubjectName(a.name, autoNamingEnabled));
-        case 'marks-asc': {
-          const avgA = getAverageMark(a);
-          const avgB = getAverageMark(b);
-          if (avgA === null && avgB === null) return 0;
-          if (avgA === null) return 1;
-          if (avgB === null) return -1;
-          return avgA - avgB;
-        }
-        case 'marks-desc': {
-          const avgA = getAverageMark(a);
-          const avgB = getAverageMark(b);
-          if (avgA === null && avgB === null) return 0;
-          if (avgA === null) return 1;
-          if (avgB === null) return -1;
-          return avgB - avgA;
-        }
-        default:
-          return 0;
-      }
-    });
-
+    // Only render markbook content when unlocked or password protection is disabled
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
