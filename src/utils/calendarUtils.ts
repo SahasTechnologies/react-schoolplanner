@@ -269,7 +269,7 @@ export const formatTime = (date: Date): string => {
   });
 };
 
-// Helper to get events for today or tomorrow (if today's are over)
+// Helper to get events for today or next day with events (if today's events are over)
 export function getTodayOrNextEvents(weekData: WeekData | null): { dayLabel: string, events: CalendarEvent[] } {
   if (!weekData) return { dayLabel: '', events: [] };
   const now = new Date();
@@ -288,22 +288,33 @@ export function getTodayOrNextEvents(weekData: WeekData | null): { dayLabel: str
   });
   // Sort events for each day
   dayEvents.forEach(list => list.sort((a, b) => new Date(a.dtstart).getTime() - new Date(b.dtstart).getTime()));
-  // Try today first
+  
+  // Check today first if it's a weekday
   if (isWeekday(dayIdx)) {
     const todayEvents = dayEvents[dayIdx - 1];
     if (todayEvents.length > 0) {
-      // Always show today's events if any exist
-      return { dayLabel: 'Today', events: todayEvents };
+      // Check if all today's events are over
+      const allEventsOver = todayEvents.every(event => {
+        const endTime = event.dtend || new Date(event.dtstart.getTime() + 3600000); // Default 1 hour if no end time
+        return new Date(endTime) < now;
+      });
+      
+      if (!allEventsOver) {
+        // Still have events today that haven't ended
+        return { dayLabel: 'Today', events: todayEvents };
+      }
     }
   }
-  // Otherwise, show the next weekday with events (usually tomorrow)
+  
+  // If today's events are over or there are none, show next day with events
   for (let offset = 1; offset <= 5; ++offset) {
     let nextIdx = ((dayIdx - 1 + offset) % 5);
     if (dayEvents[nextIdx].length > 0) {
       const label = offset === 1 ? 'Tomorrow' : ['Monday','Tuesday','Wednesday','Thursday','Friday'][nextIdx];
-      return { dayLabel: label, events: dayEvents[nextIdx] };
+      return { dayLabel: `${label}'s Schedule`, events: dayEvents[nextIdx] };
     }
   }
+  
   // Fallback: no events
   return { dayLabel: '', events: [] };
 }

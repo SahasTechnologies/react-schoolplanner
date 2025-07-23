@@ -568,7 +568,9 @@ const SchoolPlanner = () => {
           <div className={`${colors.container} rounded-lg ${colors.border} border p-6 col-span-1`}>
             <div className="flex items-center gap-3 mb-4">
               <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
-              <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{dayLabel ? `${dayLabel}'s Schedule` : 'No Schedule'}</h3>
+              <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
+                {dayLabel || 'No Schedule'}
+              </h3>
             </div>
             {eventsWithBreaks.length === 0 ? (
               <div className="text-center text-gray-500 py-8">
