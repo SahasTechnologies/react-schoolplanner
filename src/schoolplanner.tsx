@@ -52,7 +52,6 @@ const SchoolPlanner = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [sortOrder, setSortOrder] = useState('alphabetical-asc');
   
   // NEW: State for exam side panel
   const [selectedSubjectForExam, setSelectedSubjectForExam] = useState<Subject | null>(null);
@@ -63,6 +62,9 @@ const SchoolPlanner = () => {
     return saved ? JSON.parse(saved) : {};
   });
 
+  // NEW: Sort option for subjects in Markbook
+  const [subjectSortOption, setSubjectSortOption] = useState<'alphabetical-asc' | 'alphabetical-desc' | 'marks-asc' | 'marks-desc'>('alphabetical-asc');
+  
   // Persist examsBySubject
   useEffect(() => {
     localStorage.setItem('examsBySubject', JSON.stringify(examsBySubject));
@@ -154,36 +156,6 @@ const SchoolPlanner = () => {
     return 'Good night';
   };
 
-  const calculateSubjectAverage = (subjectId: string): number | null => {
-    const exams = examsBySubject[subjectId];
-    if (!exams || exams.length === 0) return null;
-
-    const examsWithData = exams.filter(e => e.mark !== null && e.total !== null && e.total > 0);
-    if (examsWithData.length === 0) return null;
-
-    const hasWeighting = examsWithData.some(e => e.weighting !== null && e.weighting > 0);
-
-    if (hasWeighting) {
-      const weightedExams = examsWithData.filter(e => e.weighting !== null && e.weighting > 0);
-      
-      if (weightedExams.length === 0) {
-          const totalPercentage = examsWithData.reduce((sum, e) => sum + (e.mark! / e.total!), 0);
-          return (totalPercentage / examsWithData.length) * 100;
-      }
-
-      const totalWeight = weightedExams.reduce((sum, e) => sum + (e.weighting || 0), 0);
-      if (totalWeight === 0) {
-        const totalPercentage = weightedExams.reduce((sum, e) => sum + (e.mark! / e.total!), 0);
-        return (totalPercentage / weightedExams.length) * 100;
-      }
-
-      const weightedMark = weightedExams.reduce((sum, e) => sum + (e.mark! / e.total!) * (e.weighting || 0), 0);
-      return (weightedMark / totalWeight) * 100;
-    } else {
-      const totalPercentage = examsWithData.reduce((sum, e) => sum + (e.mark! / e.total!), 0);
-      return (totalPercentage / examsWithData.length) * 100;
-    }
-  };
 
 
   // Deterministic color fallback for unknown subjects
@@ -465,27 +437,42 @@ const SchoolPlanner = () => {
 
 
   const renderMarkbook = () => {
-    const sortedSubjects = React.useMemo(() => {
-      return [...subjects].sort((a, b) => {
-        if (sortOrder === 'alphabetical-asc') {
-          return a.name.localeCompare(b.name);
-        }
-        if (sortOrder === 'alphabetical-desc') {
-          return b.name.localeCompare(a.name);
-        }
-        if (sortOrder === 'marks-asc' || sortOrder === 'marks-desc') {
-          const avgA = calculateSubjectAverage(a.id);
-          const avgB = calculateSubjectAverage(b.id);
+    // Helper: calculate average mark percentage for a subject (null if no marks)
+    const getAverageMark = (subject: Subject): number | null => {
+      const exams = examsBySubject[subject.id] || [];
+      const valid = exams.filter(e => e.mark !== null && e.total !== null && e.total !== 0);
+      if (valid.length === 0) return null;
+      const percentages = valid.map(e => ((e.mark as number) / (e.total as number)) * 100);
+      return percentages.reduce((a, b) => a + b, 0) / percentages.length;
+    };
 
+    // Apply sorting based on selected option
+    const sortedSubjects = [...subjects].sort((a, b) => {
+      switch (subjectSortOption) {
+        case 'alphabetical-asc':
+          return normalizeSubjectName(a.name, autoNamingEnabled).localeCompare(normalizeSubjectName(b.name, autoNamingEnabled));
+        case 'alphabetical-desc':
+          return normalizeSubjectName(b.name, autoNamingEnabled).localeCompare(normalizeSubjectName(a.name, autoNamingEnabled));
+        case 'marks-asc': {
+          const avgA = getAverageMark(a);
+          const avgB = getAverageMark(b);
           if (avgA === null && avgB === null) return 0;
           if (avgA === null) return 1;
           if (avgB === null) return -1;
-
-          return sortOrder === 'marks-asc' ? avgA - avgB : avgB - avgA;
+          return avgA - avgB;
         }
-        return 0;
-      });
-    }, [subjects, sortOrder, examsBySubject]);
+        case 'marks-desc': {
+          const avgA = getAverageMark(a);
+          const avgB = getAverageMark(b);
+          if (avgA === null && avgB === null) return 0;
+          if (avgA === null) return 1;
+          if (avgB === null) return -1;
+          return avgB - avgA;
+        }
+        default:
+          return 0;
+      }
+    });
 
     return (
       <div className="space-y-6">
@@ -497,45 +484,41 @@ const SchoolPlanner = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Left: Subjects list */}
           <div className="space-y-4">
-            {subjects.length === 0 ? (
-              <div className="text-center py-16">
-                <BarChart3 size={64} className="mx-auto mb-4 text-gray-600" />
-                <p className={`text-gray-400 text-lg ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>No subjects found</p>
-                <p className={`text-gray-500 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Upload a calendar file to see your subjects</p>
-              </div>
-            ) : (
-              <>
-                <div className="flex justify-between items-center pr-4">
-                  <h3 className={`text-lg font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Subjects</h3>
-                  <div className="flex items-center gap-2">
-                    <label htmlFor="sort-order" className={`text-sm ${effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>Sort by</label>
-                    <select
-                      id="sort-order"
-                      value={sortOrder}
-                      onChange={(e) => setSortOrder(e.target.value)}
-                      className={`${colors.container} ${colors.border} border rounded-md px-2 py-1 text-sm ${effectiveMode === 'light' ? 'text-black' : 'text-white'} focus:ring-2 ${colors.ring} bg-transparent`}
-                    >
-                      <option value="alphabetical-asc">Alphabetical (A-Z)</option>
-                      <option value="alphabetical-desc">Alphabetical (Z-A)</option>
-                      <option value="marks-asc">Marks (Low-High)</option>
-                      <option value="marks-desc">Marks (High-Low)</option>
-                    </select>
-                  </div>
+            {/* Sort dropdown */}
+            <div className="flex items-center justify-between">
+              <label className={`text-sm font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Sort by:</label>
+              <select
+                value={subjectSortOption}
+                onChange={(e) => setSubjectSortOption(e.target.value as any)}
+                className={`border ${colors.border} rounded-md px-2 py-1 text-sm bg-transparent focus:outline-none`}
+              >
+                <option value="marks-asc">Marks Ascending</option>
+                <option value="marks-desc">Marks Descending</option>
+                <option value="alphabetical-asc">Alphabetical Ascending</option>
+                <option value="alphabetical-desc">Alphabetical Descending</option>
+              </select>
+            </div>
+
+            <div className="space-y-4 overflow-y-auto pr-2 max-h-[70vh]">
+              {sortedSubjects.length === 0 ? (
+                <div className="text-center py-16">
+                  <BarChart3 size={64} className="mx-auto mb-4 text-gray-600" />
+                  <p className={`text-gray-400 text-lg ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>No subjects found</p>
+                  <p className={`text-gray-500 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Upload a calendar file to see your subjects</p>
                 </div>
-                <div className="space-y-4 overflow-y-auto pr-2" style={{ maxHeight: 'calc(100vh - 280px)' }}>
-                  {sortedSubjects.map((subject: Subject) => (
-                    <SubjectCard
-                      key={subject.id}
-                      subject={subject}
-                      effectiveMode={effectiveMode}
-                      colors={colors}
-                      onEdit={startEditingSubject}
-                      onSelect={handleSubjectSelect}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
+              ) : (
+                sortedSubjects.map((subject: Subject) => (
+                  <SubjectCard
+                    key={subject.id}
+                    subject={subject}
+                    effectiveMode={effectiveMode}
+                    colors={colors}
+                    onEdit={startEditingSubject}
+                    onSelect={handleSubjectSelect}
+                  />
+                ))
+              )}
+            </div>
           </div>
 
           {/* Right: Exams panel */}
