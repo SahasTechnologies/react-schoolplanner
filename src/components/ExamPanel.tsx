@@ -9,10 +9,9 @@ interface ExamPanelProps {
   onUpdateExam: (examId: string, field: keyof Exam, value: string) => void;
   onRemoveExam: (examId: string) => void;
   effectiveMode: 'light' | 'dark';
-  colors: any;
 }
 
-const ExamPanel: React.FC<ExamPanelProps> = ({ subject, exams, onAddExam, onUpdateExam, onRemoveExam, effectiveMode, colors }) => {
+const ExamPanel: React.FC<ExamPanelProps> = ({ subject, exams, onAddExam, onUpdateExam, onRemoveExam, effectiveMode }) => {
   if (!subject) {
     return (
       <div className="p-6 text-center text-gray-400">Select a subject to view exams</div>
