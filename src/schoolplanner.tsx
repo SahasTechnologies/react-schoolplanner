@@ -1379,28 +1379,28 @@ const SchoolPlanner = () => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [examsBySubject, setExamsBySubject] = useState<Record<string, Exam[]>>({});
   const [newPassword, setNewPassword] = useState('');
-  const [isMarkbookLocked, setIsMarkbookLocked] = useState(true);
-  const [unlockAttempt, setUnlockAttempt] = useState('');
-
-  // Add state for disabling password protection
-  const [showDisablePasswordModal, setShowDisablePasswordModal] = useState(false);
-  const [disablePasswordAttempt, setDisablePasswordAttempt] = useState('');
-
-  // Handle password protection toggle with confirmation
-  const handlePasswordProtectionToggle = (enabled: boolean) => {
-    if (!enabled) {
-      setShowDisablePasswordModal(true);
-    } else {
-      setMarkbookPasswordEnabled(true);
-    }
-  };
-
-  // Anti-inspection measures - only when lock screen is active
+  // Load exam data on component mount and when subjects change
   useEffect(() => {
-    if (!markbookPasswordEnabled || !isMarkbookLocked || location.pathname !== '/markbook') {
-      return;
-    }
+    const loadExamData = () => {
+      const newExamsBySubject: Record<string, Exam[]> = {};
+      subjects.forEach(subject => {
+        const savedExams = localStorage.getItem(`exams_${subject.id}`);
+        if (savedExams) {
+          try {
+            newExamsBySubject[subject.id] = JSON.parse(savedExams);
+          } catch (error) {
+            console.error('Error parsing exam data for subject:', subject.id, error);
+            newExamsBySubject[subject.id] = [];
+          }
+        } else {
+          newExamsBySubject[subject.id] = [];
+        }
+      });
+      setExamsBySubject(newExamsBySubject);
+    };
 
+    loadExamData();
+  }, [subjects]);
     // Detect keyboard shortcuts
     const preventKeyboardShortcuts = (e: KeyboardEvent) => {
       // Only prevent if we're on the lock screen
