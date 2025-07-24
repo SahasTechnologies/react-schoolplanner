@@ -120,7 +120,6 @@ const Settings: React.FC<SettingsProps> = ({
   setShowPasswordModal,
   newPassword,
   setNewPassword,
-  
 }) => {
 
   const [showNameEditModal, setShowNameEditModal] = React.useState(false);
