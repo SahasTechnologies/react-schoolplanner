@@ -291,12 +291,9 @@ export function getTodayOrNextEvents(weekData: WeekData | null): { dayLabel: str
   
   weekData.events.forEach((event: CalendarEvent) => {
     const eventDate = new Date(event.dtstart);
-    // Only add events that are today or in the future
-    if (eventDate >= now || isToday(eventDate)) {
-      const eventDay = eventDate.getDay();
-      if (eventDay >= 1 && eventDay <= 5) {
-        dayEvents[eventDay - 1].push(event);
-      }
+    const eventDay = eventDate.getDay();
+    if (eventDay >= 1 && eventDay <= 5) {
+      dayEvents[eventDay - 1].push(event);
     }
   });
   
@@ -307,46 +304,39 @@ export function getTodayOrNextEvents(weekData: WeekData | null): { dayLabel: str
   if (isWeekday(dayIdx)) {
     const todayEvents = dayEvents[dayIdx - 1].filter(event => isToday(new Date(event.dtstart)));
     if (todayEvents.length > 0) {
-      // Check if all today's events are over
-      const allEventsOver = todayEvents.every(event => {
-        // Ensure we're working with Date objects
-        const endTime = event.dtend ? new Date(event.dtend) : new Date(new Date(event.dtstart).getTime() + 3600000); // Default 1 hour if no end time
-        const isOver = endTime.getTime() < now.getTime();
-        console.log('Event:', event.summary, 'End time:', endTime.toLocaleString(), 'Is over?', isOver);
-        return isOver;
+      // Determine if there is at least one event that has not ended yet
+      const hasUpcomingOrOngoing = todayEvents.some(event => {
+        const endTime = event.dtend ? new Date(event.dtend) : new Date(new Date(event.dtstart).getTime() + 3600000);
+        return endTime.getTime() > now.getTime();
       });
-      
-      console.log('All events over?', allEventsOver);
-      
-      if (!allEventsOver) {
-        // Still have events today that haven't ended
+
+      if (hasUpcomingOrOngoing) {
         return { dayLabel: 'Today', events: todayEvents };
       }
-      
-      console.log('All today\'s events are over, looking for next day');
     }
   }
   
   // If today's events are over or there are none, show next day with events
   // Start from tomorrow's index
-  const tomorrowIdx = dayIdx % 5;
+  let nextDayIdx = dayIdx + 1;
+  if (nextDayIdx > 5) nextDayIdx = 1; // Wrap to Monday if it's Friday or weekend
+  
+  // Look for the next day with events
   for (let i = 0; i < 5; i++) {
-    const nextIdx = (tomorrowIdx + i) % 5;
-    if (dayEvents[nextIdx].length > 0) {
+    const checkIdx = ((nextDayIdx - 1 + i) % 5);
+    if (dayEvents[checkIdx].length > 0) {
       // Get the actual day name
-      const nextDate = new Date(dayEvents[nextIdx][0].dtstart);
+      const nextDate = new Date(dayEvents[checkIdx][0].dtstart);
       const isNextDayTomorrow = nextDate.getDate() === now.getDate() + 1 &&
                                nextDate.getMonth() === now.getMonth() &&
                                nextDate.getFullYear() === now.getFullYear();
       
-      const label = isNextDayTomorrow ? 'Tomorrow' : ['Monday','Tuesday','Wednesday','Thursday','Friday'][nextIdx];
-      console.log('Found next day with events:', label);
-      return { dayLabel: `${label}'s Schedule`, events: dayEvents[nextIdx] };
+      const label = isNextDayTomorrow ? 'Tomorrow' : ['Monday','Tuesday','Wednesday','Thursday','Friday'][checkIdx];
+      return { dayLabel: `${label}'s Schedule`, events: dayEvents[checkIdx] };
     }
   }
   
   // Fallback: no events
-  console.log('No events found for any day');
   return { dayLabel: '', events: [] };
 }
 

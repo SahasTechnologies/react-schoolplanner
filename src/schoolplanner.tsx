@@ -38,15 +38,28 @@ import ExamPanel from './components/ExamPanel';
 import { Exam } from './types';
 import bcrypt from 'bcryptjs';
 
-// Add password hashing function using bcrypt
+// Add password hashing function using bcrypt with fewer rounds for better performance
 const hashPassword = (password: string): string => {
-  const salt = bcrypt.genSaltSync(10);
+  const salt = bcrypt.genSaltSync(5); // Reduced from 10 to 5 rounds for better performance
   return bcrypt.hashSync(password, salt);
 };
 
-const comparePassword = (password: string, hash: string): boolean => {
-  return bcrypt.compareSync(password, hash);
-};
+// Memoize password comparison to avoid repeated hashing
+const memoizedComparePassword = (() => {
+  let lastPassword = '';
+  let lastHash = '';
+  let lastResult = false;
+
+  return (password: string, hash: string): boolean => {
+    if (password === lastPassword && hash === lastHash) {
+      return lastResult;
+    }
+    lastPassword = password;
+    lastHash = hash;
+    lastResult = bcrypt.compareSync(password, hash);
+    return lastResult;
+  };
+})();
 
 const SchoolPlanner = () => {
   const [weekData, setWeekData] = useState<WeekData | null>(null);
@@ -501,7 +514,7 @@ const SchoolPlanner = () => {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     const storedHash = localStorage.getItem('markbookPassword');
-                    if (storedHash && comparePassword(unlockAttempt, storedHash)) {
+                    if (storedHash && memoizedComparePassword(unlockAttempt, storedHash)) {
                       setIsMarkbookLocked(false);
                       setUnlockAttempt('');
                     } else {
@@ -516,7 +529,7 @@ const SchoolPlanner = () => {
               <button
                 onClick={() => {
                   const storedHash = localStorage.getItem('markbookPassword');
-                  if (storedHash && comparePassword(unlockAttempt, storedHash)) {
+                  if (storedHash && memoizedComparePassword(unlockAttempt, storedHash)) {
                     setIsMarkbookLocked(false);
                     setUnlockAttempt('');
                   } else {
@@ -630,7 +643,6 @@ const SchoolPlanner = () => {
         colors={colors}
         infoOrder={infoOrder}
         infoShown={infoShown}
-
         draggedIdx={draggedIdx}
         handleDragStart={handleDragStart}
         handleInfoDragOver={handleInfoDragOver}
@@ -649,7 +661,7 @@ const SchoolPlanner = () => {
         offlineCachingEnabled={offlineCachingEnabled}
         setOfflineCachingEnabled={handleOfflineCachingToggle}
         markbookPasswordEnabled={markbookPasswordEnabled}
-        setMarkbookPasswordEnabled={setMarkbookPasswordEnabled}
+        setMarkbookPasswordEnabled={handlePasswordProtectionToggle}
         markbookPassword={markbookPassword}
         setMarkbookPassword={setMarkbookPassword}
         showPasswordModal={showPasswordModal}
@@ -665,6 +677,7 @@ const SchoolPlanner = () => {
   // Add state to track which event is hovered for expand/collapse
   // In renderHome, insert breaks for the day's events
   const renderHome = () => {
+    const now = new Date();
     const { dayLabel, events } = getTodayOrNextEvents(weekData);
     // Insert breaks between events for home screen too
     const eventsWithBreaks = insertBreaksBetweenEvents(events);
@@ -1363,25 +1376,24 @@ const SchoolPlanner = () => {
   const [isMarkbookLocked, setIsMarkbookLocked] = useState(true);
   const [unlockAttempt, setUnlockAttempt] = useState('');
 
+  // Add state for disabling password protection
+  const [showDisablePasswordModal, setShowDisablePasswordModal] = useState(false);
+  const [disablePasswordAttempt, setDisablePasswordAttempt] = useState('');
+
+  // Handle password protection toggle with confirmation
+  const handlePasswordProtectionToggle = (enabled: boolean) => {
+    if (!enabled) {
+      setShowDisablePasswordModal(true);
+    } else {
+      setMarkbookPasswordEnabled(true);
+    }
+  };
+
   // Anti-inspection measures - only when lock screen is active
   useEffect(() => {
     if (!markbookPasswordEnabled || !isMarkbookLocked || location.pathname !== '/markbook') {
       return;
     }
-
-    const preventDevTools = () => {
-      // Detect if DevTools is open
-      const devtools = /./;
-      devtools.toString = () => {
-        // Only prevent if we're on the lock screen
-        if (markbookPasswordEnabled && isMarkbookLocked && location.pathname === '/markbook') {
-          navigate('/home');
-          showError('Security Alert', 'DevTools detected while locked. Access denied.', { effectiveMode, colors });
-        }
-        return '';
-      };
-      console.log('%c', devtools);
-    };
 
     // Detect keyboard shortcuts
     const preventKeyboardShortcuts = (e: KeyboardEvent) => {
@@ -1403,12 +1415,10 @@ const SchoolPlanner = () => {
 
     // Add event listeners
     document.addEventListener('keydown', preventKeyboardShortcuts);
-    const interval = setInterval(preventDevTools, 1000);
 
     // Cleanup
     return () => {
       document.removeEventListener('keydown', preventKeyboardShortcuts);
-      clearInterval(interval);
     };
   }, [location.pathname, markbookPasswordEnabled, isMarkbookLocked]);
 
@@ -1550,6 +1560,69 @@ const SchoolPlanner = () => {
         />
       )}
       {/* Exam side panel moved inside markbook grid */}
+
+      {/* Disable Password Modal */}
+      {showDisablePasswordModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
+            <h3 className={`text-xl font-semibold ${colors.text} mb-4`}>Confirm Password</h3>
+            <p className={`text-sm ${colors.containerText} opacity-80 mb-6`}>
+              Enter your current password to disable password protection
+            </p>
+            <input
+              type="password"
+              value={disablePasswordAttempt}
+              onChange={(e) => setDisablePasswordAttempt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const storedHash = localStorage.getItem('markbookPassword');
+                  if (storedHash && memoizedComparePassword(disablePasswordAttempt, storedHash)) {
+                    setMarkbookPasswordEnabled(false);
+                    setMarkbookPassword('');
+                    setShowDisablePasswordModal(false);
+                    setDisablePasswordAttempt('');
+                    showSuccess('Password Protection Disabled', 'Password protection has been turned off', { effectiveMode, colors });
+                  } else {
+                    showError('Incorrect Password', 'Please try again', { effectiveMode, colors });
+                  }
+                }
+              }}
+              className={`w-full px-4 py-3 rounded-lg border ${colors.border} focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6 text-lg ${colors.container} ${colors.text}`}
+              placeholder="Enter current password"
+              autoComplete="off"
+            />
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowDisablePasswordModal(false);
+                  setDisablePasswordAttempt('');
+                  setMarkbookPasswordEnabled(true); // Keep enabled since cancelled
+                }}
+                className="bg-secondary hover:bg-secondary-dark text-secondary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const storedHash = localStorage.getItem('markbookPassword');
+                  if (storedHash && memoizedComparePassword(disablePasswordAttempt, storedHash)) {
+                    setMarkbookPasswordEnabled(false);
+                    setMarkbookPassword('');
+                    setShowDisablePasswordModal(false);
+                    setDisablePasswordAttempt('');
+                    showSuccess('Password Protection Disabled', 'Password protection has been turned off', { effectiveMode, colors });
+                  } else {
+                    showError('Incorrect Password', 'Please try again', { effectiveMode, colors });
+                  }
+                }}
+                className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
+              >
+                Disable Protection
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
