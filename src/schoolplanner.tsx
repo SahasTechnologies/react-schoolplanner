@@ -541,6 +541,8 @@ const SchoolPlanner = () => {
                 Unlock
               </button>
             </div>
+            {/* Footer */}
+            <p className={`mt-6 text-xs opacity-70 ${colors.containerText}`}>Protected by bcrypt hashing</p>
           </div>
         </div>
       );
@@ -595,7 +597,7 @@ const SchoolPlanner = () => {
           </div>
 
           {/* Right: Exams panel */}
-          <div className="">
+          <div className={`${colors.container} rounded-lg ${colors.border} border p-4`}>
             <ExamPanel
               subject={selectedSubjectForExam}
               exams={selectedSubjectForExam ? examsBySubject[selectedSubjectForExam.id] || [] : []}
@@ -603,6 +605,9 @@ const SchoolPlanner = () => {
               onUpdateExam={updateExam}
               onRemoveExam={removeExam}
               effectiveMode={effectiveMode}
+              allSubjects={subjects}
+              examsBySubject={examsBySubject}
+              onBack={() => setSelectedSubjectForExam(null)}
             />
           </div>
         </div>
@@ -668,6 +673,7 @@ const SchoolPlanner = () => {
         setShowPasswordModal={setShowPasswordModal}
         newPassword={newPassword}
         setNewPassword={setNewPassword}
+        isMarkbookLocked={isMarkbookLocked}
       />
     );
   };
@@ -1367,9 +1373,9 @@ const SchoolPlanner = () => {
     const saved = localStorage.getItem('markbookPasswordEnabled');
     return saved === 'true';
   });
-  const [markbookPassword, setMarkbookPassword] = useState(() => {
-    return localStorage.getItem('markbookPassword') || '';
-  });
+  // Store ONLY the plaintext password entered in the "Set Password" modal.  
+  // Never initialise this state with the hashed value from localStorage – otherwise we would end up hashing the hash again on page load.
+  const [markbookPassword, setMarkbookPassword] = useState('');
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [isMarkbookLocked, setIsMarkbookLocked] = useState(true);
@@ -1426,11 +1432,13 @@ const SchoolPlanner = () => {
     localStorage.setItem('markbookPasswordEnabled', markbookPasswordEnabled.toString());
   }, [markbookPasswordEnabled]);
 
+  // Persist a NEW password when the user sets one.  
+  // If the string is empty we leave the stored hash untouched so that a page refresh doesn't inadvertently remove or double-hash it.
   useEffect(() => {
     if (markbookPassword) {
       localStorage.setItem('markbookPassword', hashPassword(markbookPassword));
-    } else {
-      localStorage.removeItem('markbookPassword');
+      // Clear plaintext from memory immediately after hashing for a tiny bit of extra safety.
+      setMarkbookPassword('');
     }
   }, [markbookPassword]);
 

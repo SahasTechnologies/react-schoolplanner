@@ -1,6 +1,21 @@
-import React from 'react';
-import { Plus, X, FileText, Check, CircleSlash, Scale, Edit2 } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Plus, X, FileText, Check, CircleSlash, Scale, Edit2, ArrowLeft } from 'lucide-react';
 import { Subject, Exam } from '../types';
+// Recharts – beautiful, responsive charting library
+// @ts-ignore - types provided by the library once installed
+// eslint-disable-next-line import/no-unresolved
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  BarChart,
+  Bar,
+} from 'recharts';
+import { getSubjectIcon } from '../utils/subjectUtils.ts';
 
 interface ExamPanelProps {
   subject: Subject | null;
@@ -9,20 +24,104 @@ interface ExamPanelProps {
   onUpdateExam: (examId: string, field: keyof Exam, value: string) => void;
   onRemoveExam: (examId: string) => void;
   effectiveMode: 'light' | 'dark';
+  allSubjects: Subject[];
+  examsBySubject: Record<string, Exam[]>;
+  onBack: () => void;
 }
 
-const ExamPanel: React.FC<ExamPanelProps> = ({ subject, exams, onAddExam, onUpdateExam, onRemoveExam, effectiveMode }) => {
-  if (!subject) {
-    return (
-      <div className="p-6 text-center text-gray-400">Select a subject to view exams</div>
-    );
-  }
+const ExamPanel: React.FC<ExamPanelProps> = ({ subject, exams, onAddExam, onUpdateExam, onRemoveExam, effectiveMode, allSubjects, examsBySubject, onBack }) => {
 
-  // Helper percentage
+  /* --------------------------------------------------
+   *  Helper functions shared by both views
+   * -------------------------------------------------- */
+
   const getPercent = (e: Exam) => {
     if (e.mark === null || e.total === null || e.total === 0) return null;
     return (e.mark / e.total) * 100;
   };
+
+  const getAverageForSubject = (s: Subject): number | null => {
+    const list = examsBySubject[s.id] || [];
+    const valid = list.map(getPercent).filter((p): p is number => p !== null);
+    if (valid.length === 0) return null;
+    return valid.reduce((a, b) => a + b, 0) / valid.length;
+  };
+
+  const getLetter = (pct: number | null) => {
+    if (pct === null) return 'E';
+    if (pct >= 80) return 'A';
+    if (pct >= 65) return 'B';
+    if (pct >= 50) return 'C';
+    if (pct >= 25) return 'D';
+    return 'E';
+  };
+
+  /* --------------------------------------------------
+   *  Overview screen (no subject selected)
+   * -------------------------------------------------- */
+
+  if (!subject) {
+    // Build bar chart data (subjects with averages)
+    const barData = allSubjects
+      .map((s) => {
+        const avg = getAverageForSubject(s);
+        return avg === null ? null : { name: s.name, avg };
+      })
+      .filter(Boolean) as { name: string; avg: number }[];
+
+    // Sort ascending by average
+    barData.sort((a, b) => a.avg - b.avg);
+
+    // Grade distribution counts
+    const gradeCounts: Record<'A'|'B'|'C'|'D'|'E', number> = { A: 0, B: 0, C: 0, D: 0, E: 0 };
+    barData.forEach((d) => {
+      gradeCounts[getLetter(d.avg) as keyof typeof gradeCounts]++;
+    });
+
+    const axisColor = effectiveMode === 'light' ? '#000' : '#fff';
+
+    return (
+      <div className="space-y-8">
+        <div className="text-center text-gray-400">Select a subject to view exams</div>
+
+        {/* Bar chart of subject averages */}
+        {barData.length > 0 && (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={barData} margin={{ top: 10, right: 30, left: 0, bottom: 40 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={effectiveMode==='light' ? '#e5e7eb' : '#374151'} />
+              <XAxis dataKey="name" stroke={axisColor} angle={-45} textAnchor="end" interval={0} height={60} />
+              <YAxis domain={[0, 100]} stroke={axisColor} tickFormatter={(v:number)=>`${v}%`} />
+              <Tooltip formatter={(v:number)=>`${v.toFixed(2)}%`} contentStyle={{backgroundColor:effectiveMode==='light'?'#ffffff':'#1f2937', borderRadius:'8px', borderColor:effectiveMode==='light'?'#e5e7eb':'#374151', color: axisColor}}/>
+              <Bar dataKey="avg" fill="#3b82f6" radius={[4,4,0,0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+
+        {/* Grade distribution summary */}
+        <div className="grid grid-cols-5 gap-2 text-sm mt-4">
+          {(['A','B','C','D','E'] as const).map((g)=> (
+            <div key={g} className="flex flex-col items-center bg-gray-700/40 rounded-lg py-2">
+              <span className="font-semibold text-white text-lg">{g}</span>
+              <span className="text-white/80">{gradeCounts[g]}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* --------------------------------------------------
+   *  Render
+   * -------------------------------------------------- */
+
+  const SubjectHeading: React.FC = () => (
+    <div className="flex items-center justify-center gap-2">
+      {getSubjectIcon(subject.name, 24, effectiveMode)}
+      <h2 className={`text-2xl font-semibold mb-2 text-center ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{subject.name}</h2>
+    </div>
+  );
+
+  // Helper percentage (already defined above for both views)
 
   const getColourByPercent = (pct: number | null) => {
     if (pct === null) return '#374151';
@@ -32,52 +131,48 @@ const ExamPanel: React.FC<ExamPanelProps> = ({ subject, exams, onAddExam, onUpda
     return `hsl(${hue}, 85%, 45%)`;
   };
 
-  // Simple line graph SVG with axes
-  const LineGraph: React.FC = () => {
-    const valid = exams.filter((e) => getPercent(e) !== null);
-    if (valid.length < 2) return null;
-    const width = 600;
-    const height = 200;
-    const points = valid
-      .map((e, idx) => {
-        const pct = getPercent(e)!; // not null
-        const x = (idx / (valid.length - 1)) * width;
-        const y = height - (pct / 100) * height;
-        return `${x},${y}`;
-      })
-      .join(' ');
+  // Memoised line graph to avoid unnecessary re-draws every second
+  const LineGraph: React.FC = React.memo(() => {
+    const data = useMemo(() => (
+      exams
+        .map((e, idx) => {
+          const pct = getPercent(e);
+          if (pct === null) return null;
+          return {
+            name: e.name?.trim() || `E${idx + 1}`,
+            percent: pct,
+          };
+        })
+        .filter(Boolean) as { name: string; percent: number }[]
+    ), [exams]);
+
+    if (data.length < 2) return null;
+
     const axisColor = effectiveMode === 'light' ? '#000' : '#fff';
-    const tickVals = [0, 25, 50, 75, 100];
+
     return (
-      <svg width="100%" height={height + 60} viewBox={`0 0 ${width + 60} ${height + 60}`} className="mt-10">
-        {/* axes */}
-        <line x1="40" y1="0" x2="40" y2={height} stroke={axisColor} strokeWidth="1" />
-        <line x1="40" y1={height} x2={width + 40} y2={height} stroke={axisColor} strokeWidth="1" />
-        {/* y ticks */}
-        {tickVals.map((v) => {
-          const y = height - (v / 100) * height;
-          return (
-            <g key={v}>
-              <line x1="35" y1={y} x2="40" y2={y} stroke={axisColor} strokeWidth="1" />
-              <text x="0" y={y + 4} fontSize="10" fill={axisColor}>{v}%</text>
-            </g>
-          );
-        })}
-        {/* line */}
-        <polyline points={points.split(' ').map(p=>{
-          const [x,y]=p.split(',');
-          return `${parseFloat(x)+40},${y}`;
-        }).join(' ')} fill="none" stroke="#3b82f6" strokeWidth="2" />
-        {/* circles */}
-        {valid.map((e, idx) => {
-          const pct = getPercent(e)!;
-          const cx = 40 + (idx / (valid.length - 1)) * width;
-          const cy = height - (pct / 100) * height;
-          return <circle key={e.id} cx={cx} cy={cy} r="3" fill="#3b82f6" />;
-        })}
-      </svg>
+      <div className="mt-10" style={{ width: '100%', height: 260 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={effectiveMode === 'light' ? '#e5e7eb' : '#374151'} />
+            <XAxis dataKey="name" stroke={axisColor} />
+            <YAxis domain={[0, 100]} stroke={axisColor} tickFormatter={(v: number)=>`${v}%`} />
+            <Tooltip formatter={(value:number)=>`${(value as number).toFixed(2)}%`} 
+                     contentStyle={{backgroundColor:effectiveMode==='light'?'#ffffff':'#1f2937', borderRadius:'8px', borderColor:effectiveMode==='light'?'#e5e7eb':'#374151', color: axisColor}}/>
+            {/* Smooth curved line with disabled animation to avoid flicker */}
+            <Line
+              type="monotone"
+              dataKey="percent"
+              stroke="#3b82f6"
+              strokeWidth={3}
+              dot={{ r: 4, strokeWidth: 1, fill: '#3b82f6' }}
+              isAnimationActive={false}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
     );
-  };
+  });
 
   const inputClass = `w-full bg-gray-800 text-white px-2 py-1 rounded-md border border-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500`;
 
@@ -120,7 +215,12 @@ const ExamPanel: React.FC<ExamPanelProps> = ({ subject, exams, onAddExam, onUpda
   const [editGrades, setEditGrades] = React.useState(false);
 
   return (
-    <div className="p-4 space-y-6">
+    <div className={`space-y-6 ${effectiveMode==='light'?'bg-white':'bg-gray-800'} rounded-lg border ${effectiveMode==='light'?'border-gray-300':'border-gray-700'} p-4`}>
+      {/* Back button */}
+      <button onClick={onBack} className="flex items-center gap-1 text-sm text-gray-400 hover:text-white mb-2">
+        <ArrowLeft size={14}/> Back
+      </button>
+      <SubjectHeading />
       {/* Summary & Grade boxes */}
       <div className="grid grid-cols-2 gap-4">
         {summaryBox('Weighted', weightedAvg, '#06b6d4')}

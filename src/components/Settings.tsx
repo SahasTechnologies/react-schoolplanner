@@ -21,6 +21,7 @@ import {
 import { ThemeKey } from '../utils/themeUtils';
 import { isServiceWorkerSupported, forceCacheUpdate } from '../utils/cacheUtils';
 import { showSuccess, showError } from '../utils/notificationUtils';
+import bcrypt from 'bcryptjs';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useState, useEffect } from 'react';
@@ -81,6 +82,8 @@ interface SettingsProps {
   setShowPasswordModal: (show: boolean) => void;
   newPassword: string;
   setNewPassword: (password: string) => void;
+  // New: whether the markbook is currently locked
+  isMarkbookLocked: boolean;
 }
 
 const Settings: React.FC<SettingsProps> = ({
@@ -116,7 +119,8 @@ const Settings: React.FC<SettingsProps> = ({
   showPasswordModal,
   setShowPasswordModal,
   newPassword,
-  setNewPassword
+  setNewPassword,
+  isMarkbookLocked,
 }) => {
 
   const [showNameEditModal, setShowNameEditModal] = React.useState(false);
@@ -161,6 +165,9 @@ const Settings: React.FC<SettingsProps> = ({
         .finally(() => setLoadingMarkdown(null));
     }
   }, [showTerms, showPrivacy, showLicensing]);
+
+  /* --------------------------------- Local state -------------------------------- */
+  const [oldPasswordInput, setOldPasswordInput] = useState('');
 
   return (
     <div className={`space-y-6 ${colors.background}`}>
@@ -612,23 +619,52 @@ const Settings: React.FC<SettingsProps> = ({
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
           <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
             <h3 className={`text-xl font-semibold ${colors.buttonText} mb-4`}>Set Markbook Password</h3>
+
+            {/* If a password already exists, ask for the current password first */}
+            {localStorage.getItem('markbookPassword') && (
+              <div className="mb-6">
+                <label className={`block text-sm font-medium mb-1 ${colors.containerText}`}>Current Password</label>
+                <input
+                  type="password"
+                  value={oldPasswordInput}
+                  onChange={(e)=>setOldPasswordInput(e.target.value)}
+                  className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg mb-2 ${colors.inputBackground} ${colors.inputBorder} ${colors.buttonText}`}
+                  placeholder="Enter current password"
+                />
+              </div>
+            )}
+            
+            <label className={`block text-sm font-medium mb-1 ${colors.containerText}`}>New Password</label>
             <input
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6 text-lg ${colors.inputBackground} ${colors.inputBorder} ${colors.buttonText}`}
-              placeholder="Enter password"
+              placeholder="Enter new password"
             />
             <div className="flex justify-end gap-3">
               <button
-                onClick={() => { setShowPasswordModal(false); setNewPassword(''); }}
+                onClick={() => { setShowPasswordModal(false); setNewPassword(''); setOldPasswordInput(''); }}
                 className="bg-secondary hover:bg-secondary-dark text-secondary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200"
               >Cancel</button>
               <button
                 onClick={() => { 
+                  const storedHash = localStorage.getItem('markbookPassword');
+                  if (storedHash) {
+                    // Password already set – verify old password first
+                    if (!bcrypt.compareSync(oldPasswordInput, storedHash)) {
+                      showError('Incorrect Current Password', 'Please try again', { effectiveMode, colors });
+                      return;
+                    }
+                  }
+                  if (newPassword.trim() === '') {
+                    showError('Invalid Password', 'Password cannot be empty', { effectiveMode, colors });
+                    return;
+                  }
                   setMarkbookPassword(newPassword);
                   setShowPasswordModal(false);
                   setNewPassword('');
+                  setOldPasswordInput('');
                   showSuccess('Password Updated', 'Your markbook password has been updated successfully!', { effectiveMode, colors });
                 }}
                 className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
