@@ -1377,6 +1377,7 @@ const SchoolPlanner = () => {
   // Never initialise this state with the hashed value from localStorage – otherwise we would end up hashing the hash again on page load.
   const [markbookPassword, setMarkbookPassword] = useState('');
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [examsBySubject, setExamsBySubject] = useState<Record<string, Exam[]>>({});
   const [newPassword, setNewPassword] = useState('');
   const [isMarkbookLocked, setIsMarkbookLocked] = useState(true);
   const [unlockAttempt, setUnlockAttempt] = useState('');
@@ -1430,13 +1431,13 @@ const SchoolPlanner = () => {
   // Persist password settings (using hashed password)
   useEffect(() => {
     localStorage.setItem('markbookPasswordEnabled', markbookPasswordEnabled.toString());
-  }, [markbookPasswordEnabled]);
 
-  // Persist a NEW password when the user sets one.  
+  // Load exams data and organize by subject
+  useEffect(() => {
   // If the string is empty we leave the stored hash untouched so that a page refresh doesn't inadvertently remove or double-hash it.
   useEffect(() => {
     if (markbookPassword) {
-      localStorage.setItem('markbookPassword', hashPassword(markbookPassword));
+  }, [selectedSubject, examsBySubject]);
       // Clear plaintext from memory immediately after hashing for a tiny bit of extra safety.
       setMarkbookPassword('');
     }
@@ -1563,7 +1564,6 @@ const SchoolPlanner = () => {
           onClose={() => setSelectedEvent(null)}
           colors={colors}
           effectiveMode={effectiveMode}
-          subjects={subjects}
         />
       )}
       {/* Exam side panel moved inside markbook grid */}

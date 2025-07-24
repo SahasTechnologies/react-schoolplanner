@@ -83,7 +83,6 @@ interface SettingsProps {
   newPassword: string;
   setNewPassword: (password: string) => void;
   // New: whether the markbook is currently locked
-  isMarkbookLocked: boolean;
 }
 
 const Settings: React.FC<SettingsProps> = ({
@@ -120,7 +119,6 @@ const Settings: React.FC<SettingsProps> = ({
   setShowPasswordModal,
   newPassword,
   setNewPassword,
-  isMarkbookLocked,
 }) => {
 
   const [showNameEditModal, setShowNameEditModal] = React.useState(false);

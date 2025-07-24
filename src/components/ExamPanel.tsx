@@ -157,8 +157,33 @@ const ExamPanel: React.FC<ExamPanelProps> = ({ subject, exams, onAddExam, onUpda
             <CartesianGrid strokeDasharray="3 3" stroke={effectiveMode === 'light' ? '#e5e7eb' : '#374151'} />
             <XAxis dataKey="name" stroke={axisColor} />
             <YAxis domain={[0, 100]} stroke={axisColor} tickFormatter={(v: number)=>`${v}%`} />
-            <Tooltip formatter={(value:number)=>`${(value as number).toFixed(2)}%`} 
-                     contentStyle={{backgroundColor:effectiveMode==='light'?'#ffffff':'#1f2937', borderRadius:'8px', borderColor:effectiveMode==='light'?'#e5e7eb':'#374151', color: axisColor}}/>
+            <Tooltip 
+              formatter={(v:number)=>[`${v.toFixed(1)}%`, 'Average']} 
+              labelFormatter={(label) => `Subject: ${label}`}
+              contentStyle={{
+                backgroundColor: effectiveMode==='light'?'#ffffff':'#1f2937', 
+                borderRadius: '12px', 
+                border: `2px solid ${effectiveMode==='light'?'#e5e7eb':'#374151'}`,
+                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                color: axisColor,
+                padding: '12px 16px',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+            <Tooltip 
+              formatter={(value:number)=>[`${(value as number).toFixed(1)}%`, 'Score']} 
+              labelFormatter={(label) => `Exam: ${label}`}
+              contentStyle={{
+                backgroundColor: effectiveMode==='light'?'#ffffff':'#1f2937', 
+                borderRadius: '12px', 
+                border: `2px solid ${effectiveMode==='light'?'#e5e7eb':'#374151'}`,
+                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                color: axisColor,
+                padding: '12px 16px',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+            />
             {/* Smooth curved line with disabled animation to avoid flicker */}
             <Line
               type="monotone"
