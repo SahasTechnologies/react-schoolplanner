@@ -158,8 +158,8 @@ const ExamPanel: React.FC<ExamPanelProps> = ({ subject, exams, onAddExam, onUpda
             <XAxis dataKey="name" stroke={axisColor} />
             <YAxis domain={[0, 100]} stroke={axisColor} tickFormatter={(v: number)=>`${v}%`} />
             <Tooltip 
-              formatter={(v:number)=>[`${v.toFixed(1)}%`, 'Average']} 
-              labelFormatter={(label) => `Subject: ${label}`}
+              formatter={(value:number)=>[`${(value as number).toFixed(1)}%`, 'Score']} 
+              labelFormatter={(label) => `Exam: ${label}`}
               contentStyle={{
                 backgroundColor: effectiveMode==='light'?'#ffffff':'#1f2937', 
                 borderRadius: '12px', 
