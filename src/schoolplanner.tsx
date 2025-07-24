@@ -677,7 +677,6 @@ const SchoolPlanner = () => {
   // Add state to track which event is hovered for expand/collapse
   // In renderHome, insert breaks for the day's events
   const renderHome = () => {
-    const now = new Date();
     const { dayLabel, events } = getTodayOrNextEvents(weekData);
     // Insert breaks between events for home screen too
     const eventsWithBreaks = insertBreaksBetweenEvents(events);
