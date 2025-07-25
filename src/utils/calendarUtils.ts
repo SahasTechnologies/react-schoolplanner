@@ -270,9 +270,16 @@ export const formatTime = (date: Date): string => {
 };
 
 // Helper to get events for today or next day with events (if today's events are over)
-export function getTodayOrNextEvents(weekData: WeekData | null): { dayLabel: string, events: CalendarEvent[] } {
+// Accepts optional currentTime for deterministic testing and timezone safety
+// Accepts optional forceNextDay to force showing the next day with events
+export function getTodayOrNextEvents(
+  weekData: WeekData | null,
+  currentTime?: Date,
+  forceNextDay?: boolean
+): { dayLabel: string, events: CalendarEvent[] } {
   if (!weekData) return { dayLabel: '', events: [] };
-  const now = new Date();
+  const now = currentTime || new Date();
+  // Use provided current time for all logic
   console.log('Current time:', now.toLocaleString());
   
   // Get local day index (0=Sunday, 1=Monday, ..., 6=Saturday)
@@ -282,7 +289,7 @@ export function getTodayOrNextEvents(weekData: WeekData | null): { dayLabel: str
   // Build a map: dayIdx (1-5) -> events[]
   const dayEvents: CalendarEvent[][] = [[], [], [], [], []];
   
-  // Helper to check if a date is today
+  // Helper to check if a date is today (using provided now)
   const isToday = (date: Date) => {
     return date.getDate() === now.getDate() &&
            date.getMonth() === now.getMonth() &&
@@ -301,16 +308,20 @@ export function getTodayOrNextEvents(weekData: WeekData | null): { dayLabel: str
   dayEvents.forEach(list => list.sort((a, b) => new Date(a.dtstart).getTime() - new Date(b.dtstart).getTime()));
   
   // Check today first if it's a weekday
-  if (isWeekday(dayIdx)) {
+  if (!forceNextDay && isWeekday(dayIdx)) {
     const todayEvents = dayEvents[dayIdx - 1].filter(event => isToday(new Date(event.dtstart)));
     if (todayEvents.length > 0) {
-      // Determine if there is at least one event that has not ended yet
+      // If any event is ongoing or upcoming, show today
       const hasUpcomingOrOngoing = todayEvents.some(event => {
-        const endTime = event.dtend ? new Date(event.dtend) : new Date(new Date(event.dtstart).getTime() + 3600000);
+        const startTime = new Date(event.dtstart);
+        const endTime = event.dtend ? new Date(event.dtend) : new Date(startTime.getTime() + 3600000);
         return endTime.getTime() > now.getTime();
       });
-
+      // If there are any events left today, show today
       if (hasUpcomingOrOngoing) {
+        return { dayLabel: 'Today', events: todayEvents };
+      } else {
+        // If all events are finished, but today had events, still show today
         return { dayLabel: 'Today', events: todayEvents };
       }
     }
@@ -330,9 +341,8 @@ export function getTodayOrNextEvents(weekData: WeekData | null): { dayLabel: str
       const isNextDayTomorrow = nextDate.getDate() === now.getDate() + 1 &&
                                nextDate.getMonth() === now.getMonth() &&
                                nextDate.getFullYear() === now.getFullYear();
-      
       const label = isNextDayTomorrow ? 'Tomorrow' : ['Monday','Tuesday','Wednesday','Thursday','Friday'][checkIdx];
-      return { dayLabel: `${label}'s Schedule`, events: dayEvents[checkIdx] };
+      return { dayLabel: label, events: dayEvents[checkIdx] };
     }
   }
   

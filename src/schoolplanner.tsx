@@ -677,25 +677,11 @@ const SchoolPlanner = () => {
       />
     );
   };
-
-
-
-  // Add state to track which event is hovered for expand/collapse
-  // In renderHome, insert breaks for the day's events
-  const renderHome = () => {
-    const { dayLabel, events } = getTodayOrNextEvents(weekData);
-    // Insert breaks between events for home screen too
-    const eventsWithBreaks = insertBreaksBetweenEvents(events);
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Home className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
-            <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Home</h2>
           </div>
-          {/* Offline indicator in top right */}
-          <div ref={(el) => {
-            if (el) {
+          {eventsWithBreaks.length === 0 ? (
+            <div className="text-center text-gray-500 py-8">
+              <Calendar size={32} className="mx-auto mb-2 opacity-50" />
+              <p>No events</p>
               el.innerHTML = '';
               const indicator = createOfflineIndicatorElement({
                 effectiveMode,
