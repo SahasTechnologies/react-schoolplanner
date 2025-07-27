@@ -56,6 +56,124 @@ const ExamPanel: React.FC<ExamPanelProps> = ({ subject, exams, onAddExam, onUpda
     return 'E';
   };
 
+  // Custom tooltip component for the bar chart
+  const CustomBarTooltip = ({ active, payload, label, coordinate }: any) => {
+    if (active && payload && payload.length) {
+      const value = payload[0].value as number;
+      const grade = getLetter(value);
+      const gradeColor = {
+        'A': 'text-green-500',
+        'B': 'text-blue-500',
+        'C': 'text-yellow-500',
+        'D': 'text-orange-500',
+        'E': 'text-red-500'
+      }[grade];
+      
+      // Calculate tooltip position to not cover the bar
+      const tooltipStyle: React.CSSProperties = {
+        position: 'absolute',
+        left: coordinate?.x - 110, // Center the tooltip above the bar
+        top: (coordinate?.y || 0) - 140, // Position above the bar
+        zIndex: 10,
+        pointerEvents: 'none',
+        width: '220px',
+        backgroundColor: effectiveMode === 'light' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(31, 41, 55, 0.95)',
+        border: effectiveMode === 'light' ? '1px solid #E5E7EB' : '1px solid #374151',
+        borderRadius: '0.5rem',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+      };
+      
+      return (
+        <div style={tooltipStyle} className="p-3">
+          <p className="font-semibold text-base mb-2 truncate" title={label}>{label}</p>
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-500 text-sm">Average:</span>
+              <span className="font-medium">{value.toFixed(1)}%</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-500 text-sm">Grade:</span>
+              <span className={`font-bold ${gradeColor}`}>{grade}</span>
+            </div>
+          </div>
+          <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+            <p className="text-xs text-gray-500 dark:text-gray-400">Click to view details</p>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  // Custom tooltip component for the line chart
+  const CustomLineTooltip = ({ active, payload, label, coordinate }: any) => {
+    if (active && payload && payload.length) {
+      const exam = exams.find(e => (e.name?.trim() === label) || e.name?.includes(label));
+      const value = payload[0].value as number;
+      const grade = getLetter(value);
+      const gradeColor = {
+        'A': 'text-green-500',
+        'B': 'text-blue-500',
+        'C': 'text-yellow-500',
+        'D': 'text-orange-500',
+        'E': 'text-red-500'
+      }[grade];
+      
+      // Calculate tooltip position to not cover the data point
+      const tooltipStyle: React.CSSProperties = {
+        position: 'absolute',
+        left: (coordinate?.x || 0) - 120, // Center the tooltip
+        top: (coordinate?.y || 0) - 160, // Position above the data point
+        zIndex: 10,
+        pointerEvents: 'none',
+        width: '240px',
+        backgroundColor: effectiveMode === 'light' ? 'rgba(255, 255, 255, 0.95)' : 'rgba(31, 41, 55, 0.95)',
+        border: effectiveMode === 'light' ? '1px solid #E5E7EB' : '1px solid #374151',
+        borderRadius: '0.5rem',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+      };
+      
+      // If too close to the top, position below the point
+      if ((coordinate?.y || 0) < 160) {
+        tooltipStyle.top = (coordinate?.y || 0) + 40;
+      }
+      
+      // If too close to the right edge, adjust left position
+      if ((coordinate?.x || 0) > 500) {
+        tooltipStyle.left = (coordinate?.x || 0) - 220;
+      }
+      
+      return (
+        <div style={tooltipStyle} className="p-3">
+          <p className="font-semibold text-base mb-2 truncate" title={label}>{label}</p>
+          <div className="space-y-1.5">
+            {exam?.mark !== undefined && exam?.total !== undefined && (
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500 text-sm">Score:</span>
+                <span className="font-medium">{exam.mark} / {exam.total}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between">
+              <span className="text-gray-500 text-sm">Percentage:</span>
+              <span className="font-medium">{value.toFixed(1)}%</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-500 text-sm">Grade:</span>
+              <span className={`font-bold ${gradeColor}`}>{grade}</span>
+            </div>
+            {exam?.weighting && (
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500 text-sm">Weighting:</span>
+                <span className="font-medium">{exam.weighting}%</span>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
   /* --------------------------------------------------
    *  Overview screen (no subject selected)
    * -------------------------------------------------- */
@@ -91,7 +209,10 @@ const ExamPanel: React.FC<ExamPanelProps> = ({ subject, exams, onAddExam, onUpda
               <CartesianGrid strokeDasharray="3 3" stroke={effectiveMode==='light' ? '#e5e7eb' : '#374151'} />
               <XAxis dataKey="name" stroke={axisColor} angle={-45} textAnchor="end" interval={0} height={60} />
               <YAxis domain={[0, 100]} stroke={axisColor} tickFormatter={(v:number)=>`${v}%`} />
-              <Tooltip formatter={(v:number)=>`${v.toFixed(2)}%`} contentStyle={{backgroundColor:effectiveMode==='light'?'#ffffff':'#1f2937', borderRadius:'8px', borderColor:effectiveMode==='light'?'#e5e7eb':'#374151', color: axisColor}}/>
+              <Tooltip 
+                content={<CustomBarTooltip />} 
+                cursor={{ fill: effectiveMode === 'light' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)' }}
+              />
               <Bar dataKey="avg" fill="#3b82f6" radius={[4,4,0,0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -157,8 +278,10 @@ const ExamPanel: React.FC<ExamPanelProps> = ({ subject, exams, onAddExam, onUpda
             <CartesianGrid strokeDasharray="3 3" stroke={effectiveMode === 'light' ? '#e5e7eb' : '#374151'} />
             <XAxis dataKey="name" stroke={axisColor} />
             <YAxis domain={[0, 100]} stroke={axisColor} tickFormatter={(v: number)=>`${v}%`} />
-            <Tooltip formatter={(value:number)=>`${(value as number).toFixed(2)}%`} 
-                     contentStyle={{backgroundColor:effectiveMode==='light'?'#ffffff':'#1f2937', borderRadius:'8px', borderColor:effectiveMode==='light'?'#e5e7eb':'#374151', color: axisColor}}/>
+            <Tooltip 
+              content={<CustomLineTooltip />} 
+              cursor={{ fill: effectiveMode === 'light' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)' }}
+            />
             {/* Smooth curved line with disabled animation to avoid flicker */}
             <Line
               type="monotone"

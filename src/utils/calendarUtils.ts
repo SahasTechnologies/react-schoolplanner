@@ -307,8 +307,14 @@ export function getTodayOrNextEvents(
   // Sort events for each day
   dayEvents.forEach(list => list.sort((a, b) => new Date(a.dtstart).getTime() - new Date(b.dtstart).getTime()));
   
-  // Check today first if it's a weekday
-  if (!forceNextDay && isWeekday(dayIdx)) {
+  // If forceNextDay is true, skip today and show the next day with events
+  if (forceNextDay) {
+    dayIdx = (dayIdx % 7) + 1; // Move to next day
+    if (!isWeekday(dayIdx)) dayIdx = 1; // Skip to Monday if it's weekend
+  }
+  
+  // Check the current day if it's a weekday
+  if (isWeekday(dayIdx)) {
     const todayEvents = dayEvents[dayIdx - 1].filter(event => isToday(new Date(event.dtstart)));
     if (todayEvents.length > 0) {
       // If any event is ongoing or upcoming, show today

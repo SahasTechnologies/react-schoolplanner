@@ -1,9 +1,5 @@
 import React from 'react';
-import { 
-  Calculator, FlaskConical, Palette, Music, Globe, Dumbbell, Languages, Code2, Brain, Mic2, 
-  Users, BookOpen, PenLine, BookUser, Briefcase, HeartHandshake, Library, BookMarked, Star, 
-  GraduationCap, Bot, Book, Utensils
-} from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { saveAs } from 'file-saver';
 
 // Map for specific subject renames
@@ -55,49 +51,49 @@ export const renameMap = new Map<string, string>([
 
 // Static icon mapping - only imports the icons we actually need
 export const subjectIconMap: Record<string, React.ComponentType<any>> = {
-  'Mathematics': Calculator,
-  'Science': FlaskConical,
-  'Visual Arts': Palette,
-  'Music': Music,
-  'Geography': Globe,
-  'PD/H/PE': Dumbbell,
-  'Languages': Languages,
-  'Coding Club': Code2,
-  'Information Technology': Code2,
-  'Computing': Code2,
-  'STEM': Brain,
-  'Drama': Mic2,
-  'Drama Club': Mic2,
-  'Debate Club': Users,
-  'Reading Group': BookOpen,
-  'Writing Workshop': PenLine,
-  'Study Hall': BookUser,
-  'Tutorial': BookUser,
-  'Mentoring Session': Users,
-  'Career Guidance': Briefcase,
-  'Counseling': HeartHandshake,
-  'Wellbeing': HeartHandshake,
-  'Pastoral Care': Users,
-  'Library': Library,
-  'History': BookMarked,
-  'English': BookOpen,
-  'French': Languages,
-  'Japanese': Languages,
-  'Latin': Languages,
-  'Sport': Dumbbell,
-  'Rec Sport': Dumbbell,
-  'Roll Call': Users,
-  'Band Practice': Music,
-  'Choir': Music,
-  'Orchestra': Music,
-  'Design & Technology': Palette,
-  'Technology': Palette,
-  'Assembly': Users,
-  'Chapel': Star,
-  'BHOPE': GraduationCap,
-  'Commerce': Briefcase,
-  'Robotics': Bot,
-  'Break': Utensils,
+  'Mathematics': LucideIcons.Calculator,
+  'Science': LucideIcons.FlaskConical,
+  'Visual Arts': LucideIcons.Palette,
+  'Music': LucideIcons.Music,
+  'Geography': LucideIcons.Globe,
+  'PD/H/PE': LucideIcons.Dumbbell,
+  'Languages': LucideIcons.Languages,
+  'Coding Club': LucideIcons.Code2,
+  'Information Technology': LucideIcons.Code2,
+  'Computing': LucideIcons.Code2,
+  'STEM': LucideIcons.Brain,
+  'Drama': LucideIcons.Mic2,
+  'Drama Club': LucideIcons.Mic2,
+  'Debate Club': LucideIcons.Users,
+  'Reading Group': LucideIcons.BookOpen,
+  'Writing Workshop': LucideIcons.PenLine,
+  'Study Hall': LucideIcons.BookUser,
+  'Tutorial': LucideIcons.BookUser,
+  'Mentoring Session': LucideIcons.Users,
+  'Career Guidance': LucideIcons.Briefcase,
+  'Counseling': LucideIcons.HeartHandshake,
+  'Wellbeing': LucideIcons.HeartHandshake,
+  'Pastoral Care': LucideIcons.Users,
+  'Library': LucideIcons.Library,
+  'History': LucideIcons.BookMarked,
+  'English': LucideIcons.BookOpen,
+  'French': LucideIcons.Languages,
+  'Japanese': LucideIcons.Languages,
+  'Latin': LucideIcons.Languages,
+  'Sport': LucideIcons.Dumbbell,
+  'Rec Sport': LucideIcons.Dumbbell,
+  'Roll Call': LucideIcons.Users,
+  'Band Practice': LucideIcons.Music,
+  'Choir': LucideIcons.Music,
+  'Orchestra': LucideIcons.Music,
+  'Design & Technology': LucideIcons.Palette,
+  'Technology': LucideIcons.Palette,
+  'Assembly': LucideIcons.Users,
+  'Chapel': LucideIcons.Star,
+  'BHOPE': LucideIcons.GraduationCap,
+  'Commerce': LucideIcons.Briefcase,
+  'Robotics': LucideIcons.Bot,
+  'Break': LucideIcons.Utensils,
 };
 
 // Helper to normalize subject names for grouping and renaming
@@ -125,12 +121,23 @@ export const normalizeSubjectName = (summary: string, autoNamingEnabled: boolean
 };
 
 // Function to get the appropriate icon for a subject
-export const getSubjectIcon = (subjectName: string, size: number = 20, mode: 'light' | 'dark' = 'light') => {
-  const normalized = normalizeSubjectName(subjectName);
-  const IconComponent = subjectIconMap[normalized] || Book;
-  return React.createElement(IconComponent, { 
-    size, 
-    className: mode === 'light' ? 'text-black' : 'text-white' 
+export const getSubjectIcon = (iconName: string, size: number = 20, mode: 'light' | 'dark' = 'light') => {
+  // Try dynamic lookup for custom icon names
+  let IconComponent = null;
+  
+  // Type assertion to safely check if the icon exists in LucideIcons
+  const iconExists = iconName && (LucideIcons as { [key: string]: any })[iconName];
+  
+  if (iconExists) {
+    IconComponent = (LucideIcons as { [key: string]: any })[iconName];
+  } else {
+    // Fallback to subject map for legacy/default icons
+    const normalized = normalizeSubjectName(iconName);
+    IconComponent = subjectIconMap[normalized] || LucideIcons.Book;
+  }
+  return React.createElement(IconComponent, {
+    size,
+    className: mode === 'light' ? 'text-black' : 'text-white'
   });
 }; 
 

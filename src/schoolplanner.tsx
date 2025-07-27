@@ -5,7 +5,7 @@ import * as React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { 
   Calendar, FileText, Home, BarChart3,
-  Settings as SettingsIcon, LoaderCircle, Shield
+  Settings as SettingsIcon, LoaderCircle, Shield, ChevronsUpDown
 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { ThemeKey, getColors } from './utils/themeUtils';
@@ -463,6 +463,9 @@ const SchoolPlanner = () => {
       const percentages = valid.map(e => ((e.mark as number) / (e.total as number)) * 100);
       return percentages.reduce((a, b) => a + b, 0) / percentages.length;
     };
+    
+    // Calculate viewport height minus header and padding
+    const viewportHeight = `calc(100vh - 200px)`;
 
     // Apply sorting based on selected option
     const sortedSubjects = [...subjects].sort((a, b) => {
@@ -550,17 +553,17 @@ const SchoolPlanner = () => {
 
     // Only render markbook content when unlocked or password protection is disabled
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col h-full">
+        <div className="flex items-center gap-3 mb-6">
           <BarChart3 className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
           <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Markbook</h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="flex flex-col md:flex-row gap-6 h-full flex-grow">
           {/* Left: Subjects list */}
-          <div className="space-y-4">
+          <div className="flex flex-col w-full md:w-1/2 h-full">
             {/* Sort dropdown */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-4">
               <label className={`text-sm font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Sort by:</label>
               <select
                 value={subjectSortOption}
@@ -574,44 +577,49 @@ const SchoolPlanner = () => {
               </select>
             </div>
 
-            <div className="space-y-4 overflow-y-auto pr-2 max-h-[70vh] h-full">
+            <div className={`${colors.container} rounded-lg ${colors.border} border p-4 flex-grow overflow-y-auto`} style={{ minHeight: '400px', maxHeight: viewportHeight }}>
               {sortedSubjects.length === 0 ? (
-                <div className="text-center py-16">
+                <div className="h-full flex flex-col items-center justify-center text-center py-8">
                   <BarChart3 size={64} className="mx-auto mb-4 text-gray-600" />
-                  <p className={`text-gray-400 text-lg ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>No subjects found</p>
-                  <p className={`text-gray-500 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Upload a calendar file to see your subjects</p>
+                  <p className={`text-lg ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>No subjects found</p>
+                  <p className={`text-sm ${effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-500'}`}>Upload a calendar file to see your subjects</p>
                 </div>
               ) : (
-                sortedSubjects.map((subject: Subject) => (
-                  <SubjectCard
-                    key={subject.id}
-                    subject={subject}
-                    effectiveMode={effectiveMode}
-                    colors={colors}
-                    onEdit={startEditingSubject}
-                    onSelect={handleSubjectSelect}
-                  />
-                ))
+                <div className="space-y-4">
+                  {sortedSubjects.map((subject: Subject) => (
+                    <SubjectCard
+                      key={subject.id}
+                      subject={subject}
+                      effectiveMode={effectiveMode}
+                      colors={colors}
+                      onEdit={startEditingSubject}
+                      onSelect={handleSubjectSelect}
+                    />
+                  ))}
+                </div>
               )}
             </div>
           </div>
 
           {/* Right: Exams panel */}
-          <div className={`${colors.container} rounded-lg ${colors.border} border p-4`}>
-            <ExamPanel
-              subject={selectedSubjectForExam}
-              exams={selectedSubjectForExam ? examsBySubject[selectedSubjectForExam.id] || [] : []}
-              onAddExam={addExam}
-              onUpdateExam={updateExam}
-              onRemoveExam={removeExam}
-              effectiveMode={effectiveMode}
-              allSubjects={subjects}
-              examsBySubject={examsBySubject}
-              onBack={() => setSelectedSubjectForExam(null)}
-            />
+          <div className="w-full md:w-1/2 h-full">
+            <div className={`${colors.container} rounded-lg ${colors.border} border p-4 h-full flex flex-col`} style={{ minHeight: '400px', maxHeight: viewportHeight }}>
+              <ExamPanel
+                subject={selectedSubjectForExam}
+                exams={selectedSubjectForExam ? examsBySubject[selectedSubjectForExam.id] || [] : []}
+                onAddExam={addExam}
+                onUpdateExam={updateExam}
+                onRemoveExam={removeExam}
+                effectiveMode={effectiveMode}
+                allSubjects={subjects}
+                examsBySubject={examsBySubject}
+                onBack={() => setSelectedSubjectForExam(null)}
+              />
+            </div>
           </div>
-        </div>
 
+        </div>
+        
         <SubjectEditModal
           showSubjectEditModal={showSubjectEditModal}
           selectedSubjectForEdit={selectedSubjectForEdit}
@@ -677,29 +685,28 @@ const SchoolPlanner = () => {
       />
     );
   };
-          </div>
-          {eventsWithBreaks.length === 0 ? (
-            <div className="text-center text-gray-500 py-8">
-              <Calendar size={32} className="mx-auto mb-2 opacity-50" />
-              <p>No events</p>
-              el.innerHTML = '';
-              const indicator = createOfflineIndicatorElement({
-                effectiveMode,
-                size: 'medium',
-                offlineCachingEnabled,
-                onToggleOfflineCaching: () => setOfflineCachingEnabled(!offlineCachingEnabled)
-              });
-              el.appendChild(indicator);
-            }
-          }} />
-        </div>
+
+  // State for toggling between today/next day schedule
+  const [showNextDay, setShowNextDay] = React.useState(false);
+  const renderHome = () => {
+    // Get the correct day/events based on toggle
+    const { dayLabel, events } = getTodayOrNextEvents(weekData, undefined, showNextDay);
+    const eventsWithBreaks = insertBreaksBetweenEvents(events);
+    return (
+      <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className={`${colors.container} rounded-lg ${colors.border} border p-6 col-span-1`}>
             <div className="flex items-center gap-3 mb-4">
-              <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
-              <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
-                {dayLabel || 'No Schedule'}
-              </h3>
+              <Calendar style={{ color: colors.text }} size={20} />
+              <span className="text-lg font-medium" style={{ color: colors.text }}>{dayLabel || 'No Schedule'}</span>
+              <button
+                aria-label="Toggle Day"
+                className={`ml-2 p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors`}
+                onClick={() => setShowNextDay((prev) => !prev)}
+                type="button"
+              >
+                <ChevronsUpDown size={20} style={{ color: colors.text }} />
+              </button>
             </div>
             {eventsWithBreaks.length === 0 ? (
               <div className="text-center text-gray-500 py-8">
