@@ -10,7 +10,7 @@ import {
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { ThemeKey, getColors } from './utils/themeUtils';
 import { ThemeModal } from './components/ThemeModal';
-import { normalizeSubjectName } from './utils/subjectUtils.ts';
+import { normalizeSubjectName, renameMap } from './utils/subjectUtils';
 import { getSubjectIcon } from './utils/subjectUtils.ts';
 import { 
   CalendarEvent, 
@@ -350,6 +350,9 @@ const SchoolPlanner = () => {
           )
         );
         showSuccess('Subject Updated', `Subject "${selectedSubjectForEdit.name}" updated successfully`, { effectiveMode, colors });
+        // Update normalization map so calendar & home views reflect new name
+        const oldKey = normalizeSubjectName(selectedSubjectForEdit.name, autoNamingEnabled).toLowerCase();
+        renameMap.set(oldKey, editName);
       }
     }
     setShowSubjectEditModal(false);
@@ -465,7 +468,8 @@ const SchoolPlanner = () => {
     };
     
     // Calculate viewport height minus header and padding
-    const viewportHeight = `calc(100vh - 200px)`;
+    // Use flexbox to fill available height instead of fixed viewport subtraction
+    // Removed viewportHeight variable; containers will flex-grow to fill space.
 
     // Apply sorting based on selected option
     const sortedSubjects = [...subjects].sort((a, b) => {
@@ -577,7 +581,7 @@ const SchoolPlanner = () => {
               </select>
             </div>
 
-            <div className={`${colors.container} rounded-lg ${colors.border} border p-4 flex-grow overflow-y-auto`} style={{ minHeight: '400px', maxHeight: viewportHeight }}>
+            <div className={`${colors.container} rounded-lg ${colors.border} border p-4 flex-grow overflow-y-auto`} style={{ flexGrow: 1, overflowY: 'auto' }}>
               {sortedSubjects.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center py-8">
                   <BarChart3 size={64} className="mx-auto mb-4 text-gray-600" />
@@ -603,7 +607,7 @@ const SchoolPlanner = () => {
 
           {/* Right: Exams panel */}
           <div className="w-full md:w-1/2 h-full">
-            <div className={`${colors.container} rounded-lg ${colors.border} border p-4 h-full flex flex-col`} style={{ minHeight: '400px', maxHeight: viewportHeight }}>
+            <div className={`${colors.container} rounded-lg ${colors.border} border p-4 h-full flex flex-col`} style={{ flexGrow: 1, overflowY: 'auto' }}>
               <ExamPanel
                 subject={selectedSubjectForExam}
                 exams={selectedSubjectForExam ? examsBySubject[selectedSubjectForExam.id] || [] : []}
