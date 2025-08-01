@@ -4,8 +4,7 @@
 import * as React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { 
-  Calendar, FileText, Home, BarChart3,
-  Settings as SettingsIcon, LoaderCircle, Shield, ChevronsUpDown
+  Calendar, FileText, BarChart3, Settings as SettingsIcon, LoaderCircle, Shield, ChevronsUpDown
 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { ThemeKey, getColors } from './utils/themeUtils';
@@ -28,7 +27,6 @@ import { Subject } from './types';
 import Sidebar from './components/Sidebar';
 import SubjectCard from './components/SubjectCard';
 import EventDetailsOverlay from './components/EventDetailsOverlay';
-import { createOfflineIndicatorElement } from './utils/offlineIndicatorUtils';
 import { processFile, exportData, defaultColours } from './utils/fileUtils.ts';
 import { getQuoteOfTheDayUrl } from './utils/quoteUtils.ts';
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported } from './utils/cacheUtils.ts';
@@ -82,6 +80,9 @@ const SchoolPlanner = () => {
 
   // NEW: Sort option for subjects in Markbook
   const [subjectSortOption, setSubjectSortOption] = useState<'alphabetical-asc' | 'alphabetical-desc' | 'marks-asc' | 'marks-desc'>('alphabetical-asc');
+
+  // State for editing subject icon
+  const [editIcon, setEditIcon] = useState<string>('');
   
   // Persist examsBySubject
   useEffect(() => {
@@ -321,6 +322,7 @@ const SchoolPlanner = () => {
     setSelectedSubjectForEdit(subject);
     setEditName(subject.name);
     setEditColour(subject.colour); // Changed to 'editColour'
+    setEditIcon(subject.icon || '');
     setShowSubjectEditModal(true);
   };
 
@@ -345,7 +347,7 @@ const SchoolPlanner = () => {
         setSubjects((prevSubjects: Subject[]) =>
           prevSubjects.map((subject: Subject) =>
             subject.id === selectedSubjectForEdit.id
-              ? { ...subject, name: editName, colour: editColour } // Changed to 'colour'
+              ? { ...subject, name: editName, colour: editColour, icon: editIcon } // Also update icon
               : subject
           )
         );
@@ -366,6 +368,7 @@ const SchoolPlanner = () => {
     setSelectedSubjectForEdit(null);
     setEditName('');
     setEditColour('');
+    setEditIcon('');
   };
 
 
@@ -574,143 +577,11 @@ const SchoolPlanner = () => {
                 onChange={(e) => setSubjectSortOption(e.target.value as any)}
                 className={`border ${colors.border} rounded-md px-2 py-1 text-sm ${effectiveMode === 'light' ? 'bg-white text-black' : 'bg-gray-800 text-white'} focus:outline-none`}
               >
-                <option value="marks-asc">Marks Ascending</option>
-                <option value="marks-desc">Marks Descending</option>
                 <option value="alphabetical-asc">Alphabetical Ascending</option>
                 <option value="alphabetical-desc">Alphabetical Descending</option>
+                <option value="marks-asc">Marks Ascending</option>
+                <option value="marks-desc">Marks Descending</option>
               </select>
-            </div>
-
-            <div className={`${colors.container} rounded-lg ${colors.border} border p-4 flex-grow overflow-y-auto`} style={{ flexGrow: 1, overflowY: 'auto' }}>
-              {sortedSubjects.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center py-8">
-                  <BarChart3 size={64} className="mx-auto mb-4 text-gray-600" />
-                  <p className={`text-lg ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>No subjects found</p>
-                  <p className={`text-sm ${effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-500'}`}>Upload a calendar file to see your subjects</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {sortedSubjects.map((subject: Subject) => (
-                    <SubjectCard
-                      key={subject.id}
-                      subject={subject}
-                      effectiveMode={effectiveMode}
-                      colors={colors}
-                      onEdit={startEditingSubject}
-                      onSelect={handleSubjectSelect}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Right: Exams panel */}
-          <div className="w-full md:w-1/2 h-full">
-            <div className={`${colors.container} rounded-lg ${colors.border} border p-4 h-full flex flex-col`} style={{ flexGrow: 1, overflowY: 'auto' }}>
-              <ExamPanel
-                subject={selectedSubjectForExam}
-                exams={selectedSubjectForExam ? examsBySubject[selectedSubjectForExam.id] || [] : []}
-                onAddExam={addExam}
-                onUpdateExam={updateExam}
-                onRemoveExam={removeExam}
-                effectiveMode={effectiveMode}
-                allSubjects={subjects}
-                examsBySubject={examsBySubject}
-                onBack={() => setSelectedSubjectForExam(null)}
-              />
-            </div>
-          </div>
-
-        </div>
-        
-        <SubjectEditModal
-          showSubjectEditModal={showSubjectEditModal}
-          selectedSubjectForEdit={selectedSubjectForEdit}
-          editName={editName}
-          setEditName={setEditName}
-          editColour={editColour}
-          setEditColour={setEditColour}
-          saveSubjectEdit={saveSubjectEdit}
-          cancelSubjectEdit={cancelSubjectEdit}
-          effectiveMode={effectiveMode}
-          colors={colors}
-          defaultColours={defaultColours}
-        />
-      </div>
-    );
-  };
-
-  const renderSettings = () => {
-    return (
-      <Settings
-        userName={userName}
-        setUserName={setUserName}
-        clearData={clearData}
-        autoNamingEnabled={autoNamingEnabled}
-        setAutoNamingEnabled={setAutoNamingEnabled}
-        showThemeModal={showThemeModal}
-        setShowThemeModal={setShowThemeModal}
-        theme={theme}
-        themeType={themeType}
-        themeMode={themeMode}
-        setThemeMode={setThemeMode}
-        handleThemeChange={handleThemeChange}
-        effectiveMode={effectiveMode}
-        colors={colors}
-        infoOrder={infoOrder}
-        infoShown={infoShown}
-        draggedIdx={draggedIdx}
-        handleDragStart={handleDragStart}
-        handleInfoDragOver={handleInfoDragOver}
-        handleDragEnd={handleDragEnd}
-        handleToggleInfoShown={handleToggleInfoShown}
-        showFirstInfoBeside={showFirstInfoBeside}
-        setShowFirstInfoBeside={setShowFirstInfoBeside}
-        isCalendarPage={location.pathname === '/calendar'}
-        countdownInTitle={countdownInTitle}
-        setCountdownInTitle={setCountdownInTitle}
-        exportModalState={exportModalState}
-        setExportModalState={setExportModalState}
-        handleExport={handleExport}
-        fileInputRef={fileInputRef}
-        handleFileInput={handleFileInput}
-        offlineCachingEnabled={offlineCachingEnabled}
-        setOfflineCachingEnabled={handleOfflineCachingToggle}
-        markbookPasswordEnabled={markbookPasswordEnabled}
-        setMarkbookPasswordEnabled={handlePasswordProtectionToggle}
-        markbookPassword={markbookPassword}
-        setMarkbookPassword={setMarkbookPassword}
-        showPasswordModal={showPasswordModal}
-        setShowPasswordModal={setShowPasswordModal}
-        newPassword={newPassword}
-        setNewPassword={setNewPassword}
-        isMarkbookLocked={isMarkbookLocked}
-      />
-    );
-  };
-
-  // State for toggling between today/next day schedule
-  const [showNextDay, setShowNextDay] = React.useState(false);
-  const renderHome = () => {
-    // Get the correct day/events based on toggle
-    const { dayLabel, events } = getTodayOrNextEvents(weekData, undefined, showNextDay);
-    const eventsWithBreaks = insertBreaksBetweenEvents(events);
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className={`${colors.container} rounded-lg ${colors.border} border p-6 col-span-1`}>
-            <div className="flex items-center gap-3 mb-4">
-              <Calendar style={{ color: colors.text }} size={20} />
-              <span className="text-lg font-medium" style={{ color: colors.text }}>{dayLabel || 'No Schedule'}</span>
-              <button
-                aria-label="Toggle Day"
-                className={`ml-2 p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors`}
-                onClick={() => setShowNextDay((prev) => !prev)}
-                type="button"
-              >
-                <ChevronsUpDown size={20} style={{ color: colors.text }} />
-              </button>
             </div>
             {eventsWithBreaks.length === 0 ? (
               <div className="text-center text-gray-500 py-8">
