@@ -842,7 +842,6 @@ const SchoolPlanner = () => {
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [countdownSearching, setCountdownSearching] = useState(true);
 
-{{ ... }}
   // Helper: get next occurrence of an event after now, treating week as repeating
   function getNextOccurrence(event: CalendarEvent, now: Date): Date {
     const eventDay = event.dtstart.getDay(); // 0=Sun, 1=Mon, ...
