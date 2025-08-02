@@ -320,6 +320,8 @@ const SchoolPlanner = () => {
   const startEditingSubject = (subject: Subject) => {
     setSelectedSubjectForEdit(subject);
     setEditName(subject.name);
+    setEditColour(subject.colour);
+  };
 
   const saveSubjectEdit = () => {
     if (selectedSubjectForEdit) {
@@ -332,7 +334,6 @@ const SchoolPlanner = () => {
       const updateEventSummaries = (oldName: string, newName: string) => {
         if (!weekData || !weekData.events) return;
         const oldNorm = normalizeSubjectName(oldName, autoNamingEnabled);
-        const newNorm = normalizeSubjectName(newName, autoNamingEnabled);
         const updatedEvents = weekData.events.map((event: CalendarEvent) => {
           if (normalizeSubjectName(event.summary, autoNamingEnabled) === oldNorm) {
             // Replace summary with new normalized name
