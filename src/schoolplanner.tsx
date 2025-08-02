@@ -320,9 +320,6 @@ const SchoolPlanner = () => {
   const startEditingSubject = (subject: Subject) => {
     setSelectedSubjectForEdit(subject);
     setEditName(subject.name);
-    setEditColour(subject.colour); // Changed to 'editColour'
-    setShowSubjectEditModal(true);
-  };
 
   const saveSubjectEdit = () => {
     if (selectedSubjectForEdit) {
@@ -331,21 +328,35 @@ const SchoolPlanner = () => {
         (s: Subject) => normalizeSubjectName(s.name, autoNamingEnabled) === normalizeSubjectName(editName, autoNamingEnabled) && s.id !== selectedSubjectForEdit.id
       );
 
+      // Helper: update all event summaries in weekData.events
+      const updateEventSummaries = (oldName: string, newName: string) => {
+        if (!weekData || !weekData.events) return;
+        const oldNorm = normalizeSubjectName(oldName, autoNamingEnabled);
+        const newNorm = normalizeSubjectName(newName, autoNamingEnabled);
+        const updatedEvents = weekData.events.map((event: CalendarEvent) => {
+          if (normalizeSubjectName(event.summary, autoNamingEnabled) === oldNorm) {
+            // Replace summary with new normalized name
+            return { ...event, summary: newName };
+          }
+          return event;
+        });
+        setWeekData({ ...weekData, events: updatedEvents });
+      };
+
       if (existingSubjectWithNewName) {
-        // Merge: Update events to point to the existing subject's ID
-        // This is a simplified merge, actual event re-assignment isn't handled here
-        // For now, we'll just remove the old subject and keep the existing one.
+        // Merge: update all events from old subject to merged subject name
+        updateEventSummaries(selectedSubjectForEdit.name, existingSubjectWithNewName.name);
         setSubjects((prevSubjects: Subject[]) =>
           prevSubjects.filter((s: Subject) => s.id !== selectedSubjectForEdit.id)
         );
-        // The colour of the existing subject might be updated if desired, but for simplicity, we keep its original colour.
         showInfo('Subject Merged', `Subject "${selectedSubjectForEdit.name}" merged with "${editName}"`, { effectiveMode, colors });
       } else {
-        // No conflict, just update the subject
+        // No conflict, update subject and all events
+        updateEventSummaries(selectedSubjectForEdit.name, editName);
         setSubjects((prevSubjects: Subject[]) =>
           prevSubjects.map((subject: Subject) =>
             subject.id === selectedSubjectForEdit.id
-              ? { ...subject, name: editName, colour: editColour } // Changed to 'colour'
+              ? { ...subject, name: editName, colour: editColour }
               : subject
           )
         );
