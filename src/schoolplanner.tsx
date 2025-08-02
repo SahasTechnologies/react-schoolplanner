@@ -678,169 +678,122 @@ const SchoolPlanner = () => {
     );
   };
 
-  // --- State for toggling schedule day (today/next/Friday) ---
-  const [scheduleDayMode, setScheduleDayMode] = useState<'auto'|'today'|'next'|'friday'>('auto');
 
-  // Helper to get the right events based on toggle
-  function getScheduleDayData() {
-    if (!weekData) return { dayLabel: '', events: [] };
-    const now = new Date();
-    const weekday = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-    const isWeekend = weekday === 0 || weekday === 6;
-    if (scheduleDayMode === 'today') {
-      // Show today's events (if weekday)
-      if (weekday >= 1 && weekday <= 5) {
-        const events = weekData.events.filter(e => {
-          const d = new Date(e.dtstart);
-          return d.getDay() === weekday;
-        });
-        return { dayLabel: "Today's Schedule", events };
-      } else {
-        // Weekend: fallback to Friday
-        const events = weekData.events.filter(e => {
-          const d = new Date(e.dtstart);
-          return d.getDay() === 5;
-        });
-        return { dayLabel: "Friday's Schedule", events };
-      }
-    } else if (scheduleDayMode === 'next') {
-      // Next school day (Mon-Fri after today)
-      let nextIdx = weekday;
-      do {
-        nextIdx = (nextIdx % 7) + 1;
-        if (nextIdx > 5) nextIdx = 1; // Wrap to Monday
-        const events = weekData.events.filter(e => {
-          const d = new Date(e.dtstart);
-          return d.getDay() === nextIdx;
-        });
-        if (events.length > 0) {
-          const dayName = ['Monday','Tuesday','Wednesday','Thursday','Friday'][nextIdx-1];
-          return { dayLabel: `${dayName}'s Schedule`, events };
-        }
-      } while (nextIdx !== weekday);
-      // Fallback: no events
-      return { dayLabel: '', events: [] };
-    } else if (scheduleDayMode === 'friday') {
-      // Always show Friday
-      const events = weekData.events.filter(e => {
-        const d = new Date(e.dtstart);
-        return d.getDay() === 5;
-      });
-      return { dayLabel: "Friday's Schedule", events };
-    } else {
-      // auto: use existing logic
-      return getTodayOrNextEvents(weekData);
-    }
-  }
 
-  const { dayLabel, events } = getScheduleDayData();
-  // Insert breaks between events for home screen too
-  const eventsWithBreaks = insertBreaksBetweenEvents(events);
-  // For chevron toggle: only show if auto picked tomorrow or next day
-  const showChevron = dayLabel && (dayLabel.startsWith("Tomorrow") || dayLabel.startsWith("Friday") || dayLabel.startsWith("Monday") || dayLabel.startsWith("Tuesday") || dayLabel.startsWith("Wednesday") || dayLabel.startsWith("Thursday"));
-  // Handler for toggle
-  function handleScheduleToggle() {
-    if (scheduleDayMode === 'auto') {
-      // If auto picked tomorrow/next, go to today (or Friday if weekend)
-      const now = new Date();
-      const weekday = now.getDay();
-      if (weekday >= 1 && weekday <= 5) setScheduleDayMode('today');
-      else setScheduleDayMode('friday');
-    } else {
-      setScheduleDayMode('auto');
-    }
-  }
-
-  // --- renderHome UI ---
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Home className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
-          <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'} flex items-center gap-1`}>
-            {dayLabel}
-            {showChevron && (
-              <button
-                aria-label="Toggle schedule day"
-                onClick={handleScheduleToggle}
-                className="ml-2 p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                style={{ lineHeight: 0, display: 'inline-flex', alignItems: 'center' }}
-              >
-                <ChevronsUpDown size={20} className={effectiveMode === 'light' ? 'text-gray-500' : 'text-gray-300'} />
-              </button>
+  // Add state to track which event is hovered for expand/collapse
+  // In renderHome, insert breaks for the day's events
+  const renderHome = () => {
+    const { dayLabel, events } = getTodayOrNextEvents(weekData);
+    // Insert breaks between events for home screen too
+    const eventsWithBreaks = insertBreaksBetweenEvents(events);
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Home className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
+            <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Home</h2>
+          </div>
+          {/* Offline indicator in top right */}
+          <div ref={(el) => {
+            if (el) {
+              el.innerHTML = '';
+              const indicator = createOfflineIndicatorElement({
+                effectiveMode,
+                size: 'medium',
+                offlineCachingEnabled,
+                onToggleOfflineCaching: () => setOfflineCachingEnabled(!offlineCachingEnabled)
+              });
+              el.appendChild(indicator);
+            }
+          }} />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className={`${colors.container} rounded-lg ${colors.border} border p-6 col-span-1`}>
+            <div className="flex items-center gap-3 mb-4">
+              <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
+              <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
+                {dayLabel || 'No Schedule'}
+              </h3>
+            </div>
+            {eventsWithBreaks.length === 0 ? (
+              <div className="text-center text-gray-500 py-8">
+                <Calendar size={32} className="mx-auto mb-2 opacity-50" />
+                <p>No events</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {eventsWithBreaks.map((event, idx) => (
+                  <EventCard
+                    key={idx}
+                    event={event}
+                    index={idx}
+                    isBreakEvent={isBreakEvent}
+                    getEventColour={getEventColour}
+                    autoNamingEnabled={autoNamingEnabled}
+                    effectiveMode={effectiveMode}
+                    infoOrder={infoOrder}
+                    infoShown={infoShown}
+                    showFirstInfoBeside={showFirstInfoBeside}
+                    onClick={() => setSelectedEvent(event)}
+                  />
+                ))}
+              </div>
             )}
-          </h2>
-        </div>
-        {/* Offline indicator in top right */}
-        <div ref={(el) => {
-          if (el) {
-            el.innerHTML = '';
-            const indicator = createOfflineIndicatorElement({
-              effectiveMode,
-              size: 'medium',
-              offlineCachingEnabled,
-              onToggleOfflineCaching: () => setOfflineCachingEnabled(!offlineCachingEnabled)
-            });
-            el.appendChild(indicator);
-          }
-        }} />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className={`${colors.container} rounded-lg ${colors.border} border p-6 col-span-1`}>
-          {eventsWithBreaks.length === 0 ? (
-            <div className="text-center text-gray-500 py-8">
-              <Calendar size={32} className="mx-auto mb-2 opacity-50" />
-              <p>No events</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {eventsWithBreaks.map((event, idx) => (
-                <EventCard
-                  key={idx}
-                  event={event}
-                  index={idx}
-                  isBreakEvent={isBreakEvent}
-                  getEventColour={getEventColour}
-                  autoNamingEnabled={autoNamingEnabled}
-                  effectiveMode={effectiveMode}
-                  infoOrder={infoOrder}
-                  infoShown={infoShown}
-                  showFirstInfoBeside={showFirstInfoBeside}
-                  onClick={() => setSelectedEvent(event)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-        {/* Countdown box on the right */}
-        <div className="flex flex-col gap-6">
-          <CountdownBox
-            searching={countdownSearching}
-            nextEvent={nextEvent}
-            nextEventDate={nextEventDate}
-            timeLeft={timeLeft}
-            formatCountdown={formatCountdownForTab}
-            getEventColour={getEventColour}
-            effectiveMode={effectiveMode}
-            colors={colors}
-          />
-          {/* Quote of the Day Widget below CountdownBox */}
-          <QuoteOfTheDayWidget 
-            theme={theme} 
-            themeType={themeType} 
-            effectiveMode={effectiveMode} 
-          />
+          </div>
+          {/* Countdown box on the right */}
+          <div className="flex flex-col gap-6">
+            <CountdownBox
+              searching={countdownSearching}
+              nextEvent={nextEvent}
+              nextEventDate={nextEventDate}
+              timeLeft={timeLeft}
+              formatCountdown={formatCountdownForTab}
+              getEventColour={getEventColour}
+              effectiveMode={effectiveMode}
+              colors={colors}
+              onDayToggle={handleDayToggle}
+              showNextDay={showNextDay}
+            />
+            {/* Quote of the Day Widget below CountdownBox */}
+            <QuoteOfTheDayWidget 
+              theme={theme} 
+              themeType={themeType} 
+              effectiveMode={effectiveMode} 
+            />
+          </div>
         </div>
       </div>
-    </div>
-  );
-  // END renderHome
+    );
+  };
 
   // --- Top-level countdown state ---
   const [nextEvent, setNextEvent] = useState<CalendarEvent | null>(null);
   const [nextEventDate, setNextEventDate] = useState<Date | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [countdownSearching, setCountdownSearching] = useState(true);
+  
+  // State for toggling between today and next day's schedule
+  const [showNextDay, setShowNextDay] = useState(false);
+  
+  // Toggle handler with weekend logic
+  const handleDayToggle = () => {
+    const now = new Date();
+    const currentDay = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+    
+    if (!showNextDay) {
+      // Currently showing today, switch to next day
+      // If it's weekend (Sat/Sun), go to Friday instead
+      if (currentDay === 0 || currentDay === 6) { // Sunday or Saturday
+        // Find the next Friday
+        setShowNextDay(true);
+      } else {
+        setShowNextDay(true);
+      }
+    } else {
+      // Currently showing next day, switch back to today
+      setShowNextDay(false);
+    }
+  };
 
   // Helper: get next occurrence of an event after now, treating week as repeating
   function getNextOccurrence(event: CalendarEvent, now: Date): Date {
@@ -881,6 +834,68 @@ const SchoolPlanner = () => {
     return soonest;
   }
 
+  // Function to find events based on toggle state (today or next day)
+  function findEventsByDayToggle(now: Date, forceNextDay: boolean): { event: CalendarEvent; date: Date } | null {
+    if (!weekData || !weekData.events || weekData.events.length === 0) return null;
+    
+    const eventsWithBreaks = insertBreaksBetweenEvents(weekData.events);
+    const currentDay = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+    
+    let targetDate = new Date(now);
+    
+    if (forceNextDay) {
+      // Show next day's events
+      if (currentDay === 0 || currentDay === 6) {
+        // If weekend, find next Friday (day 5)
+        const daysUntilFriday = currentDay === 0 ? 5 : 6; // Sun->Fri = 5 days, Sat->Fri = 6 days
+        targetDate.setDate(now.getDate() + daysUntilFriday);
+      } else {
+        // Regular weekday, just go to next day
+        targetDate.setDate(now.getDate() + 1);
+      }
+    }
+    // If not forceNextDay, use current date (today)
+    
+    // Find events for the target date
+    const targetDayOfWeek = targetDate.getDay();
+    const dayEvents = eventsWithBreaks.filter(event => {
+      const eventDay = event.dtstart.getDay();
+      return eventDay === targetDayOfWeek;
+    });
+    
+    if (dayEvents.length === 0) return null;
+    
+    // Sort events by time and find the next one
+    const sortedEvents = dayEvents.sort((a, b) => {
+      const aTime = a.dtstart.getHours() * 60 + a.dtstart.getMinutes();
+      const bTime = b.dtstart.getHours() * 60 + b.dtstart.getMinutes();
+      return aTime - bTime;
+    });
+    
+    // If showing today's events, find next event after current time
+    if (!forceNextDay) {
+      const currentTime = now.getHours() * 60 + now.getMinutes();
+      const upcomingEvent = sortedEvents.find(event => {
+        const eventTime = event.dtstart.getHours() * 60 + event.dtstart.getMinutes();
+        return eventTime > currentTime;
+      });
+      
+      if (upcomingEvent) {
+        const eventDate = new Date(targetDate);
+        eventDate.setHours(upcomingEvent.dtstart.getHours(), upcomingEvent.dtstart.getMinutes(), upcomingEvent.dtstart.getSeconds(), 0);
+        return { event: upcomingEvent, date: eventDate };
+      }
+    } else {
+      // For next day, show first event of the day
+      const firstEvent = sortedEvents[0];
+      const eventDate = new Date(targetDate);
+      eventDate.setHours(firstEvent.dtstart.getHours(), firstEvent.dtstart.getMinutes(), firstEvent.dtstart.getSeconds(), 0);
+      return { event: firstEvent, date: eventDate };
+    }
+    
+    return null;
+  }
+
   // --- Unified countdown effect ---
   useEffect(() => {
     if (!weekData || !weekData.events || weekData.events.length === 0) {
@@ -894,7 +909,11 @@ const SchoolPlanner = () => {
     setCountdownSearching(true);
     const interval = setInterval(() => {
       const now = new Date();
-      const soonest = findNextRepeatingEvent(now);
+      // Use toggle-aware function or fallback to original behavior
+      const soonest = showNextDay 
+        ? findEventsByDayToggle(now, true) 
+        : (findEventsByDayToggle(now, false) || findNextRepeatingEvent(now));
+      
       if (soonest) {
         setNextEvent(soonest.event);
         setNextEventDate(soonest.date);
@@ -917,7 +936,7 @@ const SchoolPlanner = () => {
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [weekData]);
+  }, [weekData, showNextDay]);
 
   // Format time left as HH:MM:SS or MM:SS for tab and widget (hide hours if 0)
   function formatCountdownForTab(ms: number | null): string {
@@ -945,8 +964,10 @@ const SchoolPlanner = () => {
     getEventColour: (title: string) => string;
     effectiveMode: 'light' | 'dark';
     colors: any;
+    onDayToggle: () => void;
+    showNextDay: boolean;
   };
-  const CountdownBox: React.FC<CountdownBoxProps> = ({ searching, nextEvent, nextEventDate, timeLeft, formatCountdown, getEventColour, effectiveMode, colors }) => {
+  const CountdownBox: React.FC<CountdownBoxProps> = ({ searching, nextEvent, nextEventDate, timeLeft, formatCountdown, getEventColour, effectiveMode, colors, onDayToggle, showNextDay }) => {
     // Custom colored icon
     function ColoredSubjectIcon({ summary }: { summary: string }) {
       const color = getEventColour(summary);
@@ -983,6 +1004,18 @@ const SchoolPlanner = () => {
             <div className="flex items-center gap-2 mb-1">
               <ColoredSubjectIcon summary={nextEvent.summary} />
               <span className="text-base font-medium" style={{ color: getEventColour(nextEvent.summary) }}>{normalizeSubjectName(nextEvent.summary, true)}</span>
+              <button
+                onClick={onDayToggle}
+                className={`p-1 rounded hover:bg-opacity-20 transition-colors ${
+                  effectiveMode === 'light' ? 'hover:bg-gray-300' : 'hover:bg-gray-600'
+                }`}
+                title={showNextDay ? 'Show today\'s schedule' : 'Show next day\'s schedule'}
+              >
+                <ChevronsUpDown 
+                  size={16} 
+                  className={`${effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} hover:${effectiveMode === 'light' ? 'text-black' : 'text-white'} transition-colors`}
+                />
+              </button>
             </div>
             <div className={`text-sm ${effectiveMode === 'light' ? 'text-black opacity-80' : 'text-white opacity-80'}`}>
               {(() => {
