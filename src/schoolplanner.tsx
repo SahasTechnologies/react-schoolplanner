@@ -683,7 +683,42 @@ const SchoolPlanner = () => {
   // Add state to track which event is hovered for expand/collapse
   // In renderHome, insert breaks for the day's events
   const renderHome = () => {
-    const { dayLabel, events } = getTodayOrNextEvents(weekData);
+    // Use toggle state to determine which day's events to show
+    let dayLabel: string;
+    let events: CalendarEvent[];
+    if (showNextDay) {
+      // Get next day's events using the toggle-aware function
+      const now = new Date();
+      const nextDayEvents = findEventsByDayToggle(now, true);
+      if (nextDayEvents) {
+        const currentDay = now.getDay();
+        if (currentDay === 0 || currentDay === 6) {
+          dayLabel = "Friday's Schedule";
+        } else {
+          const tomorrow = new Date(now);
+          tomorrow.setDate(now.getDate() + 1);
+          dayLabel = `${tomorrow.toLocaleDateString(undefined, { weekday: 'long' })}'s Schedule`;
+        }
+        // Get all events for that day
+        const targetDate = new Date(now);
+        if (currentDay === 0 || currentDay === 6) {
+          const daysUntilFriday = currentDay === 0 ? 5 : 6;
+          targetDate.setDate(now.getDate() + daysUntilFriday);
+        } else {
+          targetDate.setDate(now.getDate() + 1);
+        }
+        const targetDayOfWeek = targetDate.getDay();
+        events = weekData?.events.filter(event => event.dtstart.getDay() === targetDayOfWeek) || [];
+      } else {
+        dayLabel = "No Schedule";
+        events = [];
+      }
+    } else {
+      // Use original logic for today's events
+      const result = getTodayOrNextEvents(weekData);
+      dayLabel = result.dayLabel;
+      events = result.events;
+    }
     // Insert breaks between events for home screen too
     const eventsWithBreaks = insertBreaksBetweenEvents(events);
     return (
@@ -709,11 +744,25 @@ const SchoolPlanner = () => {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className={`${colors.container} rounded-lg ${colors.border} border p-6 col-span-1`}>
-            <div className="flex items-center gap-3 mb-4">
-              <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
-              <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
-                {dayLabel || 'No Schedule'}
-              </h3>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
+                <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
+                  {dayLabel || 'No Schedule'}
+                </h3>
+              </div>
+              <button
+                onClick={handleDayToggle}
+                className={`p-2 rounded hover:bg-opacity-20 transition-colors ${
+                  effectiveMode === 'light' ? 'hover:bg-gray-300' : 'hover:bg-gray-600'
+                }`}
+                title={showNextDay ? 'Show today\'s schedule' : 'Show next day\'s schedule'}
+              >
+                <ChevronsUpDown 
+                  size={18} 
+                  className={`${effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} hover:${effectiveMode === 'light' ? 'text-black' : 'text-white'} transition-colors`}
+                />
+              </button>
             </div>
             {eventsWithBreaks.length === 0 ? (
               <div className="text-center text-gray-500 py-8">
@@ -751,8 +800,6 @@ const SchoolPlanner = () => {
               getEventColour={getEventColour}
               effectiveMode={effectiveMode}
               colors={colors}
-              onDayToggle={handleDayToggle}
-              showNextDay={showNextDay}
             />
             {/* Quote of the Day Widget below CountdownBox */}
             <QuoteOfTheDayWidget 
@@ -909,11 +956,7 @@ const SchoolPlanner = () => {
     setCountdownSearching(true);
     const interval = setInterval(() => {
       const now = new Date();
-      // Use toggle-aware function or fallback to original behavior
-      const soonest = showNextDay 
-        ? findEventsByDayToggle(now, true) 
-        : (findEventsByDayToggle(now, false) || findNextRepeatingEvent(now));
-      
+      const soonest = findNextRepeatingEvent(now);
       if (soonest) {
         setNextEvent(soonest.event);
         setNextEventDate(soonest.date);
@@ -936,7 +979,7 @@ const SchoolPlanner = () => {
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [weekData, showNextDay]);
+  }, [weekData]);
 
   // Format time left as HH:MM:SS or MM:SS for tab and widget (hide hours if 0)
   function formatCountdownForTab(ms: number | null): string {
@@ -964,10 +1007,8 @@ const SchoolPlanner = () => {
     getEventColour: (title: string) => string;
     effectiveMode: 'light' | 'dark';
     colors: any;
-    onDayToggle: () => void;
-    showNextDay: boolean;
   };
-  const CountdownBox: React.FC<CountdownBoxProps> = ({ searching, nextEvent, nextEventDate, timeLeft, formatCountdown, getEventColour, effectiveMode, colors, onDayToggle, showNextDay }) => {
+  const CountdownBox: React.FC<CountdownBoxProps> = ({ searching, nextEvent, nextEventDate, timeLeft, formatCountdown, getEventColour, effectiveMode, colors }) => {
     // Custom colored icon
     function ColoredSubjectIcon({ summary }: { summary: string }) {
       const color = getEventColour(summary);
@@ -1004,18 +1045,6 @@ const SchoolPlanner = () => {
             <div className="flex items-center gap-2 mb-1">
               <ColoredSubjectIcon summary={nextEvent.summary} />
               <span className="text-base font-medium" style={{ color: getEventColour(nextEvent.summary) }}>{normalizeSubjectName(nextEvent.summary, true)}</span>
-              <button
-                onClick={onDayToggle}
-                className={`p-1 rounded hover:bg-opacity-20 transition-colors ${
-                  effectiveMode === 'light' ? 'hover:bg-gray-300' : 'hover:bg-gray-600'
-                }`}
-                title={showNextDay ? 'Show today\'s schedule' : 'Show next day\'s schedule'}
-              >
-                <ChevronsUpDown 
-                  size={16} 
-                  className={`${effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} hover:${effectiveMode === 'light' ? 'text-black' : 'text-white'} transition-colors`}
-                />
-              </button>
             </div>
             <div className={`text-sm ${effectiveMode === 'light' ? 'text-black opacity-80' : 'text-white opacity-80'}`}>
               {(() => {
