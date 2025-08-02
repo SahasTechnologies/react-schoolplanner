@@ -4,12 +4,13 @@
 import * as React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { 
-  Calendar, FileText, BarChart3, Settings as SettingsIcon, LoaderCircle, Shield, ChevronsUpDown
+  Calendar, FileText, Home, BarChart3,
+  Settings as SettingsIcon, LoaderCircle, Shield
 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { ThemeKey, getColors } from './utils/themeUtils';
 import { ThemeModal } from './components/ThemeModal';
-import { normalizeSubjectName, renameMap } from './utils/subjectUtils';
+import { normalizeSubjectName } from './utils/subjectUtils.ts';
 import { getSubjectIcon } from './utils/subjectUtils.ts';
 import { 
   CalendarEvent, 
@@ -27,6 +28,7 @@ import { Subject } from './types';
 import Sidebar from './components/Sidebar';
 import SubjectCard from './components/SubjectCard';
 import EventDetailsOverlay from './components/EventDetailsOverlay';
+import { createOfflineIndicatorElement } from './utils/offlineIndicatorUtils';
 import { processFile, exportData, defaultColours } from './utils/fileUtils.ts';
 import { getQuoteOfTheDayUrl } from './utils/quoteUtils.ts';
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported } from './utils/cacheUtils.ts';
@@ -80,9 +82,6 @@ const SchoolPlanner = () => {
 
   // NEW: Sort option for subjects in Markbook
   const [subjectSortOption, setSubjectSortOption] = useState<'alphabetical-asc' | 'alphabetical-desc' | 'marks-asc' | 'marks-desc'>('alphabetical-asc');
-
-  // State for editing subject icon
-  const [editIcon, setEditIcon] = useState<string>('');
   
   // Persist examsBySubject
   useEffect(() => {
@@ -322,7 +321,6 @@ const SchoolPlanner = () => {
     setSelectedSubjectForEdit(subject);
     setEditName(subject.name);
     setEditColour(subject.colour); // Changed to 'editColour'
-    setEditIcon(subject.icon || '');
     setShowSubjectEditModal(true);
   };
 
@@ -347,14 +345,11 @@ const SchoolPlanner = () => {
         setSubjects((prevSubjects: Subject[]) =>
           prevSubjects.map((subject: Subject) =>
             subject.id === selectedSubjectForEdit.id
-              ? { ...subject, name: editName, colour: editColour, icon: editIcon } // Also update icon
+              ? { ...subject, name: editName, colour: editColour } // Changed to 'colour'
               : subject
           )
         );
         showSuccess('Subject Updated', `Subject "${selectedSubjectForEdit.name}" updated successfully`, { effectiveMode, colors });
-        // Update normalization map so calendar & home views reflect new name
-        const oldKey = normalizeSubjectName(selectedSubjectForEdit.name, autoNamingEnabled).toLowerCase();
-        renameMap.set(oldKey, editName);
       }
     }
     setShowSubjectEditModal(false);
@@ -368,7 +363,6 @@ const SchoolPlanner = () => {
     setSelectedSubjectForEdit(null);
     setEditName('');
     setEditColour('');
-    setEditIcon('');
   };
 
 
@@ -469,10 +463,6 @@ const SchoolPlanner = () => {
       const percentages = valid.map(e => ((e.mark as number) / (e.total as number)) * 100);
       return percentages.reduce((a, b) => a + b, 0) / percentages.length;
     };
-    
-    // Calculate viewport height minus header and padding
-    // Use flexbox to fill available height instead of fixed viewport subtraction
-    // Removed viewportHeight variable; containers will flex-grow to fill space.
 
     // Apply sorting based on selected option
     const sortedSubjects = [...subjects].sort((a, b) => {
@@ -560,28 +550,170 @@ const SchoolPlanner = () => {
 
     // Only render markbook content when unlocked or password protection is disabled
     return (
-      <div className="flex flex-col h-full">
-        <div className="flex items-center gap-3 mb-6">
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
           <BarChart3 className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
           <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Markbook</h2>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-6 h-full flex-grow">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Left: Subjects list */}
-          <div className="flex flex-col w-full md:w-1/2 h-full">
+          <div className="space-y-4">
             {/* Sort dropdown */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between">
               <label className={`text-sm font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Sort by:</label>
               <select
                 value={subjectSortOption}
                 onChange={(e) => setSubjectSortOption(e.target.value as any)}
                 className={`border ${colors.border} rounded-md px-2 py-1 text-sm ${effectiveMode === 'light' ? 'bg-white text-black' : 'bg-gray-800 text-white'} focus:outline-none`}
               >
-                <option value="alphabetical-asc">Alphabetical Ascending</option>
-                <option value="alphabetical-desc">Alphabetical Descending</option>
                 <option value="marks-asc">Marks Ascending</option>
                 <option value="marks-desc">Marks Descending</option>
+                <option value="alphabetical-asc">Alphabetical Ascending</option>
+                <option value="alphabetical-desc">Alphabetical Descending</option>
               </select>
+            </div>
+
+            <div className="space-y-4 overflow-y-auto pr-2 max-h-[70vh] h-full">
+              {sortedSubjects.length === 0 ? (
+                <div className="text-center py-16">
+                  <BarChart3 size={64} className="mx-auto mb-4 text-gray-600" />
+                  <p className={`text-gray-400 text-lg ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>No subjects found</p>
+                  <p className={`text-gray-500 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Upload a calendar file to see your subjects</p>
+                </div>
+              ) : (
+                sortedSubjects.map((subject: Subject) => (
+                  <SubjectCard
+                    key={subject.id}
+                    subject={subject}
+                    effectiveMode={effectiveMode}
+                    colors={colors}
+                    onEdit={startEditingSubject}
+                    onSelect={handleSubjectSelect}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Right: Exams panel */}
+          <div className={`${colors.container} rounded-lg ${colors.border} border p-4`}>
+            <ExamPanel
+              subject={selectedSubjectForExam}
+              exams={selectedSubjectForExam ? examsBySubject[selectedSubjectForExam.id] || [] : []}
+              onAddExam={addExam}
+              onUpdateExam={updateExam}
+              onRemoveExam={removeExam}
+              effectiveMode={effectiveMode}
+              allSubjects={subjects}
+              examsBySubject={examsBySubject}
+              onBack={() => setSelectedSubjectForExam(null)}
+            />
+          </div>
+        </div>
+
+        <SubjectEditModal
+          showSubjectEditModal={showSubjectEditModal}
+          selectedSubjectForEdit={selectedSubjectForEdit}
+          editName={editName}
+          setEditName={setEditName}
+          editColour={editColour}
+          setEditColour={setEditColour}
+          saveSubjectEdit={saveSubjectEdit}
+          cancelSubjectEdit={cancelSubjectEdit}
+          effectiveMode={effectiveMode}
+          colors={colors}
+          defaultColours={defaultColours}
+        />
+      </div>
+    );
+  };
+
+  const renderSettings = () => {
+    return (
+      <Settings
+        userName={userName}
+        setUserName={setUserName}
+        clearData={clearData}
+        autoNamingEnabled={autoNamingEnabled}
+        setAutoNamingEnabled={setAutoNamingEnabled}
+        showThemeModal={showThemeModal}
+        setShowThemeModal={setShowThemeModal}
+        theme={theme}
+        themeType={themeType}
+        themeMode={themeMode}
+        setThemeMode={setThemeMode}
+        handleThemeChange={handleThemeChange}
+        effectiveMode={effectiveMode}
+        colors={colors}
+        infoOrder={infoOrder}
+        infoShown={infoShown}
+        draggedIdx={draggedIdx}
+        handleDragStart={handleDragStart}
+        handleInfoDragOver={handleInfoDragOver}
+        handleDragEnd={handleDragEnd}
+        handleToggleInfoShown={handleToggleInfoShown}
+        showFirstInfoBeside={showFirstInfoBeside}
+        setShowFirstInfoBeside={setShowFirstInfoBeside}
+        isCalendarPage={location.pathname === '/calendar'}
+        countdownInTitle={countdownInTitle}
+        setCountdownInTitle={setCountdownInTitle}
+        exportModalState={exportModalState}
+        setExportModalState={setExportModalState}
+        handleExport={handleExport}
+        fileInputRef={fileInputRef}
+        handleFileInput={handleFileInput}
+        offlineCachingEnabled={offlineCachingEnabled}
+        setOfflineCachingEnabled={handleOfflineCachingToggle}
+        markbookPasswordEnabled={markbookPasswordEnabled}
+        setMarkbookPasswordEnabled={handlePasswordProtectionToggle}
+        markbookPassword={markbookPassword}
+        setMarkbookPassword={setMarkbookPassword}
+        showPasswordModal={showPasswordModal}
+        setShowPasswordModal={setShowPasswordModal}
+        newPassword={newPassword}
+        setNewPassword={setNewPassword}
+        isMarkbookLocked={isMarkbookLocked}
+      />
+    );
+  };
+
+
+
+  // Add state to track which event is hovered for expand/collapse
+  // In renderHome, insert breaks for the day's events
+  const renderHome = () => {
+    const { dayLabel, events } = getTodayOrNextEvents(weekData);
+    // Insert breaks between events for home screen too
+    const eventsWithBreaks = insertBreaksBetweenEvents(events);
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Home className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
+            <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Home</h2>
+          </div>
+          {/* Offline indicator in top right */}
+          <div ref={(el) => {
+            if (el) {
+              el.innerHTML = '';
+              const indicator = createOfflineIndicatorElement({
+                effectiveMode,
+                size: 'medium',
+                offlineCachingEnabled,
+                onToggleOfflineCaching: () => setOfflineCachingEnabled(!offlineCachingEnabled)
+              });
+              el.appendChild(indicator);
+            }
+          }} />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className={`${colors.container} rounded-lg ${colors.border} border p-6 col-span-1`}>
+            <div className="flex items-center gap-3 mb-4">
+              <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
+              <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
+                {dayLabel || 'No Schedule'}
+              </h3>
             </div>
             {eventsWithBreaks.length === 0 ? (
               <div className="text-center text-gray-500 py-8">

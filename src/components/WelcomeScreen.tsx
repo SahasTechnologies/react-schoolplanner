@@ -512,7 +512,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
           </div>
           {loading && (
             <div className="text-center py-8">
-              <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${effectiveMode === 'light' ? 'border-black' : 'border-black'} mx-auto mb-4`}></div>
+              <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${effectiveMode === 'light' ? 'border-black' : 'border-primary'} mx-auto mb-4`}></div>
               <p className={`${colors.text} opacity-80`}>Processing your calendar...</p>
             </div>
           )}
