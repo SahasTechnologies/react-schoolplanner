@@ -5,7 +5,7 @@ import * as React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { 
   Calendar, FileText, Home, BarChart3,
-  Settings as SettingsIcon, LoaderCircle, Shield
+  Settings as SettingsIcon, LoaderCircle, Shield, ChevronsUpDown
 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { ThemeKey, getColors } from './utils/themeUtils';
@@ -677,25 +677,6 @@ const SchoolPlanner = () => {
       />
     );
   };
-
-
-
-  // Add state to track which event is hovered for expand/collapse
-  // In renderHome, insert breaks for the day's events
-  const renderHome = () => {
-    const { dayLabel, events } = getTodayOrNextEvents(weekData);
-    // Insert breaks between events for home screen too
-    const eventsWithBreaks = insertBreaksBetweenEvents(events);
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Home className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
-            <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Home</h2>
-          </div>
-          {/* Offline indicator in top right */}
-          <div ref={(el) => {
-            if (el) {
               el.innerHTML = '';
               const indicator = createOfflineIndicatorElement({
                 effectiveMode,
