@@ -167,7 +167,7 @@ const FeedbackForm: React.FC = () => {
   const [anythingElse, setAnythingElse] = useState('');
   // Screenshot upload removed (FormSubmit doesn't support attachments reliably via AJAX)
   const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [, setSubmitting] = useState(false);
   // removed: wantsScreenshot & file upload UI
   const submittingRef = useRef(false);
   const hasSubmittedRef = useRef(false);
