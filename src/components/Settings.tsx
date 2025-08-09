@@ -25,6 +25,7 @@ import bcrypt from 'bcryptjs';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useState, useEffect } from 'react';
+import FeedbackForm from './FeedbackForm';
 
 interface ExportModalState {
   show: boolean;
@@ -167,6 +168,7 @@ const Settings: React.FC<SettingsProps> = ({
 
   /* --------------------------------- Local state -------------------------------- */
   const [oldPasswordInput, setOldPasswordInput] = useState('');
+
 
   return (
     <div className={`space-y-6 ${colors.background}`}>
@@ -747,6 +749,17 @@ const Settings: React.FC<SettingsProps> = ({
             <Palette size={18} />
             Change Theme
           </button>
+        </div>
+      </div>
+
+      {/* Feedback Form (Dummy replacement for YouForm) */}
+      <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
+        <div className="flex items-center gap-2 mb-4">
+          <FileText className={colors.text} size={20} />
+          <h3 className={`text-lg font-medium ${colors.text}`}>Feedback</h3>
+        </div>
+        <div className="w-full">
+          <FeedbackForm />
         </div>
       </div>
     </div>

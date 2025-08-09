@@ -303,17 +303,20 @@ export function getTodayOrNextEvents(weekData: WeekData | null): { dayLabel: str
   // Check today first if it's a weekday
   if (isWeekday(dayIdx)) {
     const todayEvents = dayEvents[dayIdx - 1].filter(event => isToday(new Date(event.dtstart)));
-    if (todayEvents.length > 0) {
-      // Determine if there is at least one event that has not ended yet
-      const hasUpcomingOrOngoing = todayEvents.some(event => {
-        const endTime = event.dtend ? new Date(event.dtend) : new Date(new Date(event.dtstart).getTime() + 3600000);
-        return endTime.getTime() > now.getTime();
-      });
-
-      if (hasUpcomingOrOngoing) {
-        return { dayLabel: 'Today', events: todayEvents };
-      }
+    // Stay on Today if there are no events at all for today
+    if (todayEvents.length === 0) {
+      return { dayLabel: 'Today', events: [] };
     }
+    // Determine if there is at least one event that has not ended yet
+    const hasUpcomingOrOngoing = todayEvents.some(event => {
+      const endTime = event.dtend ? new Date(event.dtend) : new Date(new Date(event.dtstart).getTime() + 3600000);
+      return endTime.getTime() > now.getTime();
+    });
+
+    if (hasUpcomingOrOngoing) {
+      return { dayLabel: 'Today', events: todayEvents };
+    }
+    // Otherwise, all of today's events have finished; fall through to look for the next day with events
   }
   
   // If today's events are over or there are none, show next day with events

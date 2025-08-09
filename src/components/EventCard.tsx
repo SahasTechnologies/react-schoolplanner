@@ -14,6 +14,7 @@ interface EventCardProps {
   infoShown: Record<string, boolean>;
   showFirstInfoBeside: boolean;
   onClick?: () => void;
+  forceTall?: boolean;
 }
 
 const EventCard: React.FC<EventCardProps> = ({
@@ -26,19 +27,19 @@ const EventCard: React.FC<EventCardProps> = ({
   infoOrder,
   infoShown,
   showFirstInfoBeside,
-  onClick
+  onClick,
+  forceTall = false
 }) => {
   if (isBreakEvent(event)) {
     return (
       <div
         key={`break-${index}`}
-        className="rounded-lg p-3 flex items-center justify-between text-sm font-semibold opacity-80"
+        className="rounded-2xl p-3 flex items-center justify-between text-sm font-semibold transition-all duration-300"
         style={{ 
-          backgroundColor: effectiveMode === 'light' ? 'transparent' : 'transparent', 
-          color: effectiveMode === 'light' ? '#000' : '#fff',
-          border: '1px dashed #888',
-          borderWidth: 1,
-          minHeight: 40
+          backgroundColor: effectiveMode === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)', 
+          color: effectiveMode === 'light' ? '#111827' : '#e5e7eb',
+          minHeight: forceTall ? 64 : 40,
+          boxShadow: effectiveMode === 'light' ? '0 1px 2px rgba(0,0,0,0.06)' : '0 1px 2px rgba(0,0,0,0.4)'
         }}
       >
         <div className="flex-1 text-left flex items-center" style={{justifyContent: 'flex-start'}}>
@@ -110,6 +111,8 @@ const EventCard: React.FC<EventCardProps> = ({
   const [expanded, setExpanded] = React.useState(false);
   const [showAllInfo, setShowAllInfo] = React.useState(false);
 
+  const segmentColor = getEventColour(event.summary);
+
   // Keep content mounted until animation finishes
   React.useEffect(() => {
     let timeout: ReturnType<typeof setTimeout>;
@@ -125,14 +128,14 @@ const EventCard: React.FC<EventCardProps> = ({
     <div
       onClick={onClick}
       key={index}
-      className={`rounded-lg p-3 text-white text-sm transition-all duration-300 cursor-pointer`}
-      style={{ backgroundColor: getEventColour(event.summary) }}
+      className={`rounded-2xl p-3 text-white text-sm transition-all duration-300 cursor-pointer shadow-sm`}
+      style={{ backgroundColor: segmentColor, minHeight: forceTall ? 96 : 56 }}
       onMouseEnter={() => { if (showFirstInfoBeside) setExpanded(true); }}
       onMouseLeave={() => { if (showFirstInfoBeside) setExpanded(false); }}
     >
       <div className="flex items-center justify-between min-h-[40px]">
         <div className="flex items-center min-h-[40px]">
-          <span className="font-medium leading-tight flex items-center min-h-[40px]" style={{ fontSize: '1.1rem' }}>
+          <span className="font-semibold leading-tight flex items-center min-h-[40px]" style={{ fontSize: '1.1rem' }}>
             {normalizeSubjectName(event.summary, autoNamingEnabled)}
             {getFirstEnabledFieldNode()}
           </span>
@@ -141,6 +144,7 @@ const EventCard: React.FC<EventCardProps> = ({
           {getSubjectIcon(event.summary, 24, effectiveMode)}
         </span>
       </div>
+
       {/* Info fields: on home page, show enabled by default, all on hover; on calendar page, always show all below */}
       {showFirstInfoBeside ? (
         <div

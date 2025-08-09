@@ -2,7 +2,7 @@
 //   react, react-dom, lucide-react, @types/react, @types/react-dom
 // Favicon and title are set in index.html, see instructions below.
 import * as React from 'react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { 
   Calendar, FileText, Home, BarChart3,
   Settings as SettingsIcon, LoaderCircle, Shield, ChevronsUpDown
@@ -19,6 +19,7 @@ import {
   getTodayOrNextEvents, 
   isBreakEvent 
 } from './utils/calendarUtils.ts';
+import TodayScheduleTimeline from './components/TodayScheduleTimeline';
 import WelcomeScreen from './components/WelcomeScreen';
 import Settings from './components/Settings';
 import EventCard from './components/EventCard';
@@ -698,29 +699,35 @@ const SchoolPlanner = () => {
     // Use toggle state to determine which day's events to show
     let dayLabel: string;
     let events: CalendarEvent[];
+    // Track which calendar date the displayed schedule belongs to
+    let selectedScheduleDate: Date | null = null;
     if (showNextDay) {
-      // Get next day's events using the toggle-aware function
+      // Determine the next "school day" to show
       const now = new Date();
       const nextDayEvents = findEventsByDayToggle(now, true);
       if (nextDayEvents) {
-        const currentDay = now.getDay();
-        if (currentDay === 0 || currentDay === 6) {
-          dayLabel = "Friday's Schedule";
-        } else {
-          const tomorrow = new Date(now);
-          tomorrow.setDate(now.getDate() + 1);
-          dayLabel = `${tomorrow.toLocaleDateString(undefined, { weekday: 'long' })}'s Schedule`;
-        }
-        // Get all events for that day
+        const currentDay = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
         const targetDate = new Date(now);
-        if (currentDay === 0 || currentDay === 6) {
-          const daysUntilFriday = currentDay === 0 ? 5 : 6;
-          targetDate.setDate(now.getDate() + daysUntilFriday);
+        if (currentDay === 6) {
+          // Saturday -> previous Friday
+          targetDate.setDate(now.getDate() - 1);
+        } else if (currentDay === 0) {
+          // Sunday -> previous Friday
+          targetDate.setDate(now.getDate() - 2);
+        } else if (currentDay === 5) {
+          // Friday -> next Monday
+          targetDate.setDate(now.getDate() + 3);
         } else {
+          // Mon-Thu -> next day
           targetDate.setDate(now.getDate() + 1);
         }
+        dayLabel = `${targetDate.toLocaleDateString(undefined, { weekday: 'long' })}'s Schedule`;
         const targetDayOfWeek = targetDate.getDay();
         events = weekData?.events.filter(event => event.dtstart.getDay() === targetDayOfWeek) || [];
+        if (events.length) {
+          const d = events[0].dtstart;
+          selectedScheduleDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        }
       } else {
         dayLabel = "No Schedule";
         events = [];
@@ -730,6 +737,10 @@ const SchoolPlanner = () => {
       const result = getTodayOrNextEvents(weekData);
       dayLabel = result.dayLabel;
       events = result.events;
+      if (events.length) {
+        const d = events[0].dtstart;
+        selectedScheduleDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      }
     }
     // Insert breaks between events for home screen too
     const eventsWithBreaks = insertBreaksBetweenEvents(events);
@@ -756,25 +767,25 @@ const SchoolPlanner = () => {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className={`${colors.container} rounded-lg ${colors.border} border p-6 col-span-1`}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center mb-4">
+              <div className="flex items-center gap-2">
                 <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
                 <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
                   {dayLabel || 'No Schedule'}
                 </h3>
+                <button
+                  onClick={handleDayToggle}
+                  className={`p-2 rounded hover:bg-opacity-20 transition-colors ${
+                    effectiveMode === 'light' ? 'hover:bg-gray-300' : 'hover:bg-gray-600'
+                  }`}
+                  title={showNextDay ? 'Show today\'s schedule' : 'Show next day\'s schedule'}
+                >
+                  <ChevronsUpDown 
+                    size={18} 
+                    className={`${effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} hover:${effectiveMode === 'light' ? 'text-black' : 'text-white'} transition-colors`}
+                  />
+                </button>
               </div>
-              <button
-                onClick={handleDayToggle}
-                className={`p-2 rounded hover:bg-opacity-20 transition-colors ${
-                  effectiveMode === 'light' ? 'hover:bg-gray-300' : 'hover:bg-gray-600'
-                }`}
-                title={showNextDay ? 'Show today\'s schedule' : 'Show next day\'s schedule'}
-              >
-                <ChevronsUpDown 
-                  size={18} 
-                  className={`${effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} hover:${effectiveMode === 'light' ? 'text-black' : 'text-white'} transition-colors`}
-                />
-              </button>
             </div>
             {eventsWithBreaks.length === 0 ? (
               <div className="text-center text-gray-500 py-8">
@@ -782,21 +793,41 @@ const SchoolPlanner = () => {
                 <p>No events</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div ref={listRef} className="relative space-y-3 pl-10">
+                <TodayScheduleTimeline
+                  eventsWithBreaks={eventsWithBreaks}
+                  measuredHeights={measuredHeights}
+                  segments={segments}
+                  gapBetweenCards={12} // Default gap, can be measured if needed
+                  containerHeight={containerHeight}
+                  hoveredIndex={hoveredIndex}
+                  nowTs={nowTs}
+                  selectedScheduleDate={selectedScheduleDate}
+                  getEventColour={getEventColour}
+                />
+                {/* Event cards */}
                 {eventsWithBreaks.map((event, idx) => (
-                  <EventCard
+                  <div
                     key={idx}
-                    event={event}
-                    index={idx}
-                    isBreakEvent={isBreakEvent}
-                    getEventColour={getEventColour}
-                    autoNamingEnabled={autoNamingEnabled}
-                    effectiveMode={effectiveMode}
-                    infoOrder={infoOrder}
-                    infoShown={infoShown}
-                    showFirstInfoBeside={showFirstInfoBeside}
-                    onClick={() => setSelectedEvent(event)}
-                  />
+                    className="relative z-10 w-full"
+                    ref={el => { cardRefs.current[idx] = el; }}
+                    onMouseEnter={() => setHoveredIndex(idx)}
+                    onMouseLeave={() => setHoveredIndex(prev => (prev === idx ? null : prev))}
+                  >
+                    <EventCard
+                      event={event}
+                      index={idx}
+                      isBreakEvent={isBreakEvent}
+                      getEventColour={getEventColour}
+                      autoNamingEnabled={autoNamingEnabled}
+                      effectiveMode={effectiveMode}
+                      infoOrder={infoOrder}
+                      infoShown={infoShown}
+                      showFirstInfoBeside={showFirstInfoBeside}
+                      onClick={() => setSelectedEvent(event)}
+                      forceTall={hoveredIndex === idx}
+                    />
+                  </div>
                 ))}
               </div>
             )}
@@ -833,25 +864,113 @@ const SchoolPlanner = () => {
   
   // State for toggling between today and next day's schedule
   const [showNextDay, setShowNextDay] = useState(false);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [measuredHeights, setMeasuredHeights] = useState<number[]>([]);
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const [segments, setSegments] = useState<{ startPct: number; endPct: number }[]>([]);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  // Ticking time for progress overlay
+  const [nowTs, setNowTs] = useState<number>(Date.now());
+  // Actual list container height to convert px -> % precisely
+  const [containerHeight, setContainerHeight] = useState<number>(0);
+
+  // Measure actual card heights so the gradient aligns exactly with each card (including breaks)
+  useLayoutEffect(() => {
+    // Measure positions and heights to align gradient precisely
+    const measure = () => {
+      try {
+        const container = listRef.current;
+        if (!container) {
+          setMeasuredHeights([]);
+          setSegments([]);
+          return;
+        }
+        const listRect = container.getBoundingClientRect();
+        const n = cardRefs.current.length;
+        if (!n || listRect.height <= 0) {
+          setMeasuredHeights([]);
+          setSegments([]);
+          return;
+        }
+        setContainerHeight(Math.max(1, Math.round(listRect.height)));
+        const heights: number[] = [];
+        const segs: { startPct: number; endPct: number }[] = [];
+        for (let i = 0; i < n; i++) {
+          const el = cardRefs.current[i];
+          const r = el?.getBoundingClientRect();
+          if (!r) continue;
+          const h = Math.max(1, Math.round(r.height));
+          heights.push(h);
+          const start = Math.max(0, r.top - listRect.top);
+          const end = Math.max(start, r.bottom - listRect.top);
+          const startPct = Math.max(0, Math.min(100, (start / listRect.height) * 100));
+          const endPct = Math.max(0, Math.min(100, (end / listRect.height) * 100));
+          segs.push({ startPct, endPct });
+        }
+        setMeasuredHeights(heights);
+        setSegments(segs);
+      } catch {
+        // ignore
+      }
+    };
+    measure();
+    // Also re-measure after the hover transition completes
+    const t = setTimeout(measure, 320);
+    return () => clearTimeout(t);
+  }, [showNextDay, cardRefs.current.length, hoveredIndex]);
+
+  // Re-measure on window resize to keep alignment accurate
+  useEffect(() => {
+    const onResize = () => {
+      try {
+        // Trigger full re-measure via dependency above
+        setMeasuredHeights((h) => [...h]);
+      } catch {}
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  // Tick every minute to update progress overlay
+  useEffect(() => {
+    const id = setInterval(() => setNowTs(Date.now()), 60000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Observe card size changes to keep gradient aligned without relying on hover state
+  useEffect(() => {
+    if (!('ResizeObserver' in window)) return;
+    const ro = new ResizeObserver(() => {
+      try {
+        const container = listRef.current;
+        if (!container) return;
+        const listRect = container.getBoundingClientRect();
+        const n = cardRefs.current.length;
+        if (!n || listRect.height <= 0) return;
+        setContainerHeight(Math.max(1, Math.round(listRect.height)));
+        const heights: number[] = [];
+        const segs: { startPct: number; endPct: number }[] = [];
+        for (let i = 0; i < n; i++) {
+          const el = cardRefs.current[i];
+          const r = el?.getBoundingClientRect();
+          if (!r) continue;
+          heights.push(Math.max(1, Math.round(r.height)));
+          const start = Math.max(0, r.top - listRect.top);
+          const end = Math.max(start, r.bottom - listRect.top);
+          segs.push({ startPct: Math.max(0, Math.min(100, (start / listRect.height) * 100)), endPct: Math.max(0, Math.min(100, (end / listRect.height) * 100)) });
+        }
+        setMeasuredHeights(heights);
+        setSegments(segs);
+      } catch {}
+    });
+    cardRefs.current.forEach(el => el && ro.observe(el));
+    return () => ro.disconnect();
+  }, [showNextDay]);
   
   // Toggle handler with weekend logic
   const handleDayToggle = () => {
-    const now = new Date();
-    const currentDay = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-    
-    if (!showNextDay) {
-      // Currently showing today, switch to next day
-      // If it's weekend (Sat/Sun), go to Friday instead
-      if (currentDay === 0 || currentDay === 6) { // Sunday or Saturday
-        // Find the next Friday
-        setShowNextDay(true);
-      } else {
-        setShowNextDay(true);
-      }
-    } else {
-      // Currently showing next day, switch back to today
-      setShowNextDay(false);
-    }
+    // Simply flip the toggle; date selection logic is handled in render and helpers
+    setShowNextDay(!showNextDay);
   };
 
   // Helper: get next occurrence of an event after now, treating week as repeating
@@ -903,13 +1022,18 @@ const SchoolPlanner = () => {
     let targetDate = new Date(now);
     
     if (forceNextDay) {
-      // Show next day's events
-      if (currentDay === 0 || currentDay === 6) {
-        // If weekend, find next Friday (day 5)
-        const daysUntilFriday = currentDay === 0 ? 5 : 6; // Sun->Fri = 5 days, Sat->Fri = 6 days
-        targetDate.setDate(now.getDate() + daysUntilFriday);
+      // Show next "school day" events (skip weekends appropriately)
+      if (currentDay === 6) {
+        // Saturday -> previous Friday
+        targetDate.setDate(now.getDate() - 1);
+      } else if (currentDay === 0) {
+        // Sunday -> previous Friday
+        targetDate.setDate(now.getDate() - 2);
+      } else if (currentDay === 5) {
+        // Friday -> next Monday
+        targetDate.setDate(now.getDate() + 3);
       } else {
-        // Regular weekday, just go to next day
+        // Mon-Thu -> next day
         targetDate.setDate(now.getDate() + 1);
       }
     }
