@@ -759,7 +759,12 @@ const Settings: React.FC<SettingsProps> = ({
           <h3 className={`text-lg font-medium ${colors.text}`}>Feedback</h3>
         </div>
         <div className="w-full">
-          <FeedbackForm />
+          <FeedbackForm 
+            theme={theme}
+            themeType={themeType}
+            effectiveMode={effectiveMode}
+            colors={colors}
+          />
         </div>
       </div>
     </div>

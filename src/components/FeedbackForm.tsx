@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ThemeKey } from '../utils/themeUtils';
 
 // Lightweight canvas confetti
 const ConfettiCanvas: React.FC<{ className?: string; durationMs?: number }> = ({ className = '', durationMs = 4000 }) => {
@@ -111,33 +112,38 @@ const ConfettiCanvas: React.FC<{ className?: string; durationMs?: number }> = ({
 
 const FORM_ENDPOINT = 'https://formsubmit.co/ajax/42c917da0328f31b1dea91f093a6778e';
 
-const SlideContainer: React.FC<{ children: React.ReactNode }>=({ children })=>{
+interface FeedbackFormProps {
+  theme: ThemeKey;
+  themeType: 'normal' | 'extreme';
+  effectiveMode: 'light' | 'dark';
+  colors: any;
+}
+
+const SlideContainer: React.FC<{ children: React.ReactNode; colors: any }>=({ children, colors })=>{
   return (
-    <div className="w-full rounded-xl bg-[#3b82f6] text-white shadow-inner overflow-hidden min-h-[560px] sm:min-h-[640px] p-10 sm:p-14 flex flex-col justify-center relative">
+    <div className={`w-full rounded-xl ${colors.container} ${colors.text} shadow-inner overflow-hidden min-h-[560px] sm:min-h-[640px] p-10 sm:p-14 flex flex-col justify-center relative`}>
       {children}
     </div>
   );
 };
 
-const PrimaryButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = ({ className = '', children, ...rest }) => (
-  <button
-    {...rest}
-    className={
-      'px-5 py-3 rounded-lg bg-[#1f4fd1] hover:bg-[#1a45ba] disabled:opacity-60 disabled:cursor-not-allowed font-semibold transition-colors ' +
-      className
-    }
-  >
-    {children}
-  </button>
-);
-
-const RatingButton: React.FC<{ active: boolean; onClick: () => void; label: string }>=({ active, onClick, label })=>{
+const PrimaryButton: React.FC<{ className?: string; children: React.ReactNode; onClick?: () => void; disabled?: boolean; colors: any }> = ({ className = '', children, colors, ...rest }) => {
   return (
     <button
-      type="button"
+      className={`px-6 py-3 rounded-lg ${colors.buttonAccent} hover:${colors.buttonAccentHover} disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors ${colors.accentText} ${className}`}
+      {...rest}
+    >
+      {children}
+    </button>
+  );
+};
+
+const RatingButton: React.FC<{ active: boolean; onClick: () => void; label: string; colors: any }> = ({ active, onClick, label, colors }) => {
+  return (
+    <button
       onClick={onClick}
-      className={`w-12 h-12 sm:w-14 sm:h-14 rounded-md border text-lg sm:text-xl font-semibold transition-all duration-200 ${
-        active ? 'bg-white text-[#1f4fd1] border-white scale-105' : 'bg-transparent text-white border-white/60 hover:bg-white/10 hover:scale-105'
+      className={`w-12 h-12 rounded-lg font-bold text-lg transition-all ${
+        active ? `${colors.buttonAccent} ${colors.accentText} scale-110` : `${colors.buttonSecondary} hover:${colors.buttonSecondaryHover}`
       }`}
     >
       {label}
@@ -158,7 +164,7 @@ const SlideContent: React.FC<{ children: React.ReactNode; exiting?: boolean }>=(
   return <div className={`${base} ${cls}`}>{children}</div>;
 };
 
-const FeedbackForm: React.FC = () => {
+const FeedbackForm: React.FC<FeedbackFormProps> = ({ theme, themeType, effectiveMode, colors }) => {
   const [step, setStep] = useState(0);
   const [displayStep, setDisplayStep] = useState(0);
   const [isExiting, setIsExiting] = useState(false);
@@ -167,7 +173,7 @@ const FeedbackForm: React.FC = () => {
   const [anythingElse, setAnythingElse] = useState('');
   // Screenshot upload removed (FormSubmit doesn't support attachments reliably via AJAX)
   const [error, setError] = useState<string | null>(null);
-  const [, setSubmitting] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   // removed: wantsScreenshot & file upload UI
   const submittingRef = useRef(false);
   const hasSubmittedRef = useRef(false);
@@ -208,11 +214,15 @@ const FeedbackForm: React.FC = () => {
       setError('Please choose a rating.');
       return;
     }
-    // If we are on the text step (step 3), submit now.
-    if (step === 3) { submit(); return; }
+    // If we are on the text step (step 3), submit now with the freshest textarea value.
+    if (step === 3) {
+      const finalText = textAreaRef.current?.value ?? anythingElse;
+      submit(finalText);
+      return;
+    }
     const target = nextStepFrom(step);
     goTo(target);
-  }, [step, rating, nextStepFrom, goTo]);
+  }, [step, rating, anythingElse, nextStepFrom, goTo]);
 
   const handlePickRating = (n: number) => {
     setRating(n);
@@ -226,18 +236,50 @@ const FeedbackForm: React.FC = () => {
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
+    if (submittingRef.current) return; // ignore keyboard submits while submitting
     if (displayStep === 0 && e.key === 'Enter') {
       e.preventDefault();
       goTo(1);
     }
     if ((displayStep === 2 || displayStep === 3) && e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
-      if (displayStep === 3) submit(); else next();
+      if (displayStep === 3) {
+        const finalText = textAreaRef.current?.value ?? anythingElse;
+        submit(finalText);
+      } else next();
     }
   };
 
+  // Simple retrying fetch with timeout for network resilience
+  const fetchWithRetry = async (url: string, init: RequestInit, retries = 2, timeoutMs = 12000): Promise<Response> => {
+    let lastErr: any = null;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const res = await fetch(url, { ...init, signal: controller.signal });
+        clearTimeout(id);
+        if (res.ok) return res;
+        // Retry on 429 and 5xx
+        if (res.status === 429 || (res.status >= 500 && res.status < 600)) {
+          lastErr = new Error(`HTTP ${res.status}`);
+        } else {
+          return res; // don't retry on other statuses
+        }
+      } catch (e) {
+        lastErr = e;
+      } finally {
+        clearTimeout(id);
+      }
+      // backoff before next attempt
+      const delay = 500 * Math.pow(2, attempt);
+      await new Promise(r => setTimeout(r, delay));
+    }
+    throw lastErr ?? new Error('Network error');
+  };
 
-  const submit = async () => {
+
+  const submit = async (finalAnything?: string) => {
     if (hasSubmittedRef.current || submittingRef.current) return; // guard against duplicates
     try {
       setError(null);
@@ -245,12 +287,13 @@ const FeedbackForm: React.FC = () => {
       submittingRef.current = true;
       const fd = new FormData();
       if (rating !== null) fd.append('rating', String(rating));
-      if (rating !== null && rating < 9 && howToTen.trim()) fd.append('how_to_get_to_10', howToTen.trim());
-      if (anythingElse.trim()) {
-        fd.append('anything_else', anythingElse.trim());
-        // Also send a generic message field for better compatibility with email templates
-        fd.append('message', anythingElse.trim());
-      }
+      // Always include how_to_get_to_10 so the field shows up in the email, even when rating >= 9
+      fd.append('how_to_get_to_10', (rating !== null && rating < 9) ? howToTen : '');
+      // Capture free text reliably: prefer state, fall back to current textarea value
+      const comments = finalAnything ?? ((anythingElse ?? '').length ? anythingElse : (textAreaRef.current?.value ?? ''));
+      // Send under both 'anything_else' and 'comments' for maximum compatibility/visibility in emails
+      fd.append('anything_else', comments);
+      fd.append('comments', comments);
       // Common formsubmit options
       fd.append('_captcha', 'false');
       fd.append('_subject', 'SchoolPlanner Feedback');
@@ -260,11 +303,11 @@ const FeedbackForm: React.FC = () => {
       // Timestamp
       fd.append('timestamp', new Date().toISOString());
 
-      const res = await fetch(FORM_ENDPOINT, {
+      const res = await fetchWithRetry(FORM_ENDPOINT, {
         method: 'POST',
         headers: { 'Accept': 'application/json' },
         body: fd,
-      });
+      }, 2, 12000);
       if (!res.ok) throw new Error('Network response was not ok');
       // Optional: check JSON status
       // const data = await res.json();
@@ -282,14 +325,13 @@ const FeedbackForm: React.FC = () => {
   return (
     <div className="space-y-3" onKeyDown={onKeyDown}>
       {displayStep === 0 && (
-        <SlideContainer>
+        <SlideContainer colors={colors}>
           <SlideContent exiting={isExiting}>
           <div className="text-center space-y-6">
             <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight">Hey there <span role="img" aria-label="smile">😃</span></h2>
-            <p className="text-white/90 text-lg">Got 2 minutes? We'd love for you to fill out this form <span role="img" aria-label="heart">💖</span></p>
+            <p className={`${colors.textSecondary} text-lg`}>Got 2 minutes? We'd love for you to fill out this form <span role="img" aria-label="heart">💖</span></p>
             <div className="flex items-center justify-center gap-3">
-              <PrimaryButton onClick={next}>Let's go</PrimaryButton>
-              <span className="text-white/70 text-sm">press Enter ↵</span>
+              <PrimaryButton onClick={next} colors={colors}>Let's go</PrimaryButton>
             </div>
           </div>
           </SlideContent>
@@ -297,25 +339,25 @@ const FeedbackForm: React.FC = () => {
       )}
 
       {displayStep === 1 && (
-        <SlideContainer>
+        <SlideContainer colors={colors}>
           <SlideContent exiting={isExiting}>
           <div className="space-y-8">
-            <h3 className="text-3xl sm:text-4xl font-bold">How would you rate School Planner from a score of 1 to 10? <span className="text-white">*</span></h3>
+            <h3 className="text-3xl sm:text-4xl font-bold">How would you rate School Planner from a score of 1 to 10? <span className={colors.text}>*</span></h3>
             <div className="flex flex-wrap gap-3">
               {Array.from({ length: 11 }, (_, i) => i).map((n) => (
-                <RatingButton key={n} label={String(n)} active={rating === n} onClick={() => handlePickRating(n)} />
+                <RatingButton key={n} label={String(n)} active={rating === n} onClick={() => handlePickRating(n)} colors={colors} />
               ))}
             </div>
-            <p className="text-white/70 text-sm">This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.</p>
+            <p className={`${colors.textSecondary} text-sm`}>This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.</p>
             {error && <p className="text-red-200 text-sm">{error}</p>}
-            <PrimaryButton onClick={next} disabled={rating === null}>Next</PrimaryButton>
+            <PrimaryButton onClick={next} disabled={rating === null} colors={colors}>Next</PrimaryButton>
           </div>
           </SlideContent>
         </SlideContainer>
       )}
 
       {displayStep === 2 && (
-        <SlideContainer>
+        <SlideContainer colors={colors}>
           <SlideContent exiting={isExiting}>
           <div className="space-y-4">
             <h3 className="text-3xl sm:text-4xl font-bold">How do we get to 10? <span role="img" aria-label="star">⭐</span></h3>
@@ -324,11 +366,11 @@ const FeedbackForm: React.FC = () => {
               value={howToTen}
               onChange={(e) => setHowToTen(e.target.value)}
               placeholder="Better UI, less laggy, etc"
-              className="w-full h-40 rounded-lg bg-white/10 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/60 p-4 placeholder-white/60"
+              className={`w-full h-40 rounded-lg ${colors.input} ${colors.inputBorder} focus:outline-none focus:ring-2 focus:${colors.accent} p-4 ${colors.placeholder}`}
             />
             <div className="flex items-center gap-3">
-              <PrimaryButton onClick={next}>Next</PrimaryButton>
-              <span className="text-white/70 text-sm">press Ctrl + Enter ↵</span>
+              <PrimaryButton onClick={next} colors={colors}>Next</PrimaryButton>
+              <span className={`${colors.textSecondary} text-sm`}>press Ctrl + Enter ↵</span>
             </div>
           </div>
           </SlideContent>
@@ -336,7 +378,7 @@ const FeedbackForm: React.FC = () => {
       )}
 
       {displayStep === 3 && (
-        <SlideContainer>
+        <SlideContainer colors={colors}>
           <SlideContent exiting={isExiting}>
           <div className="space-y-4">
             <h3 className="text-3xl sm:text-4xl font-bold">Anything else you'd like to say?</h3>
@@ -345,25 +387,24 @@ const FeedbackForm: React.FC = () => {
               value={anythingElse}
               onChange={(e) => setAnythingElse(e.target.value)}
               placeholder="Your answer here..."
-              className="w-full h-40 rounded-lg bg-white/10 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/60 p-4 placeholder-white/60"
+              className={`w-full h-40 rounded-lg ${colors.input} ${colors.inputBorder} focus:outline-none focus:ring-2 focus:${colors.accent} p-4 ${colors.placeholder}`}
             />
             <div className="flex items-center gap-3">
-              <PrimaryButton onClick={next}>Next</PrimaryButton>
-              <span className="text-white/70 text-sm">press Ctrl + Enter ↵</span>
+              <PrimaryButton onClick={next} disabled={submitting} colors={colors}>{submitting ? 'Submitting…' : 'Submit'}</PrimaryButton>
+              <span className={`${colors.textSecondary} text-sm`}>press Ctrl + Enter ↵</span>
             </div>
           </div>
           </SlideContent>
         </SlideContainer>
       )}
-
       
 
       {displayStep === 5 && (
-        <SlideContainer>
+        <SlideContainer colors={colors}>
           <SlideContent exiting={isExiting}>
           <div className="text-center space-y-6">
             <h3 className="text-4xl sm:text-5xl font-extrabold">Thank you! <span role="img" aria-label="hands">🙌</span></h3>
-            <p className="text-white/90 text-lg">We appreciate your feedback.</p>
+            <p className={`${colors.textSecondary} text-lg`}>We appreciate your feedback.</p>
           </div>
           </SlideContent>
           {/* Confetti spans the entire form container */}
