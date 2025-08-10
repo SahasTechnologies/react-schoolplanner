@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ThemeKey } from '../utils/themeUtils';
+import { Smile, HeartHandshake, BotOff, Star, PartyPopper } from 'lucide-react';
 
 // Lightweight canvas confetti
 const ConfettiCanvas: React.FC<{ className?: string; durationMs?: number }> = ({ className = '', durationMs = 4000 }) => {
@@ -119,10 +120,19 @@ interface FeedbackFormProps {
   colors: any;
 }
 
-const SlideContainer: React.FC<{ children: React.ReactNode; colors: any }>=({ children, colors })=>{
+const SlideContainer: React.FC<{ children: React.ReactNode; colors: any; bottomLeft?: React.ReactNode }>=({ children, colors, bottomLeft })=>{
   return (
-    <div className={`w-full rounded-xl ${colors.container} ${colors.text} shadow-inner overflow-hidden min-h-[560px] sm:min-h-[640px] p-10 sm:p-14 flex flex-col justify-center relative`}>
-      {children}
+    <div className={`w-full rounded-xl ${colors.container} ${colors.text} border ${colors.softBorder} shadow-inner overflow-hidden min-h-[560px] sm:min-h-[640px] p-10 sm:p-14 flex flex-col justify-center relative`}>
+      {/* overlay tinted with button color at 50% opacity */}
+      <div className={`absolute inset-0 rounded-xl ${colors.buttonAccent} opacity-50 z-0 pointer-events-none`} />
+      <div className="relative z-10">
+        {children}
+      </div>
+      {bottomLeft && (
+        <div className={`absolute left-0 bottom-0 pl-10 pb-10 sm:pl-14 sm:pb-14 opacity-50 z-10`}>
+          {bottomLeft}
+        </div>
+      )}
     </div>
   );
 };
@@ -130,7 +140,7 @@ const SlideContainer: React.FC<{ children: React.ReactNode; colors: any }>=({ ch
 const PrimaryButton: React.FC<{ className?: string; children: React.ReactNode; onClick?: () => void; disabled?: boolean; colors: any }> = ({ className = '', children, colors, ...rest }) => {
   return (
     <button
-      className={`px-6 py-3 rounded-lg ${colors.buttonAccent} hover:${colors.buttonAccentHover} disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors ${colors.accentText} ${className}`}
+      className={`px-6 py-3 rounded-lg ${colors.buttonAccent} ${colors.buttonAccentHover} disabled:opacity-50 disabled:cursor-not-allowed font-medium ${colors.buttonText} focus-visible:outline-none focus-visible:ring-2 focus-visible:${colors.accent} focus-visible:ring-offset-2 transform-gpu transition-colors transition-transform duration-200 hover:scale-105 focus:scale-105 active:scale-95 ${className}`}
       {...rest}
     >
       {children}
@@ -141,9 +151,11 @@ const PrimaryButton: React.FC<{ className?: string; children: React.ReactNode; o
 const RatingButton: React.FC<{ active: boolean; onClick: () => void; label: string; colors: any }> = ({ active, onClick, label, colors }) => {
   return (
     <button
+      type="button"
+      aria-pressed={active}
       onClick={onClick}
-      className={`w-12 h-12 rounded-lg font-bold text-lg transition-all ${
-        active ? `${colors.buttonAccent} ${colors.accentText} scale-110` : `${colors.buttonSecondary} hover:${colors.buttonSecondaryHover}`
+      className={`w-12 h-12 rounded-lg font-bold text-lg inline-flex items-center justify-center transition-all border ${colors.softBorder} focus-visible:outline-none focus-visible:ring-2 focus-visible:${colors.accent} focus-visible:ring-offset-2 ${
+        active ? `${colors.buttonAccent} ${colors.buttonText} scale-110 border-transparent` : `${colors.buttonSecondary} ${colors.buttonSecondaryHover}`
       }`}
     >
       {label}
@@ -177,6 +189,8 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
   // removed: wantsScreenshot & file upload UI
   const submittingRef = useRef(false);
   const hasSubmittedRef = useRef(false);
+  // welcome button pop effect
+  const [goPop, setGoPop] = useState(false);
 
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -223,6 +237,13 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
     const target = nextStepFrom(step);
     goTo(target);
   }, [step, rating, anythingElse, nextStepFrom, goTo]);
+
+  // Pop animation then advance
+  const handleGo = useCallback(() => {
+    setGoPop(true);
+    setTimeout(() => setGoPop(false), 180);
+    next();
+  }, [next]);
 
   const handlePickRating = (n: number) => {
     setRating(n);
@@ -325,13 +346,25 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
   return (
     <div className="space-y-3" onKeyDown={onKeyDown}>
       {displayStep === 0 && (
-        <SlideContainer colors={colors}>
+        <SlideContainer
+          colors={colors}
+          bottomLeft={(
+            <div className={`flex items-center gap-2 ${colors.textSecondary} text-xs`}>
+              <BotOff className="w-4 h-4" aria-hidden />
+              <span>This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.</span>
+            </div>
+          )}
+        >
           <SlideContent exiting={isExiting}>
           <div className="text-center space-y-6">
-            <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight">Hey there <span role="img" aria-label="smile">😃</span></h2>
-            <p className={`${colors.textSecondary} text-lg`}>Got 2 minutes? We'd love for you to fill out this form <span role="img" aria-label="heart">💖</span></p>
+            <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight flex items-center justify-center gap-2">
+              Hey there <Smile aria-hidden className="w-8 h-8" />
+            </h2>
+            <p className={`${colors.textSecondary} text-lg flex items-center gap-2 justify-center`}>
+              Got 2 minutes? We'd love for you to fill out this form <HeartHandshake aria-hidden className="w-6 h-6" />
+            </p>
             <div className="flex items-center justify-center gap-3">
-              <PrimaryButton onClick={next} colors={colors}>Let's go</PrimaryButton>
+              <PrimaryButton className={goPop ? 'scale-110' : ''} onClick={handleGo} colors={colors}>Let's go</PrimaryButton>
             </div>
           </div>
           </SlideContent>
@@ -348,7 +381,6 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
                 <RatingButton key={n} label={String(n)} active={rating === n} onClick={() => handlePickRating(n)} colors={colors} />
               ))}
             </div>
-            <p className={`${colors.textSecondary} text-sm`}>This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.</p>
             {error && <p className="text-red-200 text-sm">{error}</p>}
             <PrimaryButton onClick={next} disabled={rating === null} colors={colors}>Next</PrimaryButton>
           </div>
@@ -360,7 +392,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
         <SlideContainer colors={colors}>
           <SlideContent exiting={isExiting}>
           <div className="space-y-4">
-            <h3 className="text-3xl sm:text-4xl font-bold">How do we get to 10? <span role="img" aria-label="star">⭐</span></h3>
+            <h3 className="text-3xl sm:text-4xl font-bold flex items-center gap-2">How do we get to 10? <Star aria-hidden className="w-6 h-6" /></h3>
             <textarea
               ref={textAreaRef}
               value={howToTen}
@@ -403,7 +435,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
         <SlideContainer colors={colors}>
           <SlideContent exiting={isExiting}>
           <div className="text-center space-y-6">
-            <h3 className="text-4xl sm:text-5xl font-extrabold">Thank you! <span role="img" aria-label="hands">🙌</span></h3>
+            <h3 className="text-4xl sm:text-5xl font-extrabold flex items-center gap-2 justify-center">Thank you! <PartyPopper aria-hidden className="w-8 h-8" /></h3>
             <p className={`${colors.textSecondary} text-lg`}>We appreciate your feedback.</p>
           </div>
           </SlideContent>

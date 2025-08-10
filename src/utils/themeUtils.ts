@@ -244,68 +244,39 @@ export const colorVars = {
   },
 };
 
-// themeColors now references colorVars for both normal (muted) and extreme (bright) for both dark and light
-export const themeColors = (mode: 'dark' | 'light') => ({
-  red: {
-    ...colorVars.red[mode].normal,
-    ...colorVars.red[mode].extreme,
-    label: 'Red',
-    borderAccent: mode === 'dark' ? 'border-red-400' : 'border-red-600',
-  },
-  orange: {
-    ...colorVars.orange[mode].normal,
-    ...colorVars.orange[mode].extreme,
-    label: 'Orange',
-    borderAccent: mode === 'dark' ? 'border-orange-400' : 'border-orange-600',
-  },
-  yellow: {
-    ...colorVars.yellow[mode].normal,
-    ...colorVars.yellow[mode].extreme,
-    label: 'Yellow',
-    borderAccent: mode === 'dark' ? 'border-yellow-400' : 'border-yellow-600',
-  },
-  green: {
-    ...colorVars.green[mode].normal,
-    ...colorVars.green[mode].extreme,
-    label: 'Green',
-    borderAccent: mode === 'dark' ? 'border-green-400' : 'border-green-600',
-  },
-  blue: {
-    ...colorVars.blue[mode].normal,
-    ...colorVars.blue[mode].extreme,
-    label: 'Blue',
-    borderAccent: mode === 'dark' ? 'border-blue-400' : 'border-blue-600',
-  },
-  purple: {
-    ...colorVars.purple[mode].normal,
-    ...colorVars.purple[mode].extreme,
-    label: 'Purple',
-    borderAccent: mode === 'dark' ? 'border-purple-400' : 'border-purple-600',
-  },
-  pink: {
-    ...colorVars.pink[mode].normal,
-    ...colorVars.pink[mode].extreme,
-    label: 'Pink',
-    borderAccent: mode === 'dark' ? 'border-pink-400' : 'border-pink-600',
-  },
-  grey: {
-    ...colorVars.grey[mode].normal,
-    ...colorVars.grey[mode].extreme,
-    label: 'Grey',
-    borderAccent: mode === 'dark' ? 'border-gray-400' : 'border-gray-600',
-  },
-});
-
 // Helper function to get colors for a specific theme and type
 export const getColors = (theme: ThemeKey, themeType: 'normal' | 'extreme', effectiveMode: 'light' | 'dark') => {
   const colors = colorVars[theme][effectiveMode][themeType];
   // Button and buttonText colors for theme-aware buttons
   let button, buttonText, buttonAccent, buttonAccentHover, text, containerText, accentText, sidebarHover;
+  // Additional tokens used by components
+  let input, inputBorder, placeholder, textSecondary, buttonSecondary, buttonSecondaryHover, softBorder, containerOverlay, accent;
+  // Accent ring color mapping for focus states
+  const accentRingMap: Record<ThemeKey, string> = {
+    red: 'ring-red-500',
+    orange: 'ring-orange-500',
+    yellow: 'ring-yellow-500',
+    green: 'ring-green-500',
+    blue: 'ring-blue-500',
+    purple: 'ring-purple-500',
+    pink: 'ring-pink-500',
+    grey: 'ring-gray-500',
+  };
   if (effectiveMode === 'light') {
     button = 'bg-gray-900 hover:bg-gray-800'; // fallback dark button for light mode
     buttonText = 'text-white';
     text = 'text-black';
     containerText = 'text-black';
+    // Inputs / secondary buttons / subtle borders in light mode
+    input = 'bg-white/30 backdrop-blur-sm text-black';
+    inputBorder = 'border border-black/10';
+    placeholder = 'placeholder-black/50';
+    textSecondary = 'text-black/60';
+    buttonSecondary = 'bg-black/5 text-black';
+    buttonSecondaryHover = 'hover:bg-black/10';
+    softBorder = 'border-black/10';
+    containerOverlay = 'bg-black/5'; // make elevated surfaces slightly darker to stand out
+    accent = accentRingMap[theme];
     // Theme-accented button backgrounds for light mode
     const accentMap: Record<ThemeKey, [string, string, string]> = {
       red:    ['bg-red-600', 'hover:bg-red-700', 'text-red-600'],
@@ -324,6 +295,16 @@ export const getColors = (theme: ThemeKey, themeType: 'normal' | 'extreme', effe
     buttonText = 'text-white';
     text = 'text-white';
     containerText = 'text-white';
+    // Inputs / secondary buttons / subtle borders in dark mode
+    input = 'bg-white/10 text-white';
+    inputBorder = 'border border-white/20';
+    placeholder = 'placeholder-white/60';
+    textSecondary = 'text-white/70';
+    buttonSecondary = 'bg-white/10 text-white';
+    buttonSecondaryHover = 'hover:bg-white/20';
+    softBorder = 'border-white/15';
+    containerOverlay = 'bg-white/5'; // make elevated surfaces slightly lighter to stand out
+    accent = accentRingMap[theme];
     // Theme-accented button backgrounds for dark mode
     const accentMap: Record<ThemeKey, [string, string, string]> = {
       red:    ['bg-red-500', 'hover:bg-red-600', 'text-red-400'],
@@ -352,5 +333,75 @@ export const getColors = (theme: ThemeKey, themeType: 'normal' | 'extreme', effe
     containerText,
     accentText,
     sidebarHover,
+    // New tokens
+    input,
+    inputBorder,
+    placeholder,
+    textSecondary,
+    buttonSecondary,
+    buttonSecondaryHover,
+    softBorder,
+    containerOverlay,
+    accent,
   };
-}; 
+};
+
+// themeColors now references colorVars for both normal (muted) and extreme (bright) for both dark and light
+export const themeColors = (mode: 'dark' | 'light') => ({
+  red: {
+    ...colorVars.red[mode].normal,
+    ...colorVars.red[mode].extreme,
+    label: 'Red',
+    borderAccent: mode === 'dark' ? 'border-red-400' : 'border-red-600',
+    buttonText: 'text-white',
+  },
+  orange: {
+    ...colorVars.orange[mode].normal,
+    ...colorVars.orange[mode].extreme,
+    label: 'Orange',
+    borderAccent: mode === 'dark' ? 'border-orange-400' : 'border-orange-600',
+    buttonText: 'text-white',
+  },
+  yellow: {
+    ...colorVars.yellow[mode].normal,
+    ...colorVars.yellow[mode].extreme,
+    label: 'Yellow',
+    borderAccent: mode === 'dark' ? 'border-yellow-400' : 'border-yellow-600',
+    buttonText: 'text-white',
+  },
+  green: {
+    ...colorVars.green[mode].normal,
+    ...colorVars.green[mode].extreme,
+    label: 'Green',
+    borderAccent: mode === 'dark' ? 'border-green-400' : 'border-green-600',
+    buttonText: 'text-white',
+  },
+  blue: {
+    ...colorVars.blue[mode].normal,
+    ...colorVars.blue[mode].extreme,
+    label: 'Blue',
+    borderAccent: mode === 'dark' ? 'border-blue-400' : 'border-blue-600',
+    buttonText: 'text-white',
+  },
+  purple: {
+    ...colorVars.purple[mode].normal,
+    ...colorVars.purple[mode].extreme,
+    label: 'Purple',
+    borderAccent: mode === 'dark' ? 'border-purple-400' : 'border-purple-600',
+    buttonText: 'text-white',
+  },
+  pink: {
+    ...colorVars.pink[mode].normal,
+    ...colorVars.pink[mode].extreme,
+    label: 'Pink',
+    borderAccent: mode === 'dark' ? 'border-pink-400' : 'border-pink-600',
+    buttonText: 'text-white',
+  },
+  grey: {
+    ...colorVars.grey[mode].normal,
+    ...colorVars.grey[mode].extreme,
+    label: 'Grey',
+    borderAccent: mode === 'dark' ? 'border-gray-400' : 'border-gray-600',
+    buttonText: 'text-white',
+  },
+});
