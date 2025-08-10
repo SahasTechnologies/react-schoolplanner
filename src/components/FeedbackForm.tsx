@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ThemeKey } from '../utils/themeUtils';
-import { Smile, HeartHandshake, BotOff, Star, PartyPopper } from 'lucide-react';
+import { Smile, HeartHandshake, BotOff, PartyPopper } from 'lucide-react';
 
 // Lightweight canvas confetti
 const ConfettiCanvas: React.FC<{ className?: string; durationMs?: number }> = ({ className = '', durationMs = 4000 }) => {
@@ -129,7 +129,7 @@ const SlideContainer: React.FC<{ children: React.ReactNode; colors: any; bottomL
         {children}
       </div>
       {bottomLeft && (
-        <div className={`absolute left-0 bottom-0 pl-10 pb-10 sm:pl-14 sm:pb-14 opacity-50 z-10`}>
+        <div className={`absolute left-0 bottom-0 pl-10 pb-10 sm:pl-14 sm:pb-14 z-10`}>
           {bottomLeft}
         </div>
       )}
@@ -171,8 +171,8 @@ const SlideContent: React.FC<{ children: React.ReactNode; exiting?: boolean }>=(
   },[]);
   const base = 'transition-all duration-300 ease-out transform';
   const cls = exiting
-    ? 'opacity-0 -translate-y-3'
-    : (mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3');
+    ? '-translate-y-3'
+    : (mounted ? 'translate-y-0' : 'translate-y-3');
   return <div className={`${base} ${cls}`}>{children}</div>;
 };
 
@@ -349,9 +349,9 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
         <SlideContainer
           colors={colors}
           bottomLeft={(
-            <div className={`flex items-center gap-2 ${colors.textSecondary} text-xs`}>
+            <div className={`flex items-center gap-2 ${colors.text} text-xs`}>
               <BotOff className="w-4 h-4" aria-hidden />
-              <span>This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.</span>
+              <span>This form is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.</span>
             </div>
           )}
         >
@@ -360,7 +360,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
             <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight flex items-center justify-center gap-2">
               Hey there <Smile aria-hidden className="w-8 h-8" />
             </h2>
-            <p className={`${colors.textSecondary} text-lg flex items-center gap-2 justify-center`}>
+            <p className={`${colors.text} text-lg flex items-center gap-2 justify-center`}>
               Got 2 minutes? We'd love for you to fill out this form <HeartHandshake aria-hidden className="w-6 h-6" />
             </p>
             <div className="flex items-center justify-center gap-3">
@@ -377,7 +377,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
           <div className="space-y-8">
             <h3 className="text-3xl sm:text-4xl font-bold">How would you rate School Planner from a score of 1 to 10? <span className={colors.text}>*</span></h3>
             <div className="flex flex-wrap gap-3">
-              {Array.from({ length: 11 }, (_, i) => i).map((n) => (
+              {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
                 <RatingButton key={n} label={String(n)} active={rating === n} onClick={() => handlePickRating(n)} colors={colors} />
               ))}
             </div>
@@ -392,7 +392,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
         <SlideContainer colors={colors}>
           <SlideContent exiting={isExiting}>
           <div className="space-y-4">
-            <h3 className="text-3xl sm:text-4xl font-bold flex items-center gap-2">How do we get to 10? <Star aria-hidden className="w-6 h-6" /></h3>
+            <h3 className="text-3xl sm:text-4xl font-bold flex items-center gap-2">How do we get to 10?</h3>
             <textarea
               ref={textAreaRef}
               value={howToTen}
