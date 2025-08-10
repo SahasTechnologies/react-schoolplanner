@@ -94,6 +94,8 @@ const Settings: React.FC<SettingsProps> = ({
   autoNamingEnabled,
   setAutoNamingEnabled,
   setShowThemeModal,
+  theme,
+  themeType,
   effectiveMode,
   colors,
   exportModalState,

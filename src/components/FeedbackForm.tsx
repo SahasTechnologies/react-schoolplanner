@@ -164,7 +164,7 @@ const SlideContent: React.FC<{ children: React.ReactNode; exiting?: boolean }>=(
   return <div className={`${base} ${cls}`}>{children}</div>;
 };
 
-const FeedbackForm: React.FC<FeedbackFormProps> = ({ theme, themeType, effectiveMode, colors }) => {
+const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
   const [step, setStep] = useState(0);
   const [displayStep, setDisplayStep] = useState(0);
   const [isExiting, setIsExiting] = useState(false);
