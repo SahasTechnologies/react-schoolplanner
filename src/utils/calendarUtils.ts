@@ -282,12 +282,6 @@ export function getTodayOrNextEvents(weekData: WeekData | null): { dayLabel: str
   // Build a map: dayIdx (1-5) -> events[]
   const dayEvents: CalendarEvent[][] = [[], [], [], [], []];
   
-  // Helper to check if a date is today
-  const isToday = (date: Date) => {
-    return date.getDate() === now.getDate() &&
-           date.getMonth() === now.getMonth() &&
-           date.getFullYear() === now.getFullYear();
-  };
   
   weekData.events.forEach((event: CalendarEvent) => {
     const eventDate = new Date(event.dtstart);
@@ -302,14 +296,16 @@ export function getTodayOrNextEvents(weekData: WeekData | null): { dayLabel: str
   
   // Check today first if it's a weekday
   if (isWeekday(dayIdx)) {
-    const todayEvents = dayEvents[dayIdx - 1].filter(event => isToday(new Date(event.dtstart)));
+    const todayEvents = dayEvents[dayIdx - 1];
     // Stay on Today if there are no events at all for today
     if (todayEvents.length === 0) {
       return { dayLabel: 'Today', events: [] };
     }
-    // Determine if there is at least one event that has not ended yet
+    // Determine if there is at least one event that has not ended yet (compare using today's date + event time)
+    const mergeWithToday = (d: Date) => new Date(now.getFullYear(), now.getMonth(), now.getDate(), d.getHours(), d.getMinutes(), d.getSeconds() || 0, 0);
     const hasUpcomingOrOngoing = todayEvents.some(event => {
-      const endTime = event.dtend ? new Date(event.dtend) : new Date(new Date(event.dtstart).getTime() + 3600000);
+      const assumedEnd = event.dtend ? new Date(event.dtend) : new Date(new Date(event.dtstart).getTime() + 3600000);
+      const endTime = mergeWithToday(assumedEnd);
       return endTime.getTime() > now.getTime();
     });
 
@@ -328,12 +324,10 @@ export function getTodayOrNextEvents(weekData: WeekData | null): { dayLabel: str
   for (let i = 0; i < 5; i++) {
     const checkIdx = ((nextDayIdx - 1 + i) % 5);
     if (dayEvents[checkIdx].length > 0) {
-      // Get the actual day name
-      const nextDate = new Date(dayEvents[checkIdx][0].dtstart);
-      const isNextDayTomorrow = nextDate.getDate() === now.getDate() + 1 &&
-                               nextDate.getMonth() === now.getMonth() &&
-                               nextDate.getFullYear() === now.getFullYear();
-      
+      // Get label relative to today
+      const weekdayIdxToDow = [1,2,3,4,5]; // Mon..Fri
+      const nextDow = weekdayIdxToDow[checkIdx];
+      const isNextDayTomorrow = ((now.getDay() + 1) % 7) === nextDow;
       const label = isNextDayTomorrow ? 'Tomorrow' : ['Monday','Tuesday','Wednesday','Thursday','Friday'][checkIdx];
       return { dayLabel: `${label}'s Schedule`, events: dayEvents[checkIdx] };
     }

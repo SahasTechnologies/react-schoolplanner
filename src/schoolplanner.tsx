@@ -16,7 +16,6 @@ import {
   CalendarEvent, 
   WeekData, 
   insertBreaksBetweenEvents, 
-  getTodayOrNextEvents, 
   isBreakEvent 
 } from './utils/calendarUtils.ts';
 import TodayScheduleTimeline from './components/TodayScheduleTimeline';
@@ -723,7 +722,12 @@ const SchoolPlanner = () => {
         }
         dayLabel = `${targetDate.toLocaleDateString(undefined, { weekday: 'long' })}'s Schedule`;
         const targetDayOfWeek = targetDate.getDay();
-        events = weekData?.events.filter(event => event.dtstart.getDay() === targetDayOfWeek) || [];
+        events = (weekData?.events.filter(event => event.dtstart.getDay() === targetDayOfWeek) || [])
+          .sort((a, b) => {
+            const aTime = a.dtstart.getHours() * 60 + a.dtstart.getMinutes();
+            const bTime = b.dtstart.getHours() * 60 + b.dtstart.getMinutes();
+            return aTime - bTime;
+          });
         if (events.length) {
           const d = events[0].dtstart;
           selectedScheduleDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -733,14 +737,18 @@ const SchoolPlanner = () => {
         events = [];
       }
     } else {
-      // Use original logic for today's events
-      const result = getTodayOrNextEvents(weekData);
-      dayLabel = result.dayLabel;
-      events = result.events;
-      if (events.length) {
-        const d = events[0].dtstart;
-        selectedScheduleDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-      }
+      // Always show today's weekday schedule (do not auto-jump to next day)
+      const now = new Date();
+      const todayDow = now.getDay(); // 0=Sun..6=Sat
+      dayLabel = 'Today';
+      events = (weekData?.events.filter(event => event.dtstart.getDay() === todayDow) || [])
+        .sort((a, b) => {
+          const aTime = a.dtstart.getHours() * 60 + a.dtstart.getMinutes();
+          const bTime = b.dtstart.getHours() * 60 + b.dtstart.getMinutes();
+          return aTime - bTime;
+        });
+      // Use today's date for timeline progress overlay
+      selectedScheduleDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     }
     // Insert breaks between events for home screen too
     const eventsWithBreaks = insertBreaksBetweenEvents(events);
@@ -793,7 +801,11 @@ const SchoolPlanner = () => {
                 <p>No events</p>
               </div>
             ) : (
-              <div ref={listRef} className="relative space-y-3 pl-10">
+              <div
+                ref={listRef}
+                className="relative space-y-3 pl-10"
+                onMouseLeave={() => setHoveredIndex(null)}
+              >
                 <TodayScheduleTimeline
                   eventsWithBreaks={eventsWithBreaks}
                   measuredHeights={measuredHeights}
@@ -812,7 +824,7 @@ const SchoolPlanner = () => {
                     className="relative z-10 w-full"
                     ref={el => { cardRefs.current[idx] = el; }}
                     onMouseEnter={() => setHoveredIndex(idx)}
-                    onMouseLeave={() => setHoveredIndex(prev => (prev === idx ? null : prev))}
+                    onMouseLeave={() => setHoveredIndex(null)}
                   >
                     <EventCard
                       event={event}
@@ -874,50 +886,54 @@ const SchoolPlanner = () => {
   // Actual list container height to convert px -> % precisely
   const [containerHeight, setContainerHeight] = useState<number>(0);
 
-  // Measure actual card heights so the gradient aligns exactly with each card (including breaks)
+  // Reset refs and measurements on route change to avoid stale elements after navigating away/back
+  useEffect(() => {
+    cardRefs.current = [];
+    setMeasuredHeights([]);
+    setSegments([]);
+    setContainerHeight(0);
+    setHoveredIndex(null);
+  }, [location.pathname]);
+
+  // Measure card heights initially and when the list content changes (not on hover).
   useLayoutEffect(() => {
-    // Measure positions and heights to align gradient precisely
-    const measure = () => {
-      try {
-        const container = listRef.current;
-        if (!container) {
-          setMeasuredHeights([]);
-          setSegments([]);
-          return;
-        }
-        const listRect = container.getBoundingClientRect();
-        const n = cardRefs.current.length;
-        if (!n || listRect.height <= 0) {
-          setMeasuredHeights([]);
-          setSegments([]);
-          return;
-        }
-        setContainerHeight(Math.max(1, Math.round(listRect.height)));
-        const heights: number[] = [];
-        const segs: { startPct: number; endPct: number }[] = [];
-        for (let i = 0; i < n; i++) {
-          const el = cardRefs.current[i];
-          const r = el?.getBoundingClientRect();
-          if (!r) continue;
-          const h = Math.max(1, Math.round(r.height));
-          heights.push(h);
-          const start = Math.max(0, r.top - listRect.top);
-          const end = Math.max(start, r.bottom - listRect.top);
-          const startPct = Math.max(0, Math.min(100, (start / listRect.height) * 100));
-          const endPct = Math.max(0, Math.min(100, (end / listRect.height) * 100));
-          segs.push({ startPct, endPct });
-        }
-        setMeasuredHeights(heights);
-        setSegments(segs);
-      } catch {
-        // ignore
+    try {
+      const container = listRef.current;
+      if (!container) {
+        setMeasuredHeights([]);
+        setSegments([]);
+        return;
       }
-    };
-    measure();
-    // Also re-measure after the hover transition completes
-    const t = setTimeout(measure, 320);
-    return () => clearTimeout(t);
-  }, [showNextDay, cardRefs.current.length, hoveredIndex]);
+      const listRect = container.getBoundingClientRect();
+      const n = cardRefs.current.length;
+      if (!n || listRect.height <= 0) {
+        setMeasuredHeights([]);
+        setSegments([]);
+        return;
+      }
+      setContainerHeight(Math.max(1, Math.round(listRect.height)));
+      const heights: number[] = [];
+      const segs: { startPct: number; endPct: number }[] = [];
+      for (let i = 0; i < n; i++) {
+        const el = cardRefs.current[i];
+        const r = el?.getBoundingClientRect();
+        if (!r) continue;
+        const h = Math.max(1, Math.round(r.height));
+        heights.push(h);
+        const start = Math.max(0, r.top - listRect.top);
+        const end = Math.max(start, r.bottom - listRect.top);
+        const startPct = Math.max(0, Math.min(100, (start / listRect.height) * 100));
+        const endPct = Math.max(0, Math.min(100, (end / listRect.height) * 100));
+        segs.push({ startPct, endPct });
+      }
+      setMeasuredHeights(heights);
+      setSegments(segs);
+    } catch {
+      // ignore
+    }
+  }, [showNextDay, cardRefs.current.length]);
+
+  // Note: Hover changes are handled by ResizeObserver below; no extra timers on hover to avoid flicker.
 
   // Re-measure on window resize to keep alignment accurate
   useEffect(() => {
@@ -937,14 +953,17 @@ const SchoolPlanner = () => {
     return () => clearInterval(id);
   }, []);
 
-  // Observe card size changes to keep gradient aligned without relying on hover state
+  // Simple ResizeObserver that only measures on window resize, not during hover animations
   useEffect(() => {
+    const container = listRef.current;
+    if (!container) return;
     if (!('ResizeObserver' in window)) return;
-    const ro = new ResizeObserver(() => {
+
+    const measure = () => {
       try {
-        const container = listRef.current;
-        if (!container) return;
-        const listRect = container.getBoundingClientRect();
+        const cont = listRef.current;
+        if (!cont) return;
+        const listRect = cont.getBoundingClientRect();
         const n = cardRefs.current.length;
         if (!n || listRect.height <= 0) return;
         setContainerHeight(Math.max(1, Math.round(listRect.height)));
@@ -957,16 +976,62 @@ const SchoolPlanner = () => {
           heights.push(Math.max(1, Math.round(r.height)));
           const start = Math.max(0, r.top - listRect.top);
           const end = Math.max(start, r.bottom - listRect.top);
-          segs.push({ startPct: Math.max(0, Math.min(100, (start / listRect.height) * 100)), endPct: Math.max(0, Math.min(100, (end / listRect.height) * 100)) });
+          segs.push({
+            startPct: Math.max(0, Math.min(100, (start / listRect.height) * 100)),
+            endPct: Math.max(0, Math.min(100, (end / listRect.height) * 100)),
+          });
         }
         setMeasuredHeights(heights);
         setSegments(segs);
       } catch {}
-    });
-    cardRefs.current.forEach(el => el && ro.observe(el));
-    return () => ro.disconnect();
-  }, [showNextDay]);
-  
+    };
+
+    // Initial measurement
+    measure();
+
+    // Only observe window resize, not individual element changes
+    const handleResize = () => measure();
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [showNextDay, location.pathname, cardRefs.current.length]);
+
+  // Re-measure gradient smoothly after hover state changes (both on hover and unhover)
+  useEffect(() => {
+    const measure = () => {
+      try {
+        const cont = listRef.current;
+        if (!cont) return;
+        const listRect = cont.getBoundingClientRect();
+        const n = cardRefs.current.length;
+        if (!n || listRect.height <= 0) return;
+        setContainerHeight(Math.max(1, Math.round(listRect.height)));
+        const heights: number[] = [];
+        const segs: { startPct: number; endPct: number }[] = [];
+        for (let i = 0; i < n; i++) {
+          const el = cardRefs.current[i];
+          const r = el?.getBoundingClientRect();
+          if (!r) continue;
+          heights.push(Math.max(1, Math.round(r.height)));
+          const start = Math.max(0, r.top - listRect.top);
+          const end = Math.max(start, r.bottom - listRect.top);
+          segs.push({
+            startPct: Math.max(0, Math.min(100, (start / listRect.height) * 100)),
+            endPct: Math.max(0, Math.min(100, (end / listRect.height) * 100)),
+          });
+        }
+        setMeasuredHeights(heights);
+        setSegments(segs);
+      } catch {}
+    };
+    
+    // Measure after animation completes (both hover and unhover)
+    const timeout = setTimeout(measure, 320);
+    return () => clearTimeout(timeout);
+  }, [hoveredIndex]); // Triggers on both hover start (hoveredIndex becomes number) and hover end (becomes null)
+
   // Toggle handler with weekend logic
   const handleDayToggle = () => {
     // Simply flip the toggle; date selection logic is handled in render and helpers

@@ -67,25 +67,25 @@ const EventCard: React.FC<EventCardProps> = ({
 
   const infoFields: Record<string, React.ReactNode> = {
     time: (
-      <div key="time" className="flex items-center gap-1 text-xs opacity-80 mb-1">
+            <div key="time" className="flex items-center gap-1 text-xs opacity-80">
         <Clock size={12} />
         <span>{formatTime(event.dtstart)}{event.dtend && !isNaN(new Date(event.dtend).getTime()) ? ` - ${formatTime(event.dtend ?? event.dtstart)}` : ''}</span>
       </div>
     ),
     location: event.location ? (
-      <div key="location" className="flex items-center gap-1 text-xs opacity-80 mb-1">
+            <div key="location" className="flex items-center gap-1 text-xs opacity-80">
         <MapPin size={12} />
         <span>{event.location}</span>
       </div>
     ) : null,
     teacher: teacherName ? (
-      <div key="teacher" className="flex items-center gap-1 text-xs opacity-80 mb-1">
+            <div key="teacher" className="flex items-center gap-1 text-xs opacity-80">
         <User size={12} />
         <span>{teacherName}</span>
       </div>
     ) : null,
     period: periodInfo ? (
-      <div key="period" className="flex items-center gap-1 text-xs opacity-80 mb-1">
+            <div key="period" className="flex items-center gap-1 text-xs opacity-80">
         <CalendarRange size={12} />
         <span>Period: {periodInfo}</span>
       </div>
@@ -115,13 +115,11 @@ const EventCard: React.FC<EventCardProps> = ({
 
   // Keep content mounted until animation finishes
   React.useEffect(() => {
-    let timeout: ReturnType<typeof setTimeout>;
     if (expanded) {
       setShowAllInfo(true);
     } else {
-      timeout = setTimeout(() => setShowAllInfo(false), 300); // match transition duration
+      setShowAllInfo(false); // Remove delay - shrink immediately
     }
-    return () => clearTimeout(timeout);
   }, [expanded]);
 
   return (

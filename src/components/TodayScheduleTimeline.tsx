@@ -7,7 +7,6 @@ interface TodayScheduleTimelineProps {
   segments: { startPct: number; endPct: number }[];
   gapBetweenCards: number;
   containerHeight: number;
-  hoveredIndex: number | null;
   nowTs: number;
   selectedScheduleDate: Date | null;
   getEventColour: (title: string) => string;
@@ -19,7 +18,6 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
   segments,
   gapBetweenCards,
   containerHeight,
-  hoveredIndex,
   nowTs,
   selectedScheduleDate,
   getEventColour,
@@ -105,12 +103,12 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
     <>
       {/* Base translucent gradient */}
       <div
-        className="absolute left-3 top-0 bottom-0 rounded-full transition-all duration-300 z-0"
+        className="absolute left-3 top-0 bottom-0 rounded-full transition-all duration-150 z-0"
         style={{ width: 10, pointerEvents: 'none', opacity: 0.35, background: gradientCSS }}
       />
       {/* Progress overlay: full-opacity gradient clipped by day progress */}
       <div
-        className="absolute left-3 top-0 bottom-0 rounded-full transition-all duration-300 z-[1]"
+        className="absolute left-3 top-0 bottom-0 rounded-full transition-all duration-150 z-[1]"
         style={{
           width: 10,
           pointerEvents: 'none',
@@ -119,16 +117,7 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
           clipPath: `inset(-1px 0 ${100 - progressPctVis}% 0)`,
         }}
       />
-      {/* Hover overlay: emphasize hovered card region and expand with card height */}
-      {hoveredIndex !== null && segments.length === n && segments[hoveredIndex] && (
-        <div
-          className="absolute top-0 left-[10px] w-[6px] h-full transition-all duration-300 ease-in-out"
-          style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-            clipPath: `inset(${segments[hoveredIndex].startPct - 0.1}% 0 ${100 - segments[hoveredIndex].endPct - 0.1}% 0)`,
-          }}
-        />
-      )}
+      {/* Hover overlay removed to avoid stray translucent line */}
     </>
   );
 };
