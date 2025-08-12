@@ -812,7 +812,6 @@ const SchoolPlanner = () => {
                   segments={segments}
                   gapBetweenCards={12} // Default gap, can be measured if needed
                   containerHeight={containerHeight}
-                  hoveredIndex={hoveredIndex}
                   nowTs={nowTs}
                   selectedScheduleDate={selectedScheduleDate}
                   getEventColour={getEventColour}
