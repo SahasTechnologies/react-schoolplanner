@@ -16,7 +16,7 @@ import {
   CalendarEvent, 
   WeekData, 
   insertBreaksBetweenEvents, 
-  isBreakEvent 
+  isBreakEvent,
 } from './utils/calendarUtils.ts';
 import TodayScheduleTimeline from './components/TodayScheduleTimeline';
 import WelcomeScreen from './components/WelcomeScreen';
@@ -1166,6 +1166,7 @@ const SchoolPlanner = () => {
         const info = {
           time: formatCountdownForTab(diff > 0 ? diff : 0),
           event: normalizeSubjectName(soonest.event.summary, true),
+          location: soonest.event.location || '',
         };
         setTabCountdown(info);
         console.log('Updated tabCountdown:', info);
@@ -1196,6 +1197,8 @@ const SchoolPlanner = () => {
       return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     }
   }
+
+  
 
   // Make CountdownBox a pure display component
   type CountdownBoxProps = {
@@ -1579,7 +1582,7 @@ const SchoolPlanner = () => {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
   // Add state for tab countdown info (for tab title)
-  const [tabCountdown, setTabCountdown] = useState<{ time: string; event: string } | null>(null);
+  const [tabCountdown, setTabCountdown] = useState<{ time: string; event: string; location?: string } | null>(null);
 
   // Save infoOrder and infoShown to localStorage
   useEffect(() => {
@@ -1655,7 +1658,8 @@ const SchoolPlanner = () => {
   // Update document.title for countdown in tab title
   useEffect(() => {
     if (countdownInTitle && tabCountdown && tabCountdown.time && tabCountdown.event) {
-      const newTitle = `${tabCountdown.time} until ${tabCountdown.event}`;
+      const loc = tabCountdown.location ? ` in ${tabCountdown.location}` : '';
+      const newTitle = `${tabCountdown.time} until ${tabCountdown.event}${loc}`;
       document.title = newTitle;
       console.log('Updated document title:', newTitle);
     } else {

@@ -1,5 +1,5 @@
 // Service Worker for School Planner
-const CACHE_NAME = 'school-planner-v1';
+const CACHE_NAME = 'school-planner-v2';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -27,30 +27,54 @@ self.addEventListener('install', (event) => {
 
 // Fetch event - serve from cache when offline, update cache when online
 self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  const url = new URL(req.url);
+
+  // Cache-First strategy for font files
+  const isFontRequest =
+    req.destination === 'font' || /\.(?:woff2?|ttf|otf|eot)$/i.test(url.pathname);
+
+  if (isFontRequest) {
+    event.respondWith(
+      caches.open(CACHE_NAME).then((cache) =>
+        cache.match(req).then((cached) => {
+          if (cached) return cached;
+          return fetch(req)
+            .then((resp) => {
+              if (resp && resp.status === 200) {
+                cache.put(req, resp.clone());
+                console.log('Cached font:', req.url);
+              }
+              return resp;
+            })
+            .catch(() => cached || Response.error());
+        })
+      )
+    );
+    return; // Do not fall through to generic handler
+  }
+
+  // Generic: Stale-While-Revalidate for other requests backed by cache if present
   event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // If we have a cached version, return it immediately
-        if (response) {
-          // But also fetch the latest version in the background to update cache
-          fetch(event.request).then((fetchResponse) => {
+    caches.match(req).then((response) => {
+      if (response) {
+        // Update in background
+        fetch(req)
+          .then((fetchResponse) => {
             if (fetchResponse.status === 200) {
               caches.open(CACHE_NAME).then((cache) => {
-                cache.put(event.request, fetchResponse.clone());
-                console.log('Updated cache for:', event.request.url);
+                cache.put(req, fetchResponse.clone());
+                console.log('Updated cache for:', req.url);
               });
             }
-          }).catch(() => {
-            // If fetch fails, we still have the cached version
-            console.log('Failed to update cache for:', event.request.url);
+          })
+          .catch(() => {
+            console.log('Failed to update cache for:', req.url);
           });
-          
-          return response;
-        }
-        
-        // If no cached version, fetch from network
-        return fetch(event.request);
-      })
+        return response;
+      }
+      return fetch(req);
+    })
   );
 });
 

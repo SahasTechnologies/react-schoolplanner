@@ -1,4 +1,9 @@
-/* Font loaded via @fontsource in main.tsx */
+/* Load Red Hat Text early to avoid fallback flash */
+@import "@fontsource/red-hat-text/300.css?display=block";
+@import "@fontsource/red-hat-text/400.css?display=block";
+@import "@fontsource/red-hat-text/500.css?display=block";
+@import "@fontsource/red-hat-text/600.css?display=block";
+@import "@fontsource/red-hat-text/700.css?display=block";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
