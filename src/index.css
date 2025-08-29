@@ -1,16 +1,11 @@
-/* Load Red Hat Text early to avoid fallback flash */
-@import "@fontsource/red-hat-text/300.css?display=block";
-@import "@fontsource/red-hat-text/400.css?display=block";
-@import "@fontsource/red-hat-text/500.css?display=block";
-@import "@fontsource/red-hat-text/600.css?display=block";
-@import "@fontsource/red-hat-text/700.css?display=block";
+/* Fonts loaded via @fontsource imports in main.tsx for reliability */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
   margin: 0;
-  font-family: 'Red Hat Text', sans-serif;
+  font-family: 'Red Hat Text';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

@@ -1658,7 +1658,9 @@ const SchoolPlanner = () => {
   // Update document.title for countdown in tab title
   useEffect(() => {
     if (countdownInTitle && tabCountdown && tabCountdown.time && tabCountdown.event) {
-      const loc = tabCountdown.location ? ` in ${tabCountdown.location}` : '';
+      const rawLoc = tabCountdown.location || '';
+      const cleanedLoc = rawLoc.replace(/^Room:\s*/i, '').trim();
+      const loc = cleanedLoc ? ` in ${cleanedLoc}` : '';
       const newTitle = `${tabCountdown.time} until ${tabCountdown.event}${loc}`;
       document.title = newTitle;
       console.log('Updated document title:', newTitle);
@@ -1818,14 +1820,14 @@ const SchoolPlanner = () => {
   }
   if (welcomeStep !== 'completed') {
     return (
-      <div className={`min-h-screen ${colors.background} text-white flex items-center justify-center font-inter`}>
+      <div className={`min-h-screen ${colors.background} text-white flex items-center justify-center`}>
         {mainContent}
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen ${colors.background} text-white flex font-inter`}>
+    <div className={`min-h-screen ${colors.background} text-white flex`}>
       {/* Sidebar */}
       <Sidebar
         navigate={navigate}
