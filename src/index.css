@@ -1,11 +1,12 @@
-/* Fonts loaded via @fontsource imports in main.tsx for reliability */
+/* Fonts loaded via Bunny Fonts CDN in index.html for privacy and performance */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
   margin: 0;
-  font-family: 'Red Hat Text';
+  /* Use Red Hat Text from Bunny Fonts, fallback to a generic sans-serif for instant render */
+  font-family: 'Red Hat Text', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

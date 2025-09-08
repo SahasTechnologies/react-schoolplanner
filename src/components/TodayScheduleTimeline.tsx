@@ -90,8 +90,16 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
     const todayY = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
     const selectedY = selectedScheduleDate ? new Date(selectedScheduleDate.getFullYear(), selectedScheduleDate.getMonth(), selectedScheduleDate.getDate()).getTime() : null;
     const isViewingToday = selectedY !== null && selectedY === todayY;
-    const isInActiveWindow = isViewingToday && minStart !== null && maxEnd !== null && nowTs >= minStart && nowTs <= maxEnd;
-    const finalProgress = isInActiveWindow ? progressPct : 0;
+    let finalProgress = 0;
+    if (isViewingToday && minStart !== null && maxEnd !== null) {
+      if (nowTs <= minStart) {
+        finalProgress = 0;
+      } else if (nowTs >= maxEnd) {
+        finalProgress = 100;
+      } else {
+        finalProgress = progressPct;
+      }
+    }
 
     return { gradientCSS: finalGradient, progressPctVis: finalProgress };
 
@@ -99,25 +107,45 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
 
   if (n === 0) return null;
 
+  // Compute a stable clip-path so the overlay fills from top downward.
+  // Add a small fudge on top when progress > 0 and at 100% on both edges to remove any visible caps.
+  const clipBottomPct = Math.max(0, 100 - progressPctVis);
+  let clipPathStr: string;
+  if (progressPctVis >= 99.9) {
+    // Slightly overfill both top and bottom
+    clipPathStr = 'inset(-1px 0 -1px 0)';
+  } else if (progressPctVis <= 0.0001) {
+    // Fully hidden
+    clipPathStr = 'inset(0 0 100% 0)';
+  } else {
+    // Slightly overfill the top edge while clipping the bottom by percentage
+    clipPathStr = `inset(-1px 0 ${clipBottomPct}% 0)`;
+  }
+
   return (
     <>
-      {/* Base translucent gradient */}
+      {/* Container controls rounding; children are square and clipped inside to avoid top/bottom gaps */}
       <div
-        className="absolute left-3 top-0 bottom-0 rounded-full transition-all duration-150 z-0"
-        style={{ width: 10, pointerEvents: 'none', opacity: 0.35, background: gradientCSS }}
-      />
-      {/* Progress overlay: full-opacity gradient clipped by day progress */}
-      <div
-        className="absolute left-3 top-0 bottom-0 rounded-full transition-all duration-150 z-[1]"
-        style={{
-          width: 10,
-          pointerEvents: 'none',
-          opacity: 1,
-          background: gradientCSS,
-          clipPath: `inset(-1px 0 ${100 - progressPctVis}% 0)`,
-        }}
-      />
-      {/* Hover overlay removed to avoid stray translucent line */}
+        className="absolute left-3 top-0 bottom-0 w-[10px] rounded-full overflow-hidden"
+        style={{ pointerEvents: 'none' }}
+      >
+        {/* Base translucent gradient */}
+        <div
+          className="absolute inset-0 z-0"
+          style={{ opacity: 0.35, background: gradientCSS }}
+        />
+        {/* Progress overlay: full-opacity gradient clipped by day progress */}
+        <div
+          className="absolute inset-0 z-[1]"
+          style={{
+            opacity: 1,
+            background: gradientCSS,
+            clipPath: clipPathStr,
+            transition: 'clip-path 220ms ease-out',
+            willChange: 'clip-path',
+          }}
+        />
+      </div>
     </>
   );
 };

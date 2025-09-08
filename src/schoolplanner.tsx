@@ -997,7 +997,7 @@ const SchoolPlanner = () => {
     };
   }, [showNextDay, location.pathname, cardRefs.current.length]);
 
-  // Re-measure gradient smoothly after hover state changes (both on hover and unhover)
+  // Re-measure gradient smoothly around hover changes (few lightweight checks)
   useEffect(() => {
     const measure = () => {
       try {
@@ -1025,11 +1025,19 @@ const SchoolPlanner = () => {
         setSegments(segs);
       } catch {}
     };
-    
-    // Measure after animation completes (both hover and unhover)
-    const timeout = setTimeout(measure, 320);
-    return () => clearTimeout(timeout);
-  }, [hoveredIndex]); // Triggers on both hover start (hoveredIndex becomes number) and hover end (becomes null)
+
+    // Kick a few gentle re-measures to follow the hover animation without heavy cost
+    let rafId = 0;
+    const timeouts: number[] = [];
+
+    rafId = window.requestAnimationFrame(measure); // next frame
+    [120, 240, 360].forEach((ms) => timeouts.push(window.setTimeout(measure, ms)));
+
+    return () => {
+      if (rafId) window.cancelAnimationFrame(rafId);
+      timeouts.forEach((id) => window.clearTimeout(id));
+    };
+  }, [hoveredIndex]); // Triggers on hover start and end
 
   // Toggle handler with weekend logic
   const handleDayToggle = () => {
