@@ -2109,28 +2109,28 @@ const SchoolPlanner = () => {
           className={`p-3 rounded-lg transition-colors duration-200 ${location.pathname === '/home' ? `${colors.buttonAccent} text-white` : `hover:${colors.sidebarHover}`}`}
           title="Home"
         >
-          <Home size={20} className={location.pathname === '/home' ? 'text-white' : (colors.effectiveMode === 'dark' ? 'text-gray-400' : colors.text)} />
+          <Home size={20} className={location.pathname === '/home' ? 'text-white' : (effectiveMode === 'dark' ? 'text-gray-400' : colors.text)} />
         </button>
         <button
           onClick={() => navigate('/calendar')}
           className={`p-3 rounded-lg transition-colors duration-200 ${location.pathname === '/calendar' ? `${colors.buttonAccent} text-white` : `hover:${colors.sidebarHover}`}`}
           title="Calendar"
         >
-          <Calendar size={20} className={location.pathname === '/calendar' ? 'text-white' : (colors.effectiveMode === 'dark' ? 'text-gray-400' : colors.text)} />
+          <Calendar size={20} className={location.pathname === '/calendar' ? 'text-white' : (effectiveMode === 'dark' ? 'text-gray-400' : colors.text)} />
         </button>
         <button
           onClick={() => navigate('/markbook')}
           className={`p-3 rounded-lg transition-colors duration-200 ${location.pathname === '/markbook' ? `${colors.buttonAccent} text-white` : `hover:${colors.sidebarHover}`}`}
           title="Markbook"
         >
-          <BarChart3 size={20} className={location.pathname === '/markbook' ? 'text-white' : (colors.effectiveMode === 'dark' ? 'text-gray-400' : colors.text)} />
+          <BarChart3 size={20} className={location.pathname === '/markbook' ? 'text-white' : (effectiveMode === 'dark' ? 'text-gray-400' : colors.text)} />
         </button>
         <button
           onClick={() => navigate('/settings')}
           className={`p-3 rounded-lg transition-colors duration-200 ${location.pathname === '/settings' ? `${colors.buttonAccent} text-white` : `hover:${colors.sidebarHover}`}`}
           title="Settings"
         >
-          <SettingsIcon size={20} className={location.pathname === '/settings' ? 'text-white' : (colors.effectiveMode === 'dark' ? 'text-gray-400' : colors.text)} />
+          <SettingsIcon size={20} className={location.pathname === '/settings' ? 'text-white' : (effectiveMode === 'dark' ? 'text-gray-400' : colors.text)} />
         </button>
       </div>
 
