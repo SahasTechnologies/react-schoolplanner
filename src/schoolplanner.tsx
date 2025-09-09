@@ -3,19 +3,20 @@
 // Favicon and title are set in index.html, see instructions below.
 import * as React from 'react';
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
-import { 
+import {
   Calendar, FileText, Home, BarChart3,
-  Settings as SettingsIcon, LoaderCircle, Shield, ChevronsUpDown
+  Settings as SettingsIcon, LoaderCircle, Shield, ChevronsUpDown,
+  Maximize, X
 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { ThemeKey, getColors } from './utils/themeUtils';
 import { ThemeModal } from './components/ThemeModal';
 import { normalizeSubjectName } from './utils/subjectUtils.ts';
 import { getSubjectIcon } from './utils/subjectUtils.ts';
-import { 
-  CalendarEvent, 
-  WeekData, 
-  insertBreaksBetweenEvents, 
+import {
+  CalendarEvent,
+  WeekData,
+  insertBreaksBetweenEvents,
   isBreakEvent,
 } from './utils/calendarUtils.ts';
 import TodayScheduleTimeline from './components/TodayScheduleTimeline';
@@ -70,7 +71,7 @@ const SchoolPlanner = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [subjects, setSubjects] = useState<Subject[]>([]);
-  
+
   // NEW: State for exam side panel
   const [selectedSubjectForExam, setSelectedSubjectForExam] = useState<Subject | null>(null);
 
@@ -82,7 +83,7 @@ const SchoolPlanner = () => {
 
   // NEW: Sort option for subjects in Markbook
   const [subjectSortOption, setSubjectSortOption] = useState<'alphabetical-asc' | 'alphabetical-desc' | 'marks-asc' | 'marks-desc'>('alphabetical-asc');
-  
+
   // Persist examsBySubject
   useEffect(() => {
     localStorage.setItem('examsBySubject', JSON.stringify(examsBySubject));
@@ -216,16 +217,16 @@ const SchoolPlanner = () => {
       file = e;
     }
     if (!file) return;
-    
+
     setLoading(true);
     setError('');
-    
+
     // Show loading notification
     const loadingNotificationId = showInfo('Uploading File', `Processing ${file.name}...`, { effectiveMode, colors, duration: 0 });
-    
+
     try {
       const result = await processFile(file, autoNamingEnabled);
-      
+
       if (result.error) {
         setError(result.error);
         setWelcomeStep('upload');
@@ -234,35 +235,35 @@ const SchoolPlanner = () => {
         showError('Upload Failed', result.error, { effectiveMode, colors });
         return;
       }
-      
+
       if (result.weekData) {
         setWeekData(result.weekData);
         localStorage.setItem('weekData', JSON.stringify({
           ...result.weekData,
           monday: result.weekData.monday.toISOString(),
           friday: result.weekData.friday.toISOString(),
-          events: result.weekData.events.map((e: any) => ({ 
-            ...e, 
-            dtstart: e.dtstart.toISOString(), 
-            dtend: e.dtend ? e.dtend.toISOString() : undefined 
+          events: result.weekData.events.map((e: any) => ({
+            ...e,
+            dtstart: e.dtstart.toISOString(),
+            dtend: e.dtend ? e.dtend.toISOString() : undefined
           }))
         }));
       }
-      
+
       if (result.subjects.length > 0) {
         setSubjects(result.subjects);
         localStorage.setItem('subjects', JSON.stringify(result.subjects));
       }
-      
+
       // Update userName if it exists in the imported data
       if (result.userName && result.userName !== userName) {
         setUserName(result.userName);
         localStorage.setItem('userName', result.userName);
       }
-      
+
       setWelcomeStep('name_input');
       setLoading(false);
-      
+
       // Remove loading notification and show success notification
       removeNotification(loadingNotificationId);
       const fileType = file.name.endsWith('.ics') ? 'Calendar' : 'Data';
@@ -303,11 +304,11 @@ const SchoolPlanner = () => {
     setUserName(''); // Clear user name
     setAutoNamingEnabled(true); // Reset auto-naming to default
     setOfflineCachingEnabled(false); // Reset offline caching to default
-    
+
     // Clear service worker and cache
     const unregisterSuccess = await unregisterServiceWorker();
     const clearSuccess = await clearAllCaches();
-    
+
     if (unregisterSuccess && clearSuccess) {
       showInfo('Data Cleared', 'All data has been cleared and cached files deleted successfully', { effectiveMode, colors });
     } else {
@@ -401,14 +402,14 @@ const SchoolPlanner = () => {
         }
         const dayOfWeek = eventDate.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
         console.log(`Debug: Event local date ${eventDate.toLocaleString()}, dayOfWeek=${dayOfWeek}, summary=${event.summary}`);
-        
+
         // Fix: Correctly map Sunday (0) to -1 and Saturday (6) to 5
         const dayIndex = dayOfWeek === 0 ? -1 : dayOfWeek - 1;
-        
+
         // Only skip weekends, allow all weekdays (indexes 0-4)
         if (dayIndex >= 0 && dayIndex < 5) {
           dayEvents[dayIndex].push(event);
-          console.log(`Debug: Added event to day ${dayIndex} (${['Mon','Tue','Wed','Thu','Fri'][dayIndex]})`, event);
+          console.log(`Debug: Added event to day ${dayIndex} (${['Mon', 'Tue', 'Wed', 'Thu', 'Fri'][dayIndex]})`, event);
         } else {
           console.log(`Debug: Skipped event with dayIndex ${dayIndex}, dayOfWeek=${dayOfWeek}`, event);
         }
@@ -416,7 +417,7 @@ const SchoolPlanner = () => {
 
       // Log the final arrays for each day
       dayEvents.forEach((events, idx) => {
-        console.log(`Debug: Day ${idx} (${['Mon','Tue','Wed','Thu','Fri'][idx]}) has ${events.length} events`);
+        console.log(`Debug: Day ${idx} (${['Mon', 'Tue', 'Wed', 'Thu', 'Fri'][idx]}) has ${events.length} events`);
       });
     }
 
@@ -428,11 +429,11 @@ const SchoolPlanner = () => {
 
     return (
       <div className="space-y-6">
-        <div className={`flex items-center gap-3 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}> 
+        <div className={`flex items-center gap-3 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
           <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
           <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Weekly Schedule</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           {days.map((day, index) => (
             <div key={day} className={`${colors.container} rounded-lg ${colors.border} border`}>
               <div className={`p-4 border-b ${colors.border}`}>
@@ -578,7 +579,7 @@ const SchoolPlanner = () => {
           <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Markbook</h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left: Subjects list */}
           <div className="space-y-4">
             {/* Sort dropdown */}
@@ -785,13 +786,12 @@ const SchoolPlanner = () => {
                 </h3>
                 <button
                   onClick={handleDayToggle}
-                  className={`p-2 rounded hover:bg-opacity-20 transition-colors ${
-                    effectiveMode === 'light' ? 'hover:bg-gray-300' : 'hover:bg-gray-600'
-                  }`}
+                  className={`p-2 rounded hover:bg-opacity-20 transition-colors ${effectiveMode === 'light' ? 'hover:bg-gray-300' : 'hover:bg-gray-600'
+                    }`}
                   title={showNextDay ? 'Show today\'s schedule' : 'Show next day\'s schedule'}
                 >
-                  <ChevronsUpDown 
-                    size={18} 
+                  <ChevronsUpDown
+                    size={18}
                     className={`${effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} hover:${effectiveMode === 'light' ? 'text-black' : 'text-white'} transition-colors`}
                   />
                 </button>
@@ -857,12 +857,13 @@ const SchoolPlanner = () => {
               getEventColour={getEventColour}
               effectiveMode={effectiveMode}
               colors={colors}
+              onFullscreen={() => setIsCountdownFullscreen(true)}
             />
             {/* Quote of the Day Widget below CountdownBox */}
-            <QuoteOfTheDayWidget 
-              theme={theme} 
-              themeType={themeType} 
-              effectiveMode={effectiveMode} 
+            <QuoteOfTheDayWidget
+              theme={theme}
+              themeType={themeType}
+              effectiveMode={effectiveMode}
             />
           </div>
         </div>
@@ -875,7 +876,8 @@ const SchoolPlanner = () => {
   const [nextEventDate, setNextEventDate] = useState<Date | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [countdownSearching, setCountdownSearching] = useState(true);
-  
+  const [isCountdownFullscreen, setIsCountdownFullscreen] = useState(false);
+
   // State for toggling between today and next day's schedule
   const [showNextDay, setShowNextDay] = useState(false);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -943,7 +945,7 @@ const SchoolPlanner = () => {
       try {
         // Trigger full re-measure via dependency above
         setMeasuredHeights((h) => [...h]);
-      } catch {}
+      } catch { }
     };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
@@ -985,7 +987,7 @@ const SchoolPlanner = () => {
         }
         setMeasuredHeights(heights);
         setSegments(segs);
-      } catch {}
+      } catch { }
     };
 
     // Initial measurement
@@ -1026,7 +1028,7 @@ const SchoolPlanner = () => {
         }
         setMeasuredHeights(heights);
         setSegments(segs);
-      } catch {}
+      } catch { }
     };
 
     // Kick a few gentle re-measures to follow the hover animation without heavy cost
@@ -1073,16 +1075,16 @@ const SchoolPlanner = () => {
 
   function findNextRepeatingEvent(now: Date): { event: CalendarEvent; date: Date } | null {
     if (!weekData || !weekData.events || weekData.events.length === 0) return null;
-    
+
     // Get all events and insert breaks
     const eventsWithBreaks = insertBreaksBetweenEvents(weekData.events);
-    
+
     // Calculate next occurrence for all events (including breaks)
-    const nexts = eventsWithBreaks.map((e: CalendarEvent & { isBreak?: boolean }) => ({ 
-      event: e, 
-      date: getNextOccurrence(e, now) 
+    const nexts = eventsWithBreaks.map((e: CalendarEvent & { isBreak?: boolean }) => ({
+      event: e,
+      date: getNextOccurrence(e, now)
     }));
-    
+
     const soonest = nexts.reduce((min, curr) => (min === null || curr.date < min.date ? curr : min), null as { event: CalendarEvent; date: Date } | null);
     return soonest;
   }
@@ -1090,12 +1092,12 @@ const SchoolPlanner = () => {
   // Function to find events based on toggle state (today or next day)
   function findEventsByDayToggle(now: Date, forceNextDay: boolean): { event: CalendarEvent; date: Date } | null {
     if (!weekData || !weekData.events || weekData.events.length === 0) return null;
-    
+
     const eventsWithBreaks = insertBreaksBetweenEvents(weekData.events);
     const currentDay = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-    
-    let targetDate = new Date(now);
-    
+
+    const targetDate = new Date(now);
+
     if (forceNextDay) {
       // Show next "school day" events (skip weekends appropriately)
       if (currentDay === 6) {
@@ -1113,23 +1115,23 @@ const SchoolPlanner = () => {
       }
     }
     // If not forceNextDay, use current date (today)
-    
+
     // Find events for the target date
     const targetDayOfWeek = targetDate.getDay();
     const dayEvents = eventsWithBreaks.filter(event => {
       const eventDay = event.dtstart.getDay();
       return eventDay === targetDayOfWeek;
     });
-    
+
     if (dayEvents.length === 0) return null;
-    
+
     // Sort events by time and find the next one
     const sortedEvents = dayEvents.sort((a, b) => {
       const aTime = a.dtstart.getHours() * 60 + a.dtstart.getMinutes();
       const bTime = b.dtstart.getHours() * 60 + b.dtstart.getMinutes();
       return aTime - bTime;
     });
-    
+
     // If showing today's events, find next event after current time
     if (!forceNextDay) {
       const currentTime = now.getHours() * 60 + now.getMinutes();
@@ -1137,7 +1139,7 @@ const SchoolPlanner = () => {
         const eventTime = event.dtstart.getHours() * 60 + event.dtstart.getMinutes();
         return eventTime > currentTime;
       });
-      
+
       if (upcomingEvent) {
         const eventDate = new Date(targetDate);
         eventDate.setHours(upcomingEvent.dtstart.getHours(), upcomingEvent.dtstart.getMinutes(), upcomingEvent.dtstart.getSeconds(), 0);
@@ -1150,7 +1152,7 @@ const SchoolPlanner = () => {
       eventDate.setHours(firstEvent.dtstart.getHours(), firstEvent.dtstart.getMinutes(), firstEvent.dtstart.getSeconds(), 0);
       return { event: firstEvent, date: eventDate };
     }
-    
+
     return null;
   }
 
@@ -1201,7 +1203,7 @@ const SchoolPlanner = () => {
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-    
+
     if (hours > 0) {
       return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     } else {
@@ -1209,7 +1211,7 @@ const SchoolPlanner = () => {
     }
   }
 
-  
+
 
   // Make CountdownBox a pure display component
   type CountdownBoxProps = {
@@ -1221,8 +1223,9 @@ const SchoolPlanner = () => {
     getEventColour: (title: string) => string;
     effectiveMode: 'light' | 'dark';
     colors: any;
+    onFullscreen?: () => void;
   };
-  const CountdownBox: React.FC<CountdownBoxProps> = ({ searching, nextEvent, nextEventDate, timeLeft, formatCountdown, getEventColour, effectiveMode, colors }) => {
+  const CountdownBox: React.FC<CountdownBoxProps> = ({ searching, nextEvent, nextEventDate, timeLeft, formatCountdown, getEventColour, effectiveMode, colors, onFullscreen }) => {
     // Custom colored icon
     function ColoredSubjectIcon({ summary }: { summary: string }) {
       const color = getEventColour(summary);
@@ -1246,9 +1249,20 @@ const SchoolPlanner = () => {
     }
     return (
       <div className={`${colors.container} rounded-lg ${colors.border} border p-6 flex flex-col items-center justify-center h-fit`}>
-        <div className="flex items-center gap-2 mb-2">
-          <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
-          <span className={`text-lg font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Next Event Countdown</span>
+        <div className="flex items-center justify-between w-full mb-2">
+          <div className="flex items-center gap-2">
+            <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
+            <span className={`text-lg font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Next Event Countdown</span>
+          </div>
+          {onFullscreen && (
+            <button
+              onClick={onFullscreen}
+              className={`p-1 rounded hover:bg-opacity-20 hover:bg-gray-500 transition-colors ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}
+              title="Fullscreen"
+            >
+              <Maximize size={18} />
+            </button>
+          )}
         </div>
         {searching ? (
           <div className="flex flex-col items-center justify-center py-6">
@@ -1265,7 +1279,7 @@ const SchoolPlanner = () => {
             <div className={`text-sm ${effectiveMode === 'light' ? 'text-black opacity-80' : 'text-white opacity-80'}`}>
               {(() => {
                 const now = new Date();
-                const daysDiff = Math.floor((nextEventDate.setHours(0,0,0,0) - now.setHours(0,0,0,0)) / (1000 * 60 * 60 * 24));
+                const daysDiff = Math.floor((nextEventDate.setHours(0, 0, 0, 0) - now.setHours(0, 0, 0, 0)) / (1000 * 60 * 60 * 24));
                 const timeStr = getEventTimeString(nextEventDate, nextEvent);
                 if (daysDiff === 1) {
                   return `Tomorrow at ${timeStr}`;
@@ -1281,6 +1295,173 @@ const SchoolPlanner = () => {
         ) : (
           <div className={`text-lg ${effectiveMode === 'light' ? 'text-black' : 'text-gray-400'}`}>No upcoming events</div>
         )}
+      </div>
+    );
+  };
+
+  // Fullscreen Countdown Modal
+  const FullscreenCountdown: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    searching: boolean;
+    nextEvent: CalendarEvent | null;
+    nextEventDate: Date | null;
+    timeLeft: number | null;
+    formatCountdown: (ms: number | null) => string;
+    getEventColour: (title: string) => string;
+  }> = ({ isOpen, onClose, searching, nextEvent, nextEventDate, timeLeft, formatCountdown, getEventColour }) => {
+    if (!isOpen) return null;
+
+    // Custom colored icon for fullscreen
+    function ColoredSubjectIcon({ summary }: { summary: string }) {
+      const color = getEventColour(summary);
+      const normalizedName = normalizeSubjectName(summary, autoNamingEnabled);
+      const subject = subjects.find(s => normalizeSubjectName(s.name, autoNamingEnabled) === normalizedName);
+      const icon = getSubjectIcon(subject || summary, 32, 'dark');
+      return React.cloneElement(icon, { style: { color } });
+    }
+
+    // Helper for event time string
+    function getEventTimeString(date: Date, event: CalendarEvent) {
+      if (!date) return '';
+      if (
+        event.dtstart.getHours() === 0 &&
+        event.dtstart.getMinutes() === 0 &&
+        (!event.dtend || (event.dtend.getHours() === 0 && event.dtend.getMinutes() === 0))
+      ) {
+        return 'All day';
+      }
+      return event.dtstart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    const eventColor = nextEvent ? getEventColour(nextEvent.summary) : '#94a3b8';
+    const isBreak = nextEvent && isBreakEvent(nextEvent);
+    const displayColor = isBreak ? '#94a3b8' : eventColor;
+
+    return (
+      <div
+        className={`fixed inset-0 z-50 flex items-center justify-center ${colors.background}`}
+        style={{
+          width: '100vw',
+          height: '100vh',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0
+        }}
+      >
+        {/* Circular glow effect from center */}
+        <div
+          className="absolute inset-0 flex items-center justify-center pointer-events-none"
+          style={{
+            background: `radial-gradient(circle at center, ${displayColor}15 0%, ${displayColor}08 30%, transparent 70%)`
+          }}
+        />
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className={`absolute top-6 right-6 transition-colors z-10 ${colors.text} hover:opacity-70`}
+          title="Close fullscreen"
+        >
+          <X size={32} />
+        </button>
+
+        {/* Main content */}
+        <div className="flex flex-col items-center justify-center text-center px-8">
+          {searching ? (
+            <div className="flex flex-col items-center justify-center">
+              <LoaderCircle className={`animate-spin mb-8 ${colors.text}`} size={64} />
+              <span
+                className={`text-2xl ${colors.text}`}
+                style={{
+                  opacity: 0.8,
+                  fontWeight: '400',
+                  fontFamily: "'Red Hat Text', sans-serif"
+                }}
+              >
+                Searching...
+              </span>
+            </div>
+          ) : nextEvent && nextEventDate ? (
+            <>
+              {/* Large countdown timer */}
+              <div
+                className="text-8xl md:text-9xl font-bold mb-8"
+                style={{
+                  color: displayColor,
+                  fontFamily: "'Red Hat Text', sans-serif",
+                  fontWeight: '700'
+                }}
+              >
+                {formatCountdown(timeLeft)}
+              </div>
+
+              {/* "to" text and subject name on same line */}
+              <div className="flex items-center gap-3 mb-6">
+                <span
+                  className={`text-2xl md:text-3xl ${colors.text}`}
+                  style={{
+                    opacity: 0.9,
+                    fontWeight: '400',
+                    fontFamily: "'Red Hat Text', sans-serif"
+                  }}
+                >
+                  to
+                </span>
+                <ColoredSubjectIcon summary={nextEvent.summary} />
+                <span
+                  className="text-2xl md:text-3xl"
+                  style={{
+                    color: displayColor,
+                    fontWeight: '600',
+                    fontFamily: "'Red Hat Text', sans-serif"
+                  }}
+                >
+                  {normalizeSubjectName(nextEvent.summary, true)}
+                </span>
+              </div>
+
+              {/* Event details - only time, no location */}
+              <div className="flex flex-col items-center gap-2">
+                {/* Time info */}
+                <div
+                  className={`text-xl ${colors.text}`}
+                  style={{
+                    opacity: 0.85,
+                    fontWeight: '400',
+                    fontFamily: "'Red Hat Text', sans-serif"
+                  }}
+                >
+                  {(() => {
+                    const now = new Date();
+                    const daysDiff = Math.floor((nextEventDate.setHours(0, 0, 0, 0) - now.setHours(0, 0, 0, 0)) / (1000 * 60 * 60 * 24));
+                    const timeStr = getEventTimeString(nextEventDate, nextEvent);
+                    if (daysDiff === 1) {
+                      return `Tomorrow at ${timeStr}`;
+                    } else if (daysDiff > 1) {
+                      const dayName = nextEventDate.toLocaleDateString(undefined, { weekday: 'long' });
+                      return `On ${dayName} at ${timeStr}`;
+                    } else {
+                      return `at ${timeStr}`;
+                    }
+                  })()}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div
+              className={`text-3xl ${colors.text}`}
+              style={{
+                opacity: 0.8,
+                fontWeight: '400',
+                fontFamily: "'Red Hat Text', sans-serif"
+              }}
+            >
+              No upcoming events
+            </div>
+          )}
+        </div>
       </div>
     );
   };
@@ -1316,7 +1497,7 @@ const SchoolPlanner = () => {
     // Try to load from localStorage, fallback to 'blue'
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('theme');
-      if (saved && ['red','orange','yellow','green','blue','purple','pink','grey'].includes(saved)) {
+      if (saved && ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink', 'grey'].includes(saved)) {
         return saved as ThemeKey;
       }
     }
@@ -1549,7 +1730,7 @@ const SchoolPlanner = () => {
           parsed.friday = new Date(parsed.friday);
           parsed.events = parsed.events.map((e: any) => ({ ...e, dtstart: new Date(e.dtstart), dtend: e.dtend ? new Date(e.dtend) : undefined }));
           setWeekData(parsed);
-        } catch {}
+        } catch { }
       }
     }
     if ((!subjects || subjects.length === 0) && welcomeStep === 'completed') {
@@ -1557,7 +1738,7 @@ const SchoolPlanner = () => {
       if (savedSubjects) {
         try {
           setSubjects(JSON.parse(savedSubjects));
-        } catch {}
+        } catch { }
       }
     }
   }, [weekData, subjects, welcomeStep]);
@@ -1621,7 +1802,7 @@ const SchoolPlanner = () => {
   const handleToggleInfoShown = (key: string) => {
     setInfoShown((prev: Record<string, boolean>) => {
       const newShown = { ...prev, [key]: !prev[key] };
-        // Move to top if toggled on
+      // Move to top if toggled on
       if (newShown[key]) {
         setInfoOrder((prevOrder: { key: string; label: string }[]) => {
           const idx = prevOrder.findIndex(i => i.key === key);
@@ -1634,11 +1815,11 @@ const SchoolPlanner = () => {
           return prevOrder;
         });
       }
-      
+
       // Show notification for the change
       const fieldName = infoOrder.find((item: { key: string; label: string }) => item.key === key)?.label || key;
       showInfo('Display Setting', `${fieldName} ${newShown[key] ? 'shown' : 'hidden'}`, { effectiveMode, colors });
-      
+
       return newShown;
     });
   };
@@ -1698,7 +1879,7 @@ const SchoolPlanner = () => {
     if (saved) {
       try {
         setTabCountdown(JSON.parse(saved));
-      } catch {}
+      } catch { }
     }
   }, []);
 
@@ -1840,14 +2021,16 @@ const SchoolPlanner = () => {
   }
 
   return (
-    <div className={`min-h-screen ${colors.background} text-white flex`}>
-      {/* Sidebar */}
-      <Sidebar
-        navigate={navigate}
-        location={location}
-        colors={colors}
-        SettingsIcon={SettingsIcon}
-      />
+    <div className={`min-h-screen ${colors.background} text-white flex flex-col lg:flex-row`}>
+      {/* Sidebar - Desktop */}
+      <div className="hidden lg:block">
+        <Sidebar
+          navigate={navigate}
+          location={location}
+          colors={colors}
+          SettingsIcon={SettingsIcon}
+        />
+      </div>
       <ThemeModal
         showThemeModal={showThemeModal}
         setShowThemeModal={setShowThemeModal}
@@ -1860,14 +2043,14 @@ const SchoolPlanner = () => {
         colors={colors}
       />
       {/* Main Content */}
-      <div className="flex-1 ml-16">
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-7xl mx-auto">
+      <div className="flex-1 lg:ml-16 pb-16 lg:pb-0 min-w-0">
+        <div className="w-full px-4 py-8 min-h-full">
+          <div className="w-full h-full">
             {/* Header - Conditional based on route */}
             {location.pathname === '/home' && (
               <div className="mb-8 flex items-center">
                 <h1 className={`text-4xl font-bold mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}
-                  style={{textAlign: 'left', width: '100%'}}>
+                  style={{ textAlign: 'left', width: '100%' }}>
                   {userName ? `${getGreeting()}, ${userName}!` : `${getGreeting()}!`}
                 </h1>
               </div>
@@ -1875,7 +2058,7 @@ const SchoolPlanner = () => {
             {location.pathname === '/settings' && (
               <div className="mb-8 flex items-center">
                 <h1 className={`text-4xl font-bold mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}
-                  style={{textAlign: 'left', width: '100%'}}>
+                  style={{ textAlign: 'left', width: '100%' }}>
                   School Planner
                 </h1>
               </div>
@@ -1919,6 +2102,38 @@ const SchoolPlanner = () => {
           subjects={subjects}
         />
       )}
+      {/* Bottom Navigation - Mobile */}
+      <div className={`lg:hidden fixed bottom-0 left-0 right-0 ${colors.container} ${colors.border} border-t flex justify-around items-center py-2 z-40`}>
+        <button
+          onClick={() => navigate('/home')}
+          className={`p-3 rounded-lg transition-colors duration-200 ${location.pathname === '/home' ? `${colors.buttonAccent} text-white` : `hover:${colors.sidebarHover}`}`}
+          title="Home"
+        >
+          <Home size={20} className={location.pathname === '/home' ? 'text-white' : (colors.effectiveMode === 'dark' ? 'text-gray-400' : colors.text)} />
+        </button>
+        <button
+          onClick={() => navigate('/calendar')}
+          className={`p-3 rounded-lg transition-colors duration-200 ${location.pathname === '/calendar' ? `${colors.buttonAccent} text-white` : `hover:${colors.sidebarHover}`}`}
+          title="Calendar"
+        >
+          <Calendar size={20} className={location.pathname === '/calendar' ? 'text-white' : (colors.effectiveMode === 'dark' ? 'text-gray-400' : colors.text)} />
+        </button>
+        <button
+          onClick={() => navigate('/markbook')}
+          className={`p-3 rounded-lg transition-colors duration-200 ${location.pathname === '/markbook' ? `${colors.buttonAccent} text-white` : `hover:${colors.sidebarHover}`}`}
+          title="Markbook"
+        >
+          <BarChart3 size={20} className={location.pathname === '/markbook' ? 'text-white' : (colors.effectiveMode === 'dark' ? 'text-gray-400' : colors.text)} />
+        </button>
+        <button
+          onClick={() => navigate('/settings')}
+          className={`p-3 rounded-lg transition-colors duration-200 ${location.pathname === '/settings' ? `${colors.buttonAccent} text-white` : `hover:${colors.sidebarHover}`}`}
+          title="Settings"
+        >
+          <SettingsIcon size={20} className={location.pathname === '/settings' ? 'text-white' : (colors.effectiveMode === 'dark' ? 'text-gray-400' : colors.text)} />
+        </button>
+      </div>
+
       {/* Exam side panel moved inside markbook grid */}
 
       {/* Disable Password Modal */}
@@ -1983,6 +2198,18 @@ const SchoolPlanner = () => {
           </div>
         </div>
       )}
+
+      {/* Fullscreen Countdown Modal */}
+      <FullscreenCountdown
+        isOpen={isCountdownFullscreen}
+        onClose={() => setIsCountdownFullscreen(false)}
+        searching={countdownSearching}
+        nextEvent={nextEvent}
+        nextEventDate={nextEventDate}
+        timeLeft={timeLeft}
+        formatCountdown={formatCountdownForTab}
+        getEventColour={getEventColour}
+      />
     </div>
   );
 };

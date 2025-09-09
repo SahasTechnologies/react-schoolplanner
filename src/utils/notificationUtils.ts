@@ -43,9 +43,18 @@ class NotificationManager {
 
   private createNotificationElement(options: NotificationOptions): HTMLElement {
     const notification = document.createElement('div');
+    
+    // Extract background and border colors from the colors object
+    const containerClass = options.colors.container || (options.effectiveMode === 'light' ? 'bg-white' : 'bg-gray-800');
+    const borderClass = options.colors.border || (options.effectiveMode === 'light' ? 'border-gray-300' : 'border-gray-700');
+    
+    // Convert Tailwind classes to actual colors
+    const backgroundColor = this.getColorFromClass(containerClass, options.effectiveMode);
+    const borderColor = this.getColorFromClass(borderClass, options.effectiveMode);
+    
     notification.style.cssText = `
-      background: ${options.effectiveMode === 'light' ? '#ffffff' : '#1f2937'};
-      border: 1px solid ${options.effectiveMode === 'light' ? '#d1d5db' : '#374151'};
+      background: ${backgroundColor};
+      border: 1px solid ${borderColor};
       border-radius: 8px;
       box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
       max-width: 320px;
@@ -71,12 +80,12 @@ class NotificationManager {
               font-weight: 600; 
               font-size: 14px; 
               margin: 0 0 4px 0;
-              color: ${options.effectiveMode === 'light' ? '#000000' : '#ffffff'};
+              color: ${this.getTextColor(options.colors, options.effectiveMode, 'primary')};
             ">${options.title}</h4>
             <p style="
               font-size: 14px; 
               margin: 0;
-              color: ${options.effectiveMode === 'light' ? '#374151' : '#d1d5db'};
+              color: ${this.getTextColor(options.colors, options.effectiveMode, 'secondary')};
             ">${options.message}</p>
           </div>
           <button class="notification-close" style="
@@ -84,7 +93,7 @@ class NotificationManager {
             background: none;
             border: none;
             cursor: pointer;
-            color: ${options.effectiveMode === 'light' ? '#6b7280' : '#9ca3af'};
+            color: ${this.getTextColor(options.colors, options.effectiveMode, 'muted')};
             transition: color 0.2s;
             padding: 0;
             width: 16px;
@@ -103,7 +112,7 @@ class NotificationManager {
       ${options.duration && options.duration > 0 ? `
         <div style="
           height: 4px;
-          background: ${options.effectiveMode === 'light' ? '#e5e7eb' : '#374151'};
+          background: ${this.getTextColor(options.colors, options.effectiveMode, 'muted')};
           border-radius: 0 0 8px 8px;
           overflow: hidden;
         ">
@@ -128,10 +137,10 @@ class NotificationManager {
         }
       });
       closeBtn.addEventListener('mouseenter', () => {
-        closeBtn.style.color = options.effectiveMode === 'light' ? '#374151' : '#d1d5db';
+        closeBtn.style.color = this.getTextColor(options.colors, options.effectiveMode, 'primary');
       });
       closeBtn.addEventListener('mouseleave', () => {
-        closeBtn.style.color = options.effectiveMode === 'light' ? '#6b7280' : '#9ca3af';
+        closeBtn.style.color = this.getTextColor(options.colors, options.effectiveMode, 'muted');
       });
     }
 
@@ -183,6 +192,65 @@ class NotificationManager {
       case 'info':
       default:
         return effectiveMode === 'light' ? '#2563eb' : '#60a5fa';
+    }
+  }
+
+  private getColorFromClass(className: string, effectiveMode: 'light' | 'dark'): string {
+    // Map common Tailwind classes to actual colors
+    const colorMap: { [key: string]: string } = {
+      'bg-white': '#ffffff',
+      'bg-gray-50': '#f9fafb',
+      'bg-gray-100': '#f3f4f6',
+      'bg-gray-200': '#e5e7eb',
+      'bg-gray-800': '#1f2937',
+      'bg-gray-900': '#111827',
+      'bg-gray-950': '#030712',
+      'bg-slate-800': '#1e293b',
+      'bg-slate-900': '#0f172a',
+      'bg-slate-950': '#020617',
+      'border-gray-300': '#d1d5db',
+      'border-gray-700': '#374151',
+      'border-gray-800': '#1f2937',
+      'border-slate-700': '#334155',
+      'border-slate-800': '#1e293b',
+    };
+
+    return colorMap[className] || (effectiveMode === 'light' ? '#ffffff' : '#1f2937');
+  }
+
+  private getTextColor(colors: any, effectiveMode: 'light' | 'dark', type: 'primary' | 'secondary' | 'muted'): string {
+    // Try to extract color from text class
+    const textClass = colors.text || (effectiveMode === 'light' ? 'text-black' : 'text-white');
+    
+    const textColorMap: { [key: string]: string } = {
+      'text-black': '#000000',
+      'text-white': '#ffffff',
+      'text-gray-900': '#111827',
+      'text-gray-800': '#1f2937',
+      'text-gray-700': '#374151',
+      'text-gray-600': '#4b5563',
+      'text-gray-500': '#6b7280',
+      'text-gray-400': '#9ca3af',
+      'text-gray-300': '#d1d5db',
+      'text-slate-900': '#0f172a',
+      'text-slate-800': '#1e293b',
+      'text-slate-700': '#334155',
+      'text-slate-600': '#475569',
+      'text-slate-500': '#64748b',
+      'text-slate-400': '#94a3b8',
+    };
+
+    const baseColor = textColorMap[textClass] || (effectiveMode === 'light' ? '#000000' : '#ffffff');
+    
+    switch (type) {
+      case 'primary':
+        return baseColor;
+      case 'secondary':
+        return effectiveMode === 'light' ? '#374151' : '#d1d5db';
+      case 'muted':
+        return effectiveMode === 'light' ? '#6b7280' : '#9ca3af';
+      default:
+        return baseColor;
     }
   }
 
