@@ -170,6 +170,9 @@ const Settings: React.FC<SettingsProps> = ({
 
   /* --------------------------------- Local state -------------------------------- */
   const [oldPasswordInput, setOldPasswordInput] = useState('');
+  const [showMarkbookSettings, setShowMarkbookSettings] = useState(false);
+  const [markbookPasswordVerification, setMarkbookPasswordVerification] = useState('');
+  const [showMarkbookPasswordVerification, setShowMarkbookPasswordVerification] = useState(false);
 
 
   return (
@@ -583,38 +586,79 @@ const Settings: React.FC<SettingsProps> = ({
           <BarChart3 className={colors.text} size={20} />
           <h3 className={`text-lg font-medium ${colors.text}`}>Markbook Settings</h3>
         </div>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Shield className={effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400'} size={18} />
-              <div>
-                <p className={`font-medium ${colors.containerText}`}>Password Protection</p>
-                <p className={`text-sm ${colors.containerText} opacity-80`}>Require a password to view marks</p>
-              </div>
+        
+        {/* View Markbook Settings Button */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Shield className={effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400'} size={18} />
+            <div>
+              <p className={`font-medium ${colors.containerText}`}>View Markbook Settings</p>
+              <p className={`text-sm ${colors.containerText} opacity-80`}>
+                {localStorage.getItem('markbookPassword') ? 'Password required to view settings' : 'Configure markbook password protection'}
+              </p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" checked={markbookPasswordEnabled} onChange={(e) => { setMarkbookPasswordEnabled(e.target.checked); if (!e.target.checked) setMarkbookPassword(''); }} className="sr-only peer" />
-              <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all" style={markbookPasswordEnabled ? { backgroundColor: colors.buttonAccent } : {}}></div>
-            </label>
           </div>
-          {markbookPasswordEnabled && (
+          <button
+            onClick={() => {
+              if (localStorage.getItem('markbookPassword')) {
+                setShowMarkbookPasswordVerification(true);
+              } else {
+                setShowMarkbookSettings(true);
+              }
+            }}
+            className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
+          >
+            <BarChart3 size={16} />
+            View Settings
+          </button>
+        </div>
+
+        {/* Expanded Markbook Settings (shown after password verification or if no password set) */}
+        {showMarkbookSettings && (
+          <div className="mt-6 pt-6 border-t border-gray-600 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
+                <Shield className={effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400'} size={18} />
                 <div>
-                  <p className={`font-medium ${colors.containerText}`}>Markbook Password</p>
-                  <p className={`text-sm ${colors.containerText} opacity-80`}>Set a password to protect your marks</p>
+                  <p className={`font-medium ${colors.containerText}`}>Password Protection</p>
+                  <p className={`text-sm ${colors.containerText} opacity-80`}>Require a password to view marks</p>
                 </div>
               </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" checked={markbookPasswordEnabled} onChange={(e) => { setMarkbookPasswordEnabled(e.target.checked); if (!e.target.checked) setMarkbookPassword(''); }} className="sr-only peer" />
+                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all" style={markbookPasswordEnabled ? { backgroundColor: colors.buttonAccent } : {}}></div>
+              </label>
+            </div>
+            {markbookPasswordEnabled && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div>
+                    <p className={`font-medium ${colors.containerText}`}>Markbook Password</p>
+                    <p className={`text-sm ${colors.containerText} opacity-80`}>Set a password to protect your marks</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowPasswordModal(true)}
+                  className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
+                >
+                  <Edit2 size={16} />
+                  Set Password
+                </button>
+              </div>
+            )}
+            
+            {/* Close Settings Button */}
+            <div className="flex justify-end pt-4">
               <button
-                onClick={() => setShowPasswordModal(true)}
-                className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
+                onClick={() => setShowMarkbookSettings(false)}
+                className={`${colors.button} ${colors.buttonHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
               >
-                <Edit2 size={16} />
-                Set Password
+                <X size={16} />
+                Close Settings
               </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Password Modal */}
@@ -672,6 +716,62 @@ const Settings: React.FC<SettingsProps> = ({
                 }}
                 className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
               >Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Markbook Password Verification Modal */}
+      {showMarkbookPasswordVerification && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
+            <h3 className={`text-xl font-semibold ${colors.buttonText} mb-4`}>Enter Markbook Password</h3>
+            <p className={`text-sm ${colors.containerText} opacity-80 mb-4`}>
+              Enter your markbook password to view settings
+            </p>
+            
+            <label className={`block text-sm font-medium mb-1 ${colors.containerText}`}>Password</label>
+            <input
+              type="password"
+              value={markbookPasswordVerification}
+              onChange={(e) => setMarkbookPasswordVerification(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const storedHash = localStorage.getItem('markbookPassword');
+                  if (storedHash && bcrypt.compareSync(markbookPasswordVerification, storedHash)) {
+                    setShowMarkbookPasswordVerification(false);
+                    setMarkbookPasswordVerification('');
+                    setShowMarkbookSettings(true);
+                  } else {
+                    showError('Incorrect Password', 'Please try again', { effectiveMode, colors });
+                  }
+                }
+              }}
+              className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6 text-lg ${colors.inputBackground} ${colors.inputBorder} ${colors.buttonText}`}
+              placeholder="Enter password"
+              autoFocus
+            />
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => { 
+                  setShowMarkbookPasswordVerification(false); 
+                  setMarkbookPasswordVerification(''); 
+                }}
+                className="bg-secondary hover:bg-secondary-dark text-secondary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+              >Cancel</button>
+              <button
+                onClick={() => {
+                  const storedHash = localStorage.getItem('markbookPassword');
+                  if (storedHash && bcrypt.compareSync(markbookPasswordVerification, storedHash)) {
+                    setShowMarkbookPasswordVerification(false);
+                    setMarkbookPasswordVerification('');
+                    setShowMarkbookSettings(true);
+                  } else {
+                    showError('Incorrect Password', 'Please try again', { effectiveMode, colors });
+                  }
+                }}
+                className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
+              >Verify</button>
             </div>
           </div>
         </div>

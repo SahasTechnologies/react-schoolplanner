@@ -19,7 +19,7 @@ const SubjectCard: React.FC<SubjectCardProps> = ({ subject, effectiveMode, color
   >
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
-        {getSubjectIcon(subject.name, 20, effectiveMode)}
+        {getSubjectIcon(subject, 20, effectiveMode)}
         <div
           className="w-4 h-4 rounded-full"
           style={{ backgroundColor: hexToRgba(subject.colour, 0.95) }}

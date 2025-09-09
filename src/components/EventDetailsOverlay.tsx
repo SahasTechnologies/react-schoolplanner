@@ -20,7 +20,7 @@ const EventDetailsOverlay: React.FC<EventDetailsOverlayProps> = ({ event, onClos
   const normalizedName = normalizeSubjectName(event.summary, true);
   const subject = subjects.find(s => normalizeSubjectName(s.name, true) === normalizedName);
   const subjectColor = subject ? subject.colour : colors.button;
-  const subjectIcon = getSubjectIcon(event.summary, 48, effectiveMode);
+  const subjectIcon = getSubjectIcon(subject || event.summary, 48, effectiveMode);
 
   const [note, setNote] = useState('');
   const [show, setShow] = useState(false);

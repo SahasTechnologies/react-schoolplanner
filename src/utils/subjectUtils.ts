@@ -1,8 +1,14 @@
 import React from 'react';
-import { 
-  Calculator, FlaskConical, Palette, Music, Globe, Dumbbell, Languages, Code2, Brain, Mic2, 
-  Users, BookOpen, PenLine, BookUser, Briefcase, HeartHandshake, Library, BookMarked, Star, 
-  GraduationCap, Bot, Book, Utensils
+import {
+  Calculator, FlaskConical, Palette, Music, Globe, Dumbbell, Languages, Code2, Brain, Mic2,
+  Users, BookOpen, PenLine, BookUser, Briefcase, HeartHandshake, Library, BookMarked, Star,
+  GraduationCap, Bot, Book, Utensils, Heart, Zap, Rocket, Camera, Coffee, Gamepad2,
+  Headphones, Lightbulb, Paintbrush, Scissors, Wrench, Hammer, Plane, Car, Bike,
+  TreePine, Flower2 as Flower, Sun, Moon, Cloud, Umbrella, Snowflake, Flame, Droplets, Wind,
+  Apple, Pizza, IceCream2 as IceCream, Cake, Cookie, Fish, Beef, Carrot, Cherry, Grape,
+  Trophy, Medal, Target, Sword, Shield, Crown, Diamond, Gem,
+  Smartphone, Laptop, Monitor, Keyboard, Mouse, Printer, Tv,
+  Home, Building, School, Hospital, Store, Factory, Church, Castle, Tent
 } from 'lucide-react';
 import { saveAs } from 'file-saver';
 
@@ -115,24 +121,133 @@ export const normalizeSubjectName = (summary: string, autoNamingEnabled: boolean
     // Then apply general cleaning (removing "period", "lesson", etc.)
     let cleanedName = lowerSummary.replace(/(period|lesson|class|room)\s*\d*/g, '').trim();
 
-    // Capitalize the first letter of each word if it's not a specific rename
+    // Preserve original capitalization by cleaning the original string
     if (cleanedName) {
-      return cleanedName.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+      // Instead of changing case, clean the original summary while preserving case
+      let result = summary.trim().replace(/(period|lesson|class|room)\s*\d*/gi, '').trim();
+      // Remove extra spaces
+      result = result.replace(/\s+/g, ' ');
+      return result || summary.trim();
     }
   }
-  
+
   return summary.trim(); // Fallback to original if auto-naming is off or no specific rename/cleaning yields a useful name
 };
 
+// Icon component mapping for custom icons
+const iconComponentMap: Record<string, React.ComponentType<any>> = {
+  // Original icons
+  Calculator: Calculator,
+  FlaskConical: FlaskConical,
+  Palette: Palette,
+  Music: Music,
+  Globe: Globe,
+  Dumbbell: Dumbbell,
+  Languages: Languages,
+  Code2: Code2,
+  Brain: Brain,
+  Mic2: Mic2,
+  Users: Users,
+  BookOpen: BookOpen,
+  PenLine: PenLine,
+  BookUser: BookUser,
+  Briefcase: Briefcase,
+  HeartHandshake: HeartHandshake,
+  Library: Library,
+  BookMarked: BookMarked,
+  Star: Star,
+  GraduationCap: GraduationCap,
+  Bot: Bot,
+  Book: Book,
+  Utensils: Utensils,
+
+  // Additional popular icons
+  Heart: Heart,
+  Zap: Zap,
+  Rocket: Rocket,
+  Camera: Camera,
+  Coffee: Coffee,
+  Gamepad2: Gamepad2,
+  Headphones: Headphones,
+  Lightbulb: Lightbulb,
+  Paintbrush: Paintbrush,
+  Scissors: Scissors,
+  Wrench: Wrench,
+  Hammer: Hammer,
+  Plane: Plane,
+  Car: Car,
+  Bike: Bike,
+  TreePine: TreePine,
+  Flower: Flower,
+  Sun: Sun,
+  Moon: Moon,
+  Cloud: Cloud,
+  Umbrella: Umbrella,
+  Snowflake: Snowflake,
+  Flame: Flame,
+  Droplets: Droplets,
+  Wind: Wind,
+  Apple: Apple,
+  Pizza: Pizza,
+  IceCream: IceCream,
+  Cake: Cake,
+  Cookie: Cookie,
+  Fish: Fish,
+  Beef: Beef,
+  Carrot: Carrot,
+  Cherry: Cherry,
+  Grape: Grape,
+  Trophy: Trophy,
+  Medal: Medal,
+  Target: Target,
+  Sword: Sword,
+  Shield: Shield,
+  Crown: Crown,
+  Diamond: Diamond,
+  Gem: Gem,
+  Smartphone: Smartphone,
+  Laptop: Laptop,
+  Monitor: Monitor,
+  Keyboard: Keyboard,
+  Mouse: Mouse,
+  Printer: Printer,
+  Tv: Tv,
+  Home: Home,
+  Building: Building,
+  School: School,
+  Hospital: Hospital,
+  Store: Store,
+  Factory: Factory,
+  Church: Church,
+  Castle: Castle,
+  Tent: Tent
+};
+
 // Function to get the appropriate icon for a subject
-export const getSubjectIcon = (subjectName: string, size: number = 20, mode: 'light' | 'dark' = 'light') => {
-  const normalized = normalizeSubjectName(subjectName);
-  const IconComponent = subjectIconMap[normalized] || Book;
-  return React.createElement(IconComponent, { 
-    size, 
-    className: mode === 'light' ? 'text-black' : 'text-white' 
+export const getSubjectIcon = (subjectNameOrSubject: string | { name: string; icon?: string }, size: number = 20, mode: 'light' | 'dark' = 'light') => {
+  let IconComponent: React.ComponentType<any>;
+
+  if (typeof subjectNameOrSubject === 'string') {
+    // Legacy string-based usage
+    const normalized = normalizeSubjectName(subjectNameOrSubject);
+    IconComponent = subjectIconMap[normalized] || Book;
+  } else {
+    // New object-based usage with custom icon support
+    const subject = subjectNameOrSubject;
+    if (subject.icon && iconComponentMap[subject.icon]) {
+      IconComponent = iconComponentMap[subject.icon];
+    } else {
+      // Fallback to default icon mapping based on subject name
+      const normalized = normalizeSubjectName(subject.name);
+      IconComponent = subjectIconMap[normalized] || Book;
+    }
+  }
+
+  return React.createElement(IconComponent, {
+    size,
+    className: mode === 'light' ? 'text-black' : 'text-white'
   });
-}; 
+};
 
 // Utility: Export data as Base64-encoded .school file
 export function exportSchoolData(data: any, fileName: string) {

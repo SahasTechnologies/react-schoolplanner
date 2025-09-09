@@ -131,6 +131,7 @@ const SchoolPlanner = () => {
   const [selectedSubjectForEdit, setSelectedSubjectForEdit] = useState<Subject | null>(null);
   const [editName, setEditName] = useState('');
   const [editColour, setEditColour] = useState(''); // Changed to 'editColour'
+  const [editIcon, setEditIcon] = useState('');
 
   // Welcome screen states
   const [welcomeStep, setWelcomeStep] = useState<'legal' | 'upload' | 'name_input' | 'completed'>('legal');
@@ -321,6 +322,8 @@ const SchoolPlanner = () => {
     setSelectedSubjectForEdit(subject);
     setEditName(subject.name);
     setEditColour(subject.colour);
+    setEditIcon(subject.icon || ''); // Leave empty if no custom icon set
+    setShowSubjectEditModal(true);
   };
 
   const saveSubjectEdit = () => {
@@ -357,7 +360,7 @@ const SchoolPlanner = () => {
         setSubjects((prevSubjects: Subject[]) =>
           prevSubjects.map((subject: Subject) =>
             subject.id === selectedSubjectForEdit.id
-              ? { ...subject, name: editName, colour: editColour }
+              ? { ...subject, name: editName, colour: editColour, icon: editIcon || undefined }
               : subject
           )
         );
@@ -368,6 +371,7 @@ const SchoolPlanner = () => {
     setSelectedSubjectForEdit(null);
     setEditName('');
     setEditColour('');
+    setEditIcon('');
   };
 
   const cancelSubjectEdit = () => {
@@ -375,6 +379,7 @@ const SchoolPlanner = () => {
     setSelectedSubjectForEdit(null);
     setEditName('');
     setEditColour('');
+    setEditIcon('');
   };
 
 
@@ -453,6 +458,7 @@ const SchoolPlanner = () => {
                       infoShown={infoShown}
                       showFirstInfoBeside={false} // Always false on calendar page
                       onClick={() => setSelectedEvent(event)}
+                      subjects={subjects}
                     />
                   ))
                 )}
@@ -504,63 +510,67 @@ const SchoolPlanner = () => {
       }
     });
 
-    // If password protection is enabled and markbook is locked, show lock screen
-    if (markbookPasswordEnabled && isMarkbookLocked) {
-      return (
-        <div className="space-y-6">
-          <div className="flex items-center gap-3">
-            <BarChart3 className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
-            <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Markbook</h2>
-          </div>
-          <div className={`${colors.container} rounded-lg ${colors.border} border p-8 flex flex-col items-center justify-center`}>
-            <Shield className={effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400'} size={48} />
-            <h3 className={`text-xl font-semibold ${colors.text} mb-4`}>Password Protected</h3>
-            <p className={`text-sm ${colors.containerText} opacity-80 mb-6 text-center`}>
-              Enter your password to view your marks
-            </p>
-            <div className="w-full max-w-sm">
-              <input
-                type="password"
-                value={unlockAttempt}
-                onChange={(e) => setUnlockAttempt(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    const storedHash = localStorage.getItem('markbookPassword');
-                    if (storedHash && memoizedComparePassword(unlockAttempt, storedHash)) {
-                      setIsMarkbookLocked(false);
-                      setUnlockAttempt('');
-                    } else {
-                      showError('Incorrect Password', 'Please try again', { effectiveMode, colors });
-                    }
-                  }
-                }}
-                className={`w-full px-4 py-3 rounded-lg border ${colors.border} focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4 text-lg ${colors.container} ${colors.text}`}
-                placeholder="Enter password"
-                autoComplete="off"
-              />
-              <button
-                onClick={() => {
-                  const storedHash = localStorage.getItem('markbookPassword');
-                  if (storedHash && memoizedComparePassword(unlockAttempt, storedHash)) {
-                    setIsMarkbookLocked(false);
-                    setUnlockAttempt('');
-                  } else {
-                    showError('Incorrect Password', 'Please try again', { effectiveMode, colors });
-                  }
-                }}
-                className={`w-full ${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-3 rounded-lg font-medium transition-colors duration-200`}
-              >
-                Unlock
-              </button>
-            </div>
-            {/* Footer */}
-            <p className={`mt-6 text-xs opacity-70 ${colors.containerText}`}>Protected by bcrypt hashing</p>
-          </div>
+    // Create the exam panel content - either login screen or actual exam panel
+    const examPanelContent = (markbookPasswordEnabled && isMarkbookLocked) ? (
+      <div className="flex flex-col items-center justify-center h-full min-h-[400px]">
+        <Shield className={effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400'} size={48} />
+        <h3 className={`text-xl font-semibold ${colors.text} mb-4`}>Password Protected</h3>
+        <p className={`text-sm ${colors.containerText} opacity-80 mb-6 text-center`}>
+          Enter your password to view your marks
+        </p>
+        <div className="w-full max-w-sm">
+          <input
+            type="password"
+            value={unlockAttempt}
+            onChange={(e) => setUnlockAttempt(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                const storedHash = localStorage.getItem('markbookPassword');
+                if (storedHash && memoizedComparePassword(unlockAttempt, storedHash)) {
+                  setIsMarkbookLocked(false);
+                  setUnlockAttempt('');
+                } else {
+                  showError('Incorrect Password', 'Please try again', { effectiveMode, colors });
+                }
+              }
+            }}
+            className={`w-full px-4 py-3 rounded-lg border ${colors.border} focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4 text-lg ${colors.container} ${colors.text}`}
+            placeholder="Enter password"
+            autoComplete="off"
+          />
+          <button
+            onClick={() => {
+              const storedHash = localStorage.getItem('markbookPassword');
+              if (storedHash && memoizedComparePassword(unlockAttempt, storedHash)) {
+                setIsMarkbookLocked(false);
+                setUnlockAttempt('');
+              } else {
+                showError('Incorrect Password', 'Please try again', { effectiveMode, colors });
+              }
+            }}
+            className={`w-full ${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-3 rounded-lg font-medium transition-colors duration-200`}
+          >
+            Unlock
+          </button>
         </div>
-      );
-    }
+        {/* Footer */}
+        <p className={`mt-6 text-xs opacity-70 ${colors.containerText}`}>Protected by bcrypt hashing</p>
+      </div>
+    ) : (
+      <ExamPanel
+        subject={selectedSubjectForExam}
+        exams={selectedSubjectForExam ? examsBySubject[selectedSubjectForExam.id] || [] : []}
+        onAddExam={addExam}
+        onUpdateExam={updateExam}
+        onRemoveExam={removeExam}
+        effectiveMode={effectiveMode}
+        allSubjects={subjects}
+        examsBySubject={examsBySubject}
+        onBack={() => setSelectedSubjectForExam(null)}
+      />
+    );
 
-    // Only render markbook content when unlocked or password protection is disabled
+    // Always render markbook content with subjects list visible
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
@@ -586,7 +596,7 @@ const SchoolPlanner = () => {
               </select>
             </div>
 
-            <div className="space-y-4 overflow-y-auto pr-2 max-h-[70vh] h-full">
+            <div className="space-y-4 overflow-y-auto pr-2 max-h-[calc(100vh-200px)]">
               {sortedSubjects.length === 0 ? (
                 <div className="text-center py-16">
                   <BarChart3 size={64} className="mx-auto mb-4 text-gray-600" />
@@ -610,17 +620,7 @@ const SchoolPlanner = () => {
 
           {/* Right: Exams panel */}
           <div className={`${colors.container} rounded-lg ${colors.border} border p-4`}>
-            <ExamPanel
-              subject={selectedSubjectForExam}
-              exams={selectedSubjectForExam ? examsBySubject[selectedSubjectForExam.id] || [] : []}
-              onAddExam={addExam}
-              onUpdateExam={updateExam}
-              onRemoveExam={removeExam}
-              effectiveMode={effectiveMode}
-              allSubjects={subjects}
-              examsBySubject={examsBySubject}
-              onBack={() => setSelectedSubjectForExam(null)}
-            />
+            {examPanelContent}
           </div>
         </div>
 
@@ -631,6 +631,8 @@ const SchoolPlanner = () => {
           setEditName={setEditName}
           editColour={editColour}
           setEditColour={setEditColour}
+          editIcon={editIcon}
+          setEditIcon={setEditIcon}
           saveSubjectEdit={saveSubjectEdit}
           cancelSubjectEdit={cancelSubjectEdit}
           effectiveMode={effectiveMode}
@@ -837,6 +839,7 @@ const SchoolPlanner = () => {
                       showFirstInfoBeside={showFirstInfoBeside}
                       onClick={() => setSelectedEvent(event)}
                       forceTall={hoveredIndex === idx}
+                      subjects={subjects}
                     />
                   </div>
                 ))}
@@ -1223,7 +1226,9 @@ const SchoolPlanner = () => {
     // Custom colored icon
     function ColoredSubjectIcon({ summary }: { summary: string }) {
       const color = getEventColour(summary);
-      const icon = getSubjectIcon(summary, 24, effectiveMode);
+      const normalizedName = normalizeSubjectName(summary, autoNamingEnabled);
+      const subject = subjects.find(s => normalizeSubjectName(s.name, autoNamingEnabled) === normalizedName);
+      const icon = getSubjectIcon(subject || summary, 24, effectiveMode);
       return React.cloneElement(icon, { style: { color } });
     }
     // Helper for event time string

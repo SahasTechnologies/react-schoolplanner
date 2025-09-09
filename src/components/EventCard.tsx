@@ -15,6 +15,7 @@ interface EventCardProps {
   showFirstInfoBeside: boolean;
   onClick?: () => void;
   forceTall?: boolean;
+  subjects?: { id: string; name: string; icon?: string }[];
 }
 
 const EventCard: React.FC<EventCardProps> = ({
@@ -28,6 +29,7 @@ const EventCard: React.FC<EventCardProps> = ({
   infoShown,
   showFirstInfoBeside,
   onClick,
+  subjects = [],
   forceTall = false
 }) => {
   if (isBreakEvent(event)) {
@@ -139,7 +141,11 @@ const EventCard: React.FC<EventCardProps> = ({
           </span>
         </div>
         <span style={{ opacity: 0.35, display: 'flex', alignItems: 'center' }} className="text-black">
-          {getSubjectIcon(event.summary, 24, effectiveMode)}
+          {(() => {
+            const normalizedName = normalizeSubjectName(event.summary, autoNamingEnabled);
+            const subject = subjects.find(s => normalizeSubjectName(s.name, autoNamingEnabled) === normalizedName);
+            return getSubjectIcon(subject || event.summary, 24, effectiveMode);
+          })()}
         </span>
       </div>
 

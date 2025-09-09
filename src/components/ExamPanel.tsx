@@ -116,7 +116,7 @@ const ExamPanel: React.FC<ExamPanelProps> = ({ subject, exams, onAddExam, onUpda
 
   const SubjectHeading: React.FC = () => (
     <div className="flex items-center justify-center gap-2">
-      {getSubjectIcon(subject.name, 24, effectiveMode)}
+      {getSubjectIcon(subject, 24, effectiveMode)}
       <h2 className={`text-2xl font-semibold mb-2 text-center ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{subject.name}</h2>
     </div>
   );
