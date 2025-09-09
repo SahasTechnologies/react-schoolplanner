@@ -10,6 +10,8 @@ interface TodayScheduleTimelineProps {
   nowTs: number;
   selectedScheduleDate: Date | null;
   getEventColour: (title: string) => string;
+  showCountdownInTimeline: boolean;
+  onCountdownUpdate?: (countdown: { time: string; event: string; type: 'current' | 'next' } | null) => void;
 }
 
 const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
@@ -21,6 +23,8 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
   nowTs,
   selectedScheduleDate,
   getEventColour,
+  showCountdownInTimeline,
+  onCountdownUpdate,
 }) => {
   const n = eventsWithBreaks.length;
 
@@ -229,6 +233,70 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
     return null;
   }
 
+  // Calculate countdown to next event
+  const getCountdownInfo = (): { time: string; event: string; type: 'current' | 'next' } | null => {
+    const now = new Date(nowTs);
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    // Find current and next events
+    let currentEvent = null;
+    let nextEvent = null;
+    
+    for (let i = 0; i < eventsWithBreaks.length; i++) {
+      const event = eventsWithBreaks[i];
+      if (!event.dtstart || !event.dtend || isBreakEvent(event)) continue;
+      
+      const eventStart = new Date(event.dtstart);
+      const eventEnd = new Date(event.dtend);
+      
+      // Convert to today's times
+      const todayEventStart = new Date(today);
+      todayEventStart.setHours(eventStart.getHours(), eventStart.getMinutes(), eventStart.getSeconds());
+      
+      const todayEventEnd = new Date(today);
+      todayEventEnd.setHours(eventEnd.getHours(), eventEnd.getMinutes(), eventEnd.getSeconds());
+      
+      if (nowTs >= todayEventStart.getTime() && nowTs <= todayEventEnd.getTime()) {
+        currentEvent = { ...event, todayStart: todayEventStart, todayEnd: todayEventEnd };
+      } else if (nowTs < todayEventStart.getTime() && !nextEvent) {
+        nextEvent = { ...event, todayStart: todayEventStart, todayEnd: todayEventEnd };
+      }
+    }
+    
+    if (currentEvent) {
+      // Show time until current event ends
+      const timeLeft = currentEvent.todayEnd.getTime() - nowTs;
+      const minutes = Math.floor(timeLeft / (1000 * 60));
+      const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+      return {
+        time: `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`,
+        event: currentEvent.summary,
+        type: 'current' as const
+      };
+    } else if (nextEvent) {
+      // Show time until next event starts
+      const timeLeft = nextEvent.todayStart.getTime() - nowTs;
+      const minutes = Math.floor(timeLeft / (1000 * 60));
+      const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+      return {
+        time: `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`,
+        event: nextEvent.summary,
+        type: 'next' as const
+      };
+    }
+    
+    return null;
+  };
+
+  const countdownInfo = showCountdownInTimeline ? getCountdownInfo() : null;
+  
+  // Notify parent component of countdown updates
+  React.useEffect(() => {
+    if (onCountdownUpdate) {
+      onCountdownUpdate(countdownInfo);
+    }
+  }, [countdownInfo, onCountdownUpdate]);
+
   // Compute a stable clip-path so the overlay fills from top downward.
   // Add a small fudge on top when progress > 0 and at 100% on both edges to remove any visible caps.
   const clipBottomPct = Math.max(0, 100 - progressPctVis);
@@ -304,6 +372,8 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
           />
         )}
       </div>
+      
+
     </>
   );
 };

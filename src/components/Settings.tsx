@@ -67,6 +67,8 @@ interface SettingsProps {
   isCalendarPage?: boolean;
   countdownInTitle: boolean;
   setCountdownInTitle: (val: boolean) => void;
+  showCountdownInTimeline: boolean;
+  setShowCountdownInTimeline: (val: boolean) => void;
   exportModalState: ExportModalState;
   setExportModalState: React.Dispatch<React.SetStateAction<ExportModalState>>;
   handleExport: () => void;
@@ -106,6 +108,8 @@ const Settings: React.FC<SettingsProps> = ({
   offlineCachingEnabled,
   countdownInTitle,
   setCountdownInTitle,
+  showCountdownInTimeline,
+  setShowCountdownInTimeline,
   setOfflineCachingEnabled,
   showFirstInfoBeside,
   setShowFirstInfoBeside,
@@ -325,6 +329,16 @@ const Settings: React.FC<SettingsProps> = ({
             <label className="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" checked={countdownInTitle} onChange={e => setCountdownInTitle(e.target.checked)} className="sr-only peer" />
               <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all" style={countdownInTitle ? { backgroundColor: colors.buttonAccent } : {}}></div>
+            </label>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={`font-medium ${colors.containerText}`}>Show Countdown in Timeline</p>
+              <p className={`text-sm ${colors.containerText} opacity-80`}>Display the progress countdown in today's schedule timeline</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" checked={showCountdownInTimeline} onChange={e => setShowCountdownInTimeline(e.target.checked)} className="sr-only peer" />
+              <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all" style={showCountdownInTimeline ? { backgroundColor: colors.buttonAccent } : {}}></div>
             </label>
           </div>
           <div className="flex items-center justify-between">
