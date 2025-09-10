@@ -811,47 +811,7 @@ const SchoolPlanner = () => {
                 onMouseLeave={() => setHoveredIndex(null)}
               >
                 <TodayScheduleTimeline
-                  eventsWithBreaks={showCountdownInTimeline && !timelineExpanded && !isDayOver ?
-                    (() => {
-                      // Calculate filtered events for timeline
-                      const now = new Date(nowTs);
-                      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-                      let currentEventIndex = -1;
-                      let nextEventIndex = -1;
-
-                      for (let i = 0; i < eventsWithBreaks.length; i++) {
-                        const event = eventsWithBreaks[i];
-                        if (isBreakEvent(event)) continue;
-                        if (!event.dtstart || !event.dtend) continue;
-
-                        const eventStart = new Date(event.dtstart);
-                        const eventEnd = new Date(event.dtend);
-
-                        const todayEventStart = new Date(today);
-                        todayEventStart.setHours(eventStart.getHours(), eventStart.getMinutes(), eventStart.getSeconds());
-
-                        const todayEventEnd = new Date(today);
-                        todayEventEnd.setHours(eventEnd.getHours(), eventEnd.getMinutes(), eventEnd.getSeconds());
-
-                        if (nowTs >= todayEventStart.getTime() && nowTs <= todayEventEnd.getTime()) {
-                          currentEventIndex = i;
-                        } else if (nowTs < todayEventStart.getTime() && nextEventIndex === -1) {
-                          nextEventIndex = i;
-                        }
-                      }
-
-                      const focusedEvents = [];
-                      if (currentEventIndex !== -1) {
-                        focusedEvents.push(eventsWithBreaks[currentEventIndex]);
-                      }
-                      if (nextEventIndex !== -1) {
-                        focusedEvents.push(eventsWithBreaks[nextEventIndex]);
-                      }
-
-                      return focusedEvents;
-                    })() : eventsWithBreaks
-                  }
+                  eventsWithBreaks={eventsWithBreaks}
                   measuredHeights={measuredHeights}
                   segments={segments}
                   gapBetweenCards={12} // Default gap, can be measured if needed
@@ -904,9 +864,6 @@ const SchoolPlanner = () => {
                         dayOverCheck = false;
                       }
                     }
-
-                    // Update state and determine what to show
-                    setIsDayOver(dayOverCheck);
 
                     // If day is over, show all events; otherwise show focused view
                     if (dayOverCheck) {
@@ -982,31 +939,66 @@ const SchoolPlanner = () => {
                   });
                 })()}
 
-                {/* Upcoming button for timeline countdown mode - only show if day is not over */}
-                {showCountdownInTimeline && !timelineExpanded && !isDayOver && (
-                  <div className="mt-6 text-center">
-                    <button
-                      onClick={() => setTimelineExpanded(true)}
-                      className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg ${colors.container} border ${colors.border} hover:opacity-80 transition-colors duration-200`}
-                    >
-                      <ChevronsUpDown size={20} className={colors.containerText} />
-                      <span className={`font-medium ${colors.containerText}`}>Upcoming</span>
-                    </button>
-                  </div>
-                )}
+                {/* Upcoming button for timeline countdown mode */}
+                {(() => {
+                  // Calculate if day is over inline
+                  let isDayOverInline = true;
+                  if (showCountdownInTimeline) {
+                    const now = new Date(nowTs);
+                    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-                {/* Collapse button when expanded - only show if day is not over */}
-                {showCountdownInTimeline && timelineExpanded && !isDayOver && (
-                  <div className="mt-6 text-center">
-                    <button
-                      onClick={() => setTimelineExpanded(false)}
-                      className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg ${colors.container} border ${colors.border} hover:opacity-80 transition-colors duration-200`}
-                    >
-                      <ChevronsUpDown size={20} className={colors.containerText} style={{ transform: 'rotate(180deg)' }} />
-                      <span className={`font-medium ${colors.containerText}`}>Show Less</span>
-                    </button>
-                  </div>
-                )}
+                    for (let i = 0; i < eventsWithBreaks.length; i++) {
+                      const event = eventsWithBreaks[i];
+                      if (isBreakEvent(event)) continue;
+                      if (!event.dtstart || !event.dtend) continue;
+
+                      const eventStart = new Date(event.dtstart);
+                      const eventEnd = new Date(event.dtend);
+
+                      const todayEventStart = new Date(today);
+                      todayEventStart.setHours(eventStart.getHours(), eventStart.getMinutes(), eventStart.getSeconds());
+
+                      const todayEventEnd = new Date(today);
+                      todayEventEnd.setHours(eventEnd.getHours(), eventEnd.getMinutes(), eventEnd.getSeconds());
+
+                      if (nowTs >= todayEventStart.getTime() && nowTs <= todayEventEnd.getTime()) {
+                        isDayOverInline = false;
+                        break;
+                      } else if (nowTs < todayEventStart.getTime()) {
+                        isDayOverInline = false;
+                        break;
+                      }
+                    }
+                  }
+
+                  return (
+                    <>
+                      {showCountdownInTimeline && !timelineExpanded && !isDayOverInline && (
+                        <div className="mt-6 text-center">
+                          <button
+                            onClick={() => setTimelineExpanded(true)}
+                            className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg ${colors.container} border ${colors.border} hover:opacity-80 transition-colors duration-200`}
+                          >
+                            <ChevronsUpDown size={20} className={colors.containerText} />
+                            <span className={`font-medium ${colors.containerText}`}>Upcoming</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {showCountdownInTimeline && timelineExpanded && !isDayOverInline && (
+                        <div className="mt-6 text-center">
+                          <button
+                            onClick={() => setTimelineExpanded(false)}
+                            className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg ${colors.container} border ${colors.border} hover:opacity-80 transition-colors duration-200`}
+                          >
+                            <ChevronsUpDown size={20} className={colors.containerText} style={{ transform: 'rotate(180deg)' }} />
+                            <span className={`font-medium ${colors.containerText}`}>Show Less</span>
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             )}
           </div>
@@ -2022,9 +2014,6 @@ const SchoolPlanner = () => {
   // State for expanded timeline view
   const [timelineExpanded, setTimelineExpanded] = useState(false);
 
-  // State to track if the school day is over
-  const [isDayOver, setIsDayOver] = useState(false);
-
   // Tick every minute to update progress overlay, or every second if timeline countdown is enabled
   useEffect(() => {
     const interval = showCountdownInTimeline ? 1000 : 60000; // 1 second vs 1 minute
@@ -2032,12 +2021,12 @@ const SchoolPlanner = () => {
     return () => clearInterval(id);
   }, [showCountdownInTimeline]);
 
-  // Reset timeline expanded state when countdown timeline is disabled or day is over
+  // Reset timeline expanded state when countdown timeline is disabled
   useEffect(() => {
-    if (!showCountdownInTimeline || isDayOver) {
+    if (!showCountdownInTimeline) {
       setTimelineExpanded(false);
     }
-  }, [showCountdownInTimeline, isDayOver]);
+  }, [showCountdownInTimeline]);
 
   // Persist offlineCachingEnabled
   useEffect(() => {
