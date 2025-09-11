@@ -237,32 +237,32 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
   const getCountdownInfo = (): { time: string; event: string; type: 'current' | 'next' } | null => {
     const now = new Date(nowTs);
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
+
     // Find current and next events
-    let currentEvent = null;
-    let nextEvent = null;
-    
+    let currentEvent: any = null;
+    let nextEvent: any = null;
+
     for (let i = 0; i < eventsWithBreaks.length; i++) {
       const event = eventsWithBreaks[i];
-      if (!event.dtstart || !event.dtend || isBreakEvent(event)) continue;
-      
+      if (!event.dtstart || !event.dtend) continue;
+
       const eventStart = new Date(event.dtstart);
       const eventEnd = new Date(event.dtend);
-      
+
       // Convert to today's times
       const todayEventStart = new Date(today);
       todayEventStart.setHours(eventStart.getHours(), eventStart.getMinutes(), eventStart.getSeconds());
-      
       const todayEventEnd = new Date(today);
       todayEventEnd.setHours(eventEnd.getHours(), eventEnd.getMinutes(), eventEnd.getSeconds());
-      
-      if (nowTs >= todayEventStart.getTime() && nowTs <= todayEventEnd.getTime()) {
+
+      if (nowTs >= todayEventStart.getTime() && nowTs < todayEventEnd.getTime()) {
         currentEvent = { ...event, todayStart: todayEventStart, todayEnd: todayEventEnd };
+        break;
       } else if (nowTs < todayEventStart.getTime() && !nextEvent) {
         nextEvent = { ...event, todayStart: todayEventStart, todayEnd: todayEventEnd };
       }
     }
-    
+
     if (currentEvent) {
       // Show time until current event ends
       const timeLeft = currentEvent.todayEnd.getTime() - nowTs;
@@ -271,7 +271,7 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
       return {
         time: `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`,
         event: currentEvent.summary,
-        type: 'current' as const
+        type: 'current' as const,
       };
     } else if (nextEvent) {
       // Show time until next event starts
@@ -281,15 +281,14 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
       return {
         time: `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`,
         event: nextEvent.summary,
-        type: 'next' as const
+        type: 'next' as const,
       };
     }
-    
     return null;
   };
 
   const countdownInfo = showCountdownInTimeline ? getCountdownInfo() : null;
-  
+
   // Notify parent component of countdown updates
   React.useEffect(() => {
     if (onCountdownUpdate) {

@@ -84,6 +84,9 @@ const SchoolPlanner = () => {
   // NEW: Sort option for subjects in Markbook
   const [subjectSortOption, setSubjectSortOption] = useState<'alphabetical-asc' | 'alphabetical-desc' | 'marks-asc' | 'marks-desc'>('alphabetical-asc');
 
+
+
+
   // Persist examsBySubject
   useEffect(() => {
     localStorage.setItem('examsBySubject', JSON.stringify(examsBySubject));
@@ -757,6 +760,42 @@ const SchoolPlanner = () => {
     }
     // Insert breaks between events for home screen too
     const eventsWithBreaks = insertBreaksBetweenEvents(events);
+
+    // Prepare the list of events to show in the compact timeline view so the gradient matches
+    const timelineEvents = (() => {
+      // Default to all events
+      let list = eventsWithBreaks;
+
+      // In compact mode (countdown enabled and not expanded), show ALL UPCOMING events (including breaks)
+      if (showCountdownInTimeline && !timelineExpanded) {
+        const now = new Date(nowTs);
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        // Find the first event whose end time hasn't passed yet (current or next),
+        // then show that event and everything after it for the rest of the day.
+        let startIdx = -1;
+        for (let i = 0; i < eventsWithBreaks.length; i++) {
+          const e = eventsWithBreaks[i];
+          if (!e.dtstart || !e.dtend) continue; // require both for precise slicing
+          const es = new Date(e.dtstart);
+          const ee = new Date(e.dtend);
+          const ts = new Date(today);
+          ts.setHours(es.getHours(), es.getMinutes(), es.getSeconds());
+          const te = new Date(today);
+          te.setHours(ee.getHours(), ee.getMinutes(), ee.getSeconds());
+          if (nowTs <= te.getTime()) {
+            startIdx = i;
+            break;
+          }
+        }
+        list = startIdx === -1 ? [] : eventsWithBreaks.slice(startIdx);
+      } else if (showCountdownInTimeline && timelineExpanded) {
+        // Expanded: show ALL events for the day (past + upcoming)
+        list = eventsWithBreaks;
+      }
+
+      return list;
+    })();
+
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -799,7 +838,7 @@ const SchoolPlanner = () => {
                 </button>
               </div>
             </div>
-            {eventsWithBreaks.length === 0 ? (
+            {timelineEvents.length === 0 ? (
               <div className="text-center text-gray-500 py-8">
                 <Calendar size={32} className="mx-auto mb-2 opacity-50" />
                 <p>No events</p>
@@ -811,7 +850,7 @@ const SchoolPlanner = () => {
                 onMouseLeave={() => setHoveredIndex(null)}
               >
                 <TodayScheduleTimeline
-                  eventsWithBreaks={eventsWithBreaks}
+                  eventsWithBreaks={timelineEvents}
                   measuredHeights={measuredHeights}
                   segments={segments}
                   gapBetweenCards={12} // Default gap, can be measured if needed
@@ -827,69 +866,42 @@ const SchoolPlanner = () => {
 
                 {/* Event cards */}
                 {(() => {
-                  // Filter events for focused view when timeline countdown is enabled
-                  let eventsToShow = eventsWithBreaks;
-                  let dayOverCheck = false;
+                  // Keep refs array length in sync with rendered cards to avoid stale measurements
+                  cardRefs.current.length = timelineEvents.length;
+                  // Only one countdown box should render
+                  let countdownRendered = false;
 
-                  if (showCountdownInTimeline && !timelineExpanded) {
+                  // Compute the global index of the currently active (non-break) event by time
+                  const computeCurrentEventFullIndex = () => {
+                    if (!showCountdownInTimeline) return -1;
                     const now = new Date(nowTs);
                     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-                    let currentEventIndex = -1;
-                    let nextEventIndex = -1;
-                    dayOverCheck = true;
-
-                    // Find current and next non-break events, and check if day is over
                     for (let i = 0; i < eventsWithBreaks.length; i++) {
-                      const event = eventsWithBreaks[i];
-                      if (isBreakEvent(event)) continue;
-
-                      if (!event.dtstart || !event.dtend) continue;
-
-                      const eventStart = new Date(event.dtstart);
-                      const eventEnd = new Date(event.dtend);
-
-                      // Convert to today's times
-                      const todayEventStart = new Date(today);
-                      todayEventStart.setHours(eventStart.getHours(), eventStart.getMinutes(), eventStart.getSeconds());
-
-                      const todayEventEnd = new Date(today);
-                      todayEventEnd.setHours(eventEnd.getHours(), eventEnd.getMinutes(), eventEnd.getSeconds());
-
-                      if (nowTs >= todayEventStart.getTime() && nowTs <= todayEventEnd.getTime()) {
-                        currentEventIndex = i;
-                        dayOverCheck = false;
-                      } else if (nowTs < todayEventStart.getTime() && nextEventIndex === -1) {
-                        nextEventIndex = i;
-                        dayOverCheck = false;
+                      const e = eventsWithBreaks[i];
+                      if (!e.dtstart || !e.dtend) continue; // include breaks too
+                      const es = new Date(e.dtstart);
+                      const ee = new Date(e.dtend);
+                      const ts = new Date(today);
+                      ts.setHours(es.getHours(), es.getMinutes(), es.getSeconds());
+                      const te = new Date(today);
+                      te.setHours(ee.getHours(), ee.getMinutes(), ee.getSeconds());
+                      // Half-open interval [start, end)
+                      if (nowTs >= ts.getTime() && nowTs < te.getTime()) {
+                        return i;
                       }
                     }
+                    return -1;
+                  };
 
-                    // If day is over, show all events; otherwise show focused view
-                    if (dayOverCheck) {
-                      eventsToShow = eventsWithBreaks; // Show all events when day is over
-                    } else {
-                      // Create focused events array
-                      const focusedEvents = [];
+                  const currentEventFullIndex = computeCurrentEventFullIndex();
 
-                      if (currentEventIndex !== -1) {
-                        focusedEvents.push(eventsWithBreaks[currentEventIndex]);
-                      }
-
-                      if (nextEventIndex !== -1) {
-                        focusedEvents.push(eventsWithBreaks[nextEventIndex]);
-                      }
-
-                      eventsToShow = focusedEvents;
+                  return timelineEvents.map((event, idx) => {
+                    // Anchor countdown to the exact active event by global index
+                    const fullIndex = eventsWithBreaks.indexOf(event);
+                    let isCurrentEvent = showCountdownInTimeline && fullIndex === currentEventFullIndex; // allow breaks to show countdown
+                    if (isCurrentEvent && countdownRendered) {
+                      isCurrentEvent = false;
                     }
-                  }
-
-                  return eventsToShow.map((event, idx) => {
-                    // Check if this is the current event for countdown display
-                    const isCurrentEvent = showCountdownInTimeline && timelineCountdownInfo &&
-                      timelineCountdownInfo.type === 'current' &&
-                      timelineCountdownInfo.event === event.summary &&
-                      !isBreakEvent(event);
 
                     return (
                       <div key={idx} className="relative z-10 w-full">
@@ -915,15 +927,15 @@ const SchoolPlanner = () => {
                         </div>
 
                         {/* Countdown box under current event */}
-                        {isCurrentEvent && (
+                        {isCurrentEvent && (countdownRendered = true) && (
                           <div className={`mt-3 p-4 rounded-lg ${colors.container} border ${colors.border} shadow-lg`}>
                             <div className="flex items-center justify-between">
                               <div>
                                 <div className="text-2xl font-bold text-blue-400">
-                                  {timelineCountdownInfo.time}
+                                  {timelineCountdownInfo?.time ?? ''}
                                 </div>
                                 <div className="text-sm text-gray-400">
-                                  left in {timelineCountdownInfo.event}
+                                  left in {timelineCountdownInfo?.event ?? normalizeSubjectName(event.summary, autoNamingEnabled)}
                                 </div>
                               </div>
                               <div className="text-right">
@@ -949,8 +961,7 @@ const SchoolPlanner = () => {
 
                     for (let i = 0; i < eventsWithBreaks.length; i++) {
                       const event = eventsWithBreaks[i];
-                      if (isBreakEvent(event)) continue;
-                      if (!event.dtstart || !event.dtend) continue;
+                      if (!event.dtstart || !event.dtend) continue; // include breaks as valid events
 
                       const eventStart = new Date(event.dtstart);
                       const eventEnd = new Date(event.dtend);
@@ -980,22 +991,11 @@ const SchoolPlanner = () => {
                             className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg ${colors.container} border ${colors.border} hover:opacity-80 transition-colors duration-200`}
                           >
                             <ChevronsUpDown size={20} className={colors.containerText} />
-                            <span className={`font-medium ${colors.containerText}`}>Upcoming</span>
+                            <span className={`font-medium ${colors.containerText}`}>Show All</span>
                           </button>
                         </div>
                       )}
 
-                      {showCountdownInTimeline && timelineExpanded && !isDayOverInline && (
-                        <div className="mt-6 text-center">
-                          <button
-                            onClick={() => setTimelineExpanded(false)}
-                            className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg ${colors.container} border ${colors.border} hover:opacity-80 transition-colors duration-200`}
-                          >
-                            <ChevronsUpDown size={20} className={colors.containerText} style={{ transform: 'rotate(180deg)' }} />
-                            <span className={`font-medium ${colors.containerText}`}>Show Less</span>
-                          </button>
-                        </div>
-                      )}
                     </>
                   );
                 })()}
@@ -1203,6 +1203,7 @@ const SchoolPlanner = () => {
     // Simply flip the toggle; date selection logic is handled in render and helpers
     setShowNextDay(!showNextDay);
   };
+
 
   // Helper: get next occurrence of an event after now, treating week as repeating
   function getNextOccurrence(event: CalendarEvent, now: Date): Date {
@@ -2170,27 +2171,25 @@ const SchoolPlanner = () => {
 
   // Main content routes
   // Only show welcome screen if not completed
-  let mainContent = null;
-  if (welcomeStep !== 'completed') {
-    mainContent = (
-      <Routes>
-        <Route path="/" element={<Navigate to="/welcome" replace />} />
-        <Route path="/welcome" element={renderWelcomeScreen()} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    );
-  } else {
-    mainContent = (
-      <Routes>
-        <Route path="/" element={<Navigate to="/home" replace />} />
-        <Route path="/home" element={renderHome()} />
-        <Route path="/calendar" element={renderWeekView()} />
-        <Route path="/markbook" element={renderMarkbook()} />
-        <Route path="/settings" element={renderSettings()} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    );
-  }
+  const mainContent = (
+    <Routes>
+      {welcomeStep !== 'completed' ? (
+        <>
+          <Route path="/" element={<Navigate to="/welcome" replace />} />
+          <Route path="/welcome" element={renderWelcomeScreen()} />
+        </>
+      ) : (
+        <>
+          <Route path="/" element={<Navigate to="/home" replace />} />
+          <Route path="/home" element={renderHome()} />
+          <Route path="/calendar" element={renderWeekView()} />
+          <Route path="/markbook" element={renderMarkbook()} />
+          <Route path="/settings" element={renderSettings()} />
+        </>
+      )}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
 
   // Main render logic
   if (isInitializing) {
@@ -2215,185 +2214,11 @@ const SchoolPlanner = () => {
           SettingsIcon={SettingsIcon}
         />
       </div>
-      <ThemeModal
-        showThemeModal={showThemeModal}
-        setShowThemeModal={setShowThemeModal}
-        theme={theme}
-        themeType={themeType}
-        themeMode={themeMode}
-        setThemeMode={setThemeMode}
-        handleThemeChange={handleThemeChange}
-        effectiveMode={effectiveMode}
-        colors={colors}
-      />
-      {/* Main Content */}
-      <div className="flex-1 lg:ml-16 pb-16 lg:pb-0 min-w-0">
-        <div className="w-full px-4 py-8 min-h-full">
-          <div className="w-full h-full">
-            {/* Header - Conditional based on route */}
-            {location.pathname === '/home' && (
-              <div className="mb-8 flex items-center">
-                <h1 className={`text-4xl font-bold mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}
-                  style={{ textAlign: 'left', width: '100%' }}>
-                  {userName ? `${getGreeting()}, ${userName}!` : `${getGreeting()}!`}
-                </h1>
-              </div>
-            )}
-            {location.pathname === '/settings' && (
-              <div className="mb-8 flex items-center">
-                <h1 className={`text-4xl font-bold mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}
-                  style={{ textAlign: 'left', width: '100%' }}>
-                  School Planner
-                </h1>
-              </div>
-            )}
-            {/* Loading State (only for main app after welcome) */}
-            {loading && welcomeStep === 'completed' && (
-              <div className="text-center py-8">
-                <div className={`animate-spin rounded-full h-12 w-12 border-b-2 ${effectiveMode === 'light' ? 'border-black' : colors.spin} mx-auto mb-4`}></div>
-                <p className={`${effectiveMode === 'light' ? 'text-black' : 'text-gray-400'}`}>Processing your calendar...</p>
-              </div>
-            )}
-            {/* Error State (only for main app after welcome) */}
-            {error && welcomeStep === 'completed' && (
-              <div className="bg-red-900/20 border border-red-500 rounded-lg p-4 mb-6">
-                <div className="flex items-center gap-2 text-red-400">
-                  <FileText size={20} />
-                  <span className="font-medium">{error}</span>
-                </div>
-              </div>
-            )}
-            {/* Main Content Routes */}
-            {mainContent}
-            {/* Empty State for Calendar (only if not loading, no error, no data, and on calendar page) */}
-            {!loading && !error && !weekData && location.pathname === '/calendar' && (
-              <div className="text-center py-16">
-                <Calendar size={64} className="mx-auto mb-4 text-gray-600" />
-                <p className="text-gray-400 text-lg">No calendar data loaded yet</p>
-                <p className="text-gray-500 text-sm">Upload an ICS file to get started</p>
-              </div>
-            )}
-          </div>
-        </div>
+      
+      {/* Main content with proper left margin for sidebar */}
+      <div className="flex-1 lg:ml-16 p-6">
+        {mainContent}
       </div>
-      {/* Event Details Overlay */}
-      {selectedEvent && (
-        <EventDetailsOverlay
-          event={selectedEvent}
-          onClose={() => setSelectedEvent(null)}
-          colors={colors}
-          effectiveMode={effectiveMode}
-          subjects={subjects}
-        />
-      )}
-      {/* Bottom Navigation - Mobile */}
-      <div className={`lg:hidden fixed bottom-0 left-0 right-0 ${colors.container} ${colors.border} border-t flex justify-around items-center py-2 z-40`}>
-        <button
-          onClick={() => navigate('/home')}
-          className={`p-3 rounded-lg transition-colors duration-200 ${location.pathname === '/home' ? `${colors.buttonAccent} text-white` : `hover:${colors.sidebarHover}`}`}
-          title="Home"
-        >
-          <Home size={20} className={location.pathname === '/home' ? 'text-white' : (effectiveMode === 'dark' ? 'text-gray-400' : colors.text)} />
-        </button>
-        <button
-          onClick={() => navigate('/calendar')}
-          className={`p-3 rounded-lg transition-colors duration-200 ${location.pathname === '/calendar' ? `${colors.buttonAccent} text-white` : `hover:${colors.sidebarHover}`}`}
-          title="Calendar"
-        >
-          <Calendar size={20} className={location.pathname === '/calendar' ? 'text-white' : (effectiveMode === 'dark' ? 'text-gray-400' : colors.text)} />
-        </button>
-        <button
-          onClick={() => navigate('/markbook')}
-          className={`p-3 rounded-lg transition-colors duration-200 ${location.pathname === '/markbook' ? `${colors.buttonAccent} text-white` : `hover:${colors.sidebarHover}`}`}
-          title="Markbook"
-        >
-          <BarChart3 size={20} className={location.pathname === '/markbook' ? 'text-white' : (effectiveMode === 'dark' ? 'text-gray-400' : colors.text)} />
-        </button>
-        <button
-          onClick={() => navigate('/settings')}
-          className={`p-3 rounded-lg transition-colors duration-200 ${location.pathname === '/settings' ? `${colors.buttonAccent} text-white` : `hover:${colors.sidebarHover}`}`}
-          title="Settings"
-        >
-          <SettingsIcon size={20} className={location.pathname === '/settings' ? 'text-white' : (effectiveMode === 'dark' ? 'text-gray-400' : colors.text)} />
-        </button>
-      </div>
-
-      {/* Exam side panel moved inside markbook grid */}
-
-      {/* Disable Password Modal */}
-      {showDisablePasswordModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
-            <h3 className={`text-xl font-semibold ${colors.text} mb-4`}>Confirm Password</h3>
-            <p className={`text-sm ${colors.containerText} opacity-80 mb-6`}>
-              Enter your current password to disable password protection
-            </p>
-            <input
-              type="password"
-              value={disablePasswordAttempt}
-              onChange={(e) => setDisablePasswordAttempt(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const storedHash = localStorage.getItem('markbookPassword');
-                  if (storedHash && memoizedComparePassword(disablePasswordAttempt, storedHash)) {
-                    setMarkbookPasswordEnabled(false);
-                    setMarkbookPassword('');
-                    setShowDisablePasswordModal(false);
-                    setDisablePasswordAttempt('');
-                    showSuccess('Password Protection Disabled', 'Password protection has been turned off', { effectiveMode, colors });
-                  } else {
-                    showError('Incorrect Password', 'Please try again', { effectiveMode, colors });
-                  }
-                }
-              }}
-              className={`w-full px-4 py-3 rounded-lg border ${colors.border} focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6 text-lg ${colors.container} ${colors.text}`}
-              placeholder="Enter current password"
-              autoComplete="off"
-            />
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  setShowDisablePasswordModal(false);
-                  setDisablePasswordAttempt('');
-                  setMarkbookPasswordEnabled(true); // Keep enabled since cancelled
-                }}
-                className="bg-secondary hover:bg-secondary-dark text-secondary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  const storedHash = localStorage.getItem('markbookPassword');
-                  if (storedHash && memoizedComparePassword(disablePasswordAttempt, storedHash)) {
-                    setMarkbookPasswordEnabled(false);
-                    setMarkbookPassword('');
-                    setShowDisablePasswordModal(false);
-                    setDisablePasswordAttempt('');
-                    showSuccess('Password Protection Disabled', 'Password protection has been turned off', { effectiveMode, colors });
-                  } else {
-                    showError('Incorrect Password', 'Please try again', { effectiveMode, colors });
-                  }
-                }}
-                className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
-              >
-                Disable Protection
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Fullscreen Countdown Modal */}
-      <FullscreenCountdown
-        isOpen={isCountdownFullscreen}
-        onClose={() => setIsCountdownFullscreen(false)}
-        searching={countdownSearching}
-        nextEvent={nextEvent}
-        nextEventDate={nextEventDate}
-        timeLeft={timeLeft}
-        formatCountdown={formatCountdownForTab}
-        getEventColour={getEventColour}
-      />
     </div>
   );
 };
@@ -2485,8 +2310,3 @@ const QuoteOfTheDayWidget: React.FC<{
 };
 
 export default SchoolPlanner;
-// To set the favicon and page title:
-// 1. Edit public/index.html
-// 2. Set <title>School Planner</title>
-// 3. For favicon, export the Lucide 'School' icon as SVG and set as <link rel="icon" href="/school.svg"> in index.html.
-
