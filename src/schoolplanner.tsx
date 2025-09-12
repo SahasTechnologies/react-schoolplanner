@@ -4,13 +4,12 @@
 import * as React from 'react';
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import {
-  Calendar, FileText, Home, BarChart3,
+  Calendar, Home, BarChart3,
   Settings as SettingsIcon, LoaderCircle, Shield, ChevronsUpDown,
   Maximize, X
 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { ThemeKey, getColors } from './utils/themeUtils';
-import { ThemeModal } from './components/ThemeModal';
 import { normalizeSubjectName } from './utils/subjectUtils.ts';
 import { getSubjectIcon } from './utils/subjectUtils.ts';
 import {
@@ -816,6 +815,12 @@ const SchoolPlanner = () => {
               el.appendChild(indicator);
             }
           }} />
+        </div>
+        {/* Greeting */}
+        <div className="mt-2 mb-2">
+          <div className={`text-xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
+            {getGreeting()}{userName ? `, ${userName}` : ''}
+          </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className={`${colors.container} rounded-lg ${colors.border} border p-6 col-span-1`}>
@@ -2218,6 +2223,89 @@ const SchoolPlanner = () => {
       {/* Main content with proper left margin for sidebar */}
       <div className="flex-1 lg:ml-16 p-6">
         {mainContent}
+
+        {/* Fullscreen countdown modal */}
+        <FullscreenCountdown
+          isOpen={isCountdownFullscreen}
+          onClose={() => setIsCountdownFullscreen(false)}
+          searching={countdownSearching}
+          nextEvent={nextEvent}
+          nextEventDate={nextEventDate}
+          timeLeft={timeLeft}
+          formatCountdown={formatCountdownForTab}
+          getEventColour={getEventColour}
+        />
+
+        {/* Event details overlay */}
+        {selectedEvent && (
+          <EventDetailsOverlay
+            event={selectedEvent}
+            onClose={() => setSelectedEvent(null)}
+            colors={colors}
+            effectiveMode={effectiveMode}
+            subjects={subjects}
+          />
+        )}
+
+        {/* Disable password confirmation modal */}
+        {showDisablePasswordModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
+            <div className={`${colors.container} rounded-lg ${colors.border} border p-6 w-full max-w-md`}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`text-lg font-semibold ${colors.buttonText}`}>Disable Password Protection</h3>
+                <button
+                  onClick={() => { setShowDisablePasswordModal(false); setDisablePasswordAttempt(''); }}
+                  className={`${colors.text} opacity-70 hover:opacity-100 transition`}
+                  title="Close"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <p className={`${colors.containerText} mb-4`}>
+                Enter your current password to disable Markbook protection.
+              </p>
+              <input
+                type="password"
+                value={disablePasswordAttempt}
+                onChange={(e) => setDisablePasswordAttempt(e.target.value)}
+                className={`w-full px-4 py-3 rounded-lg border ${colors.border} focus:outline-none focus:ring-2 focus:ring-blue-500 ${colors.container} ${colors.text}`}
+                placeholder="Enter password"
+                autoComplete="off"
+              />
+              <div className="flex justify-end gap-2 mt-4">
+                <button
+                  onClick={() => { setShowDisablePasswordModal(false); setDisablePasswordAttempt(''); }}
+                  className={`bg-secondary hover:bg-secondary-dark text-secondary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    const storedHash = localStorage.getItem('markbookPassword');
+                    if (!storedHash) {
+                      setMarkbookPasswordEnabled(false);
+                      setShowDisablePasswordModal(false);
+                      setDisablePasswordAttempt('');
+                      showSuccess('Protection Disabled', 'No stored password found; protection disabled.', { effectiveMode, colors });
+                      return;
+                    }
+                    if (memoizedComparePassword(disablePasswordAttempt, storedHash)) {
+                      setMarkbookPasswordEnabled(false);
+                      setShowDisablePasswordModal(false);
+                      setDisablePasswordAttempt('');
+                      showSuccess('Protection Disabled', 'Markbook password protection turned off.', { effectiveMode, colors });
+                    } else {
+                      showError('Incorrect Password', 'The password is incorrect.', { effectiveMode, colors });
+                    }
+                  }}
+                  className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
+                >
+                  Disable
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
