@@ -264,7 +264,44 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
     }
 
     if (currentEvent) {
-      // Show time until current event ends
+      // If current event is a break, count down to the next non-break event start
+      if (isBreakEvent(currentEvent)) {
+        // Find the next non-break event after now
+        let nextNonBreak: any = null;
+        for (let i = 0; i < eventsWithBreaks.length; i++) {
+          const e = eventsWithBreaks[i];
+          if (!e.dtstart || !e.dtend) continue;
+          const eStart = new Date(today);
+          eStart.setHours(e.dtstart.getHours(), e.dtstart.getMinutes(), e.dtstart.getSeconds());
+          if (eStart.getTime() > nowTs && !isBreakEvent(e)) {
+            const eEnd = new Date(today);
+            eEnd.setHours(e.dtend.getHours(), e.dtend.getMinutes(), e.dtend.getSeconds());
+            nextNonBreak = { ...e, todayStart: eStart, todayEnd: eEnd };
+            break;
+          }
+        }
+        if (nextNonBreak) {
+          const timeLeft = nextNonBreak.todayStart.getTime() - nowTs;
+          const minutes = Math.floor(timeLeft / (1000 * 60));
+          const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+          return {
+            time: `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`,
+            event: nextNonBreak.summary,
+            type: 'next' as const,
+          };
+        }
+        // Fallback to current event end if no next non-break found
+        const cur: any = currentEvent;
+        const timeLeft = cur.todayEnd.getTime() - nowTs;
+        const minutes = Math.floor(timeLeft / (1000 * 60));
+        const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+        return {
+          time: `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`,
+          event: currentEvent.summary,
+          type: 'current' as const,
+        };
+      }
+      // Normal event: show time until current event ends
       const timeLeft = currentEvent.todayEnd.getTime() - nowTs;
       const minutes = Math.floor(timeLeft / (1000 * 60));
       const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);

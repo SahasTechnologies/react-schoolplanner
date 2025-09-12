@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import {
-  Calendar, Home, BarChart3,
+  Calendar, BarChart3,
   Settings as SettingsIcon, LoaderCircle, Shield, ChevronsUpDown,
   Maximize, X
 } from 'lucide-react';
@@ -19,6 +19,7 @@ import {
   isBreakEvent,
 } from './utils/calendarUtils.ts';
 import TodayScheduleTimeline from './components/TodayScheduleTimeline';
+import { ThemeModal } from './components/ThemeModal';
 import WelcomeScreen from './components/WelcomeScreen';
 import Settings from './components/Settings';
 import EventCard from './components/EventCard';
@@ -174,7 +175,7 @@ const SchoolPlanner = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
     if (hour < 18) return 'Good afternoon';
-    if (hour < 20) return 'Good evening';
+    if (hour < 21) return 'Good evening';
     return 'Good night';
   };
 
@@ -797,11 +798,7 @@ const SchoolPlanner = () => {
 
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Home className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
-            <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Home</h2>
-          </div>
+        <div className="flex justify-end">
           {/* Offline indicator in top right */}
           <div ref={(el) => {
             if (el) {
@@ -817,10 +814,10 @@ const SchoolPlanner = () => {
           }} />
         </div>
         {/* Greeting */}
-        <div className="mt-2 mb-2">
-          <div className={`text-xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
-            {getGreeting()}{userName ? `, ${userName}` : ''}
-          </div>
+        <div className="mt-0 mb-2">
+          <h1 className={`font-semibold leading-snug tracking-tight ${effectiveMode === 'light' ? 'text-black' : 'text-white'} text-lg sm:text-xl md:text-2xl whitespace-nowrap overflow-hidden text-ellipsis`}>
+            {`${getGreeting()}.`}
+          </h1>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className={`${colors.container} rounded-lg ${colors.border} border p-6 col-span-1`}>
@@ -910,6 +907,12 @@ const SchoolPlanner = () => {
 
                     return (
                       <div key={idx} className="relative z-10 w-full">
+                        {/* 'Now' heading above the current event */}
+                        {isCurrentEvent && (
+                          <div className={`mb-2 text-base font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
+                            Now
+                          </div>
+                        )}
                         <div
                           ref={el => { cardRefs.current[idx] = el; }}
                           onMouseEnter={() => setHoveredIndex(idx)}
@@ -931,24 +934,53 @@ const SchoolPlanner = () => {
                           />
                         </div>
 
-                        {/* Countdown box under current event */}
-                        {isCurrentEvent && (countdownRendered = true) && (
-                          <div className={`mt-3 p-4 rounded-lg ${colors.container} border ${colors.border} shadow-lg`}>
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <div className="text-2xl font-bold text-blue-400">
-                                  {timelineCountdownInfo?.time ?? ''}
+                        {/* Countdown pill under current event */}
+                        {isCurrentEvent && (countdownRendered = true) && (() => {
+                          // Determine the next non-break event (for label/color) after the current global index
+                          const globalIdx = currentEventFullIndex;
+                          let nextNonBreak: CalendarEvent | null = null;
+                          for (let i = globalIdx + 1; i < eventsWithBreaks.length; i++) {
+                            const e = eventsWithBreaks[i];
+                            if (!isBreakEvent(e)) { nextNonBreak = e; break; }
+                          }
+                          const displaySummary = nextNonBreak ? nextNonBreak.summary : event.summary;
+                          const displayLocationRaw = nextNonBreak ? (nextNonBreak.location || '') : (event.location || '');
+                          const displayColor = getEventColour(displaySummary);
+                          const cleanedLoc = displayLocationRaw.replace(/^Room:\s*/i, '').trim();
+                          return (
+                            <div className={`mt-3 rounded-2xl px-4 py-3 ${colors.container} border ${colors.border} shadow-md`}>
+                              <div className="flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-2 text-base">
+                                  <span className={`${colors.containerText}`}>to</span>
+                                  <span className="font-semibold" style={{ color: displayColor }}>
+                                    {normalizeSubjectName(displaySummary, autoNamingEnabled)}
+                                  </span>
+                                  {cleanedLoc ? (
+                                    <span className={`${colors.containerText}`}>in {cleanedLoc}</span>
+                                  ) : null}
                                 </div>
-                                <div className="text-sm text-gray-400">
-                                  left in {timelineCountdownInfo?.event ?? normalizeSubjectName(event.summary, autoNamingEnabled)}
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <div className="text-xs text-gray-500 uppercase tracking-wide">
-                                  Current Period
+                                <div className="flex items-center gap-3">
+                                  <span className="text-2xl md:text-3xl font-semibold" style={{ color: displayColor }}>
+                                    {timelineCountdownInfo?.time ?? ''}
+                                  </span>
+                                  <button
+                                    onClick={() => setIsCountdownFullscreen(true)}
+                                    className={`p-2 rounded-md hover:opacity-80 transition-colors ${effectiveMode === 'light' ? 'text-black' : 'text-white'} opacity-80`}
+                                    title="Fullscreen countdown"
+                                  >
+                                    <Maximize size={18} />
+                                  </button>
                                 </div>
                               </div>
                             </div>
+                          );
+                        })()}
+
+                        {/* 'Upcoming' heading after current block when there are more */}
+                        {isCurrentEvent && idx < timelineEvents.length - 1 && (
+                          <div className="mt-4 mb-1 flex items-center gap-2">
+                            <span className={`text-base font-semibold ${colors.containerText}`}>Upcoming</span>
+                            <ChevronsUpDown size={16} className={colors.containerText} />
                           </div>
                         )}
                       </div>
@@ -1064,6 +1096,9 @@ const SchoolPlanner = () => {
 
   // Measure card heights initially and when the list content changes (not on hover).
   useLayoutEffect(() => {
+    if (location.pathname !== '/home') {
+      return;
+    }
     try {
       const container = listRef.current;
       if (!container) {
@@ -1098,7 +1133,7 @@ const SchoolPlanner = () => {
     } catch {
       // ignore
     }
-  }, [showNextDay, cardRefs.current.length]);
+  }, [location.pathname, showNextDay, cardRefs.current.length]);
 
   // Note: Hover changes are handled by ResizeObserver below; no extra timers on hover to avoid flicker.
 
@@ -1118,6 +1153,7 @@ const SchoolPlanner = () => {
 
   // Simple ResizeObserver that only measures on window resize, not during hover animations
   useEffect(() => {
+    if (location.pathname !== '/home') return;
     const container = listRef.current;
     if (!container) return;
     if (!('ResizeObserver' in window)) return;
@@ -1163,6 +1199,7 @@ const SchoolPlanner = () => {
 
   // Re-measure gradient smoothly around hover changes (few lightweight checks)
   useEffect(() => {
+    if (location.pathname !== '/home') return;
     const measure = () => {
       try {
         const cont = listRef.current;
@@ -1201,7 +1238,7 @@ const SchoolPlanner = () => {
       if (rafId) window.cancelAnimationFrame(rafId);
       timeouts.forEach((id) => window.clearTimeout(id));
     };
-  }, [hoveredIndex]); // Triggers on hover start and end
+  }, [hoveredIndex, location.pathname]); // Triggers on hover start and end
 
   // Toggle handler with weekend logic
   const handleDayToggle = () => {
@@ -1233,17 +1270,19 @@ const SchoolPlanner = () => {
     return next;
   }
 
-  function findNextRepeatingEvent(now: Date): { event: CalendarEvent; date: Date } | null {
+  
+
+  // Find the next NON-break event (skip breaks)
+  function findNextNonBreakRepeatingEvent(now: Date): { event: CalendarEvent; date: Date } | null {
     if (!weekData || !weekData.events || weekData.events.length === 0) return null;
 
-    // Get all events and insert breaks
     const eventsWithBreaks = insertBreaksBetweenEvents(weekData.events);
-
-    // Calculate next occurrence for all events (including breaks)
-    const nexts = eventsWithBreaks.map((e: CalendarEvent & { isBreak?: boolean }) => ({
-      event: e,
-      date: getNextOccurrence(e, now)
-    }));
+    const nexts = eventsWithBreaks
+      .filter((e: CalendarEvent & { isBreak?: boolean }) => !isBreakEvent(e))
+      .map((e: CalendarEvent & { isBreak?: boolean }) => ({
+        event: e,
+        date: getNextOccurrence(e, now)
+      }));
 
     const soonest = nexts.reduce((min, curr) => (min === null || curr.date < min.date ? curr : min), null as { event: CalendarEvent; date: Date } | null);
     return soonest;
@@ -1329,7 +1368,7 @@ const SchoolPlanner = () => {
     setCountdownSearching(true);
     const interval = setInterval(() => {
       const now = new Date();
-      const soonest = findNextRepeatingEvent(now);
+      const soonest = findNextNonBreakRepeatingEvent(now);
       if (soonest) {
         setNextEvent(soonest.event);
         setNextEventDate(soonest.date);
@@ -1431,7 +1470,15 @@ const SchoolPlanner = () => {
           </div>
         ) : nextEvent && nextEventDate ? (
           <>
-            <div className={`text-4xl font-bold mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`} style={effectiveMode === 'light' ? {} : { textShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>{formatCountdown(timeLeft)}</div>
+            <div
+              className={`text-4xl font-bold mb-2`}
+              style={{
+                color: nextEvent ? getEventColour(nextEvent.summary) : (effectiveMode === 'light' ? '#000000' : '#ffffff'),
+                ...(effectiveMode === 'light' ? {} : { textShadow: '0 1px 4px rgba(0,0,0,0.15)' })
+              }}
+            >
+              {formatCountdown(timeLeft)}
+            </div>
             <div className="flex items-center gap-2 mb-1">
               <ColoredSubjectIcon summary={nextEvent.summary} />
               <span className="text-base font-medium" style={{ color: getEventColour(nextEvent.summary) }}>{normalizeSubjectName(nextEvent.summary, true)}</span>
@@ -2022,10 +2069,11 @@ const SchoolPlanner = () => {
 
   // Tick every minute to update progress overlay, or every second if timeline countdown is enabled
   useEffect(() => {
+    if (location.pathname !== '/home') return;
     const interval = showCountdownInTimeline ? 1000 : 60000; // 1 second vs 1 minute
     const id = setInterval(() => setNowTs(Date.now()), interval);
     return () => clearInterval(id);
-  }, [showCountdownInTimeline]);
+  }, [showCountdownInTimeline, location.pathname]);
 
   // Reset timeline expanded state when countdown timeline is disabled
   useEffect(() => {
@@ -2177,7 +2225,7 @@ const SchoolPlanner = () => {
   // Main content routes
   // Only show welcome screen if not completed
   const mainContent = (
-    <Routes>
+    <Routes key={location.pathname}>
       {welcomeStep !== 'completed' ? (
         <>
           <Route path="/" element={<Navigate to="/welcome" replace />} />
@@ -2221,7 +2269,7 @@ const SchoolPlanner = () => {
       </div>
       
       {/* Main content with proper left margin for sidebar */}
-      <div className="flex-1 lg:ml-16 p-6">
+      <div className="flex-1 lg:ml-16 pt-0 px-6 pb-6">
         {mainContent}
 
         {/* Fullscreen countdown modal */}
@@ -2234,6 +2282,19 @@ const SchoolPlanner = () => {
           timeLeft={timeLeft}
           formatCountdown={formatCountdownForTab}
           getEventColour={getEventColour}
+        />
+
+        {/* Theme selection modal */}
+        <ThemeModal
+          showThemeModal={showThemeModal}
+          setShowThemeModal={setShowThemeModal}
+          theme={theme}
+          themeType={themeType}
+          themeMode={themeMode}
+          setThemeMode={setThemeMode}
+          handleThemeChange={handleThemeChange}
+          effectiveMode={effectiveMode}
+          colors={colors}
         />
 
         {/* Event details overlay */}

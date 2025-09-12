@@ -196,7 +196,30 @@ class NotificationManager {
   }
 
   private getColorFromClass(className: string, effectiveMode: 'light' | 'dark'): string {
-    // Map common Tailwind classes to actual colors
+    // 1) Support arbitrary Tailwind colors like bg-[#123456] or border-[#123456]
+    const arbitrary = className.match(/^(bg|border)-\[(#[0-9a-fA-F]{6,8})\]$/);
+    if (arbitrary) {
+      return arbitrary[2];
+    }
+
+    // 2) Try to resolve via computed styles by creating a temporary element
+    try {
+      const el = document.createElement('div');
+      el.style.position = 'absolute';
+      el.style.visibility = 'hidden';
+      el.style.pointerEvents = 'none';
+      el.className = className;
+      document.body.appendChild(el);
+      const styles = getComputedStyle(el);
+      const isBorder = className.startsWith('border-');
+      const value = isBorder ? (styles.borderTopColor || styles.borderColor) : styles.backgroundColor;
+      document.body.removeChild(el);
+      if (value && value !== 'rgba(0, 0, 0, 0)' && value !== 'transparent') {
+        return value;
+      }
+    } catch {}
+
+    // 3) Fallback for a few common classes and mode defaults
     const colorMap: { [key: string]: string } = {
       'bg-white': '#ffffff',
       'bg-gray-50': '#f9fafb',
@@ -205,16 +228,10 @@ class NotificationManager {
       'bg-gray-800': '#1f2937',
       'bg-gray-900': '#111827',
       'bg-gray-950': '#030712',
-      'bg-slate-800': '#1e293b',
-      'bg-slate-900': '#0f172a',
-      'bg-slate-950': '#020617',
       'border-gray-300': '#d1d5db',
       'border-gray-700': '#374151',
       'border-gray-800': '#1f2937',
-      'border-slate-700': '#334155',
-      'border-slate-800': '#1e293b',
     };
-
     return colorMap[className] || (effectiveMode === 'light' ? '#ffffff' : '#1f2937');
   }
 
