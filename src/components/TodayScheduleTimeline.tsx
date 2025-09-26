@@ -29,7 +29,6 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
   const n = eventsWithBreaks.length;
 
   const { gradientCSS, progressPctVis } = useMemo(() => {
-    console.log('TodayScheduleTimeline: n =', n, 'eventsWithBreaks =', eventsWithBreaks);
     if (n === 0) return { gradientCSS: 'none', progressPctVis: 0 };
 
     const rawHeights = measuredHeights.length === n ? measuredHeights : new Array(n).fill(64);
@@ -86,40 +85,22 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
     const minStart = times.length ? Math.min(...times.map(t => t.start)) : null;
     const maxEnd = times.length ? Math.max(...times.map(t => t.end)) : null;
 
-    console.log('TodayScheduleTimeline: times =', times.map(t => ({
-      start: new Date(t.start).toLocaleString(),
-      end: new Date(t.end).toLocaleString()
-    })));
-    console.log('TodayScheduleTimeline: minStart =', minStart ? new Date(minStart).toLocaleString() : null);
-    console.log('TodayScheduleTimeline: maxEnd =', maxEnd ? new Date(maxEnd).toLocaleString() : null);
-    console.log('TodayScheduleTimeline: nowTs =', new Date(nowTs).toLocaleString());
 
-    let progressPct = 0;
-    if (minStart !== null && maxEnd !== null && maxEnd > minStart) {
-      const pct = ((nowTs - minStart) / (maxEnd - minStart)) * 100;
-      progressPct = Math.max(0, Math.min(100, pct));
-      console.log('TodayScheduleTimeline: calculated progressPct =', pct, 'clamped =', progressPct);
-    }
 
     const today = new Date();
     const todayY = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
     const selectedY = selectedScheduleDate ? new Date(selectedScheduleDate.getFullYear(), selectedScheduleDate.getMonth(), selectedScheduleDate.getDate()).getTime() : null;
-    const isViewingToday = selectedY !== null && selectedY === todayY;
     let finalProgress = 0;
 
-    console.log('TodayScheduleTimeline: isViewingToday =', isViewingToday, 'minStart =', minStart, 'maxEnd =', maxEnd, 'nowTs =', nowTs, 'progressPct =', progressPct);
-    console.log('TodayScheduleTimeline: today =', today, 'todayY =', todayY, 'selectedY =', selectedY, 'selectedScheduleDate =', selectedScheduleDate);
 
     // Handle different days first
     if (selectedY !== null && selectedY !== todayY) {
       if (selectedY < todayY) {
         // Past day - show full progress (100%)
         finalProgress = 100;
-        console.log('TodayScheduleTimeline: Past day detected, showing 100% progress');
       } else {
         // Future day - show no progress (0%)
         finalProgress = 0;
-        console.log('TodayScheduleTimeline: Future day detected, showing 0% progress');
       }
       return { gradientCSS: finalGradient, progressPctVis: finalProgress };
     }
@@ -142,12 +123,6 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
       const todayStartTs = todayStart.getTime();
       const todayEndTs = todayEnd.getTime();
 
-      console.log('TodayScheduleTimeline: todayStart =', todayStart.toLocaleTimeString());
-      console.log('TodayScheduleTimeline: todayEnd =', todayEnd.toLocaleTimeString());
-      console.log('TodayScheduleTimeline: currentTime =', now.toLocaleTimeString());
-      console.log('TodayScheduleTimeline: nowTs =', nowTs, 'todayStartTs =', todayStartTs, 'todayEndTs =', todayEndTs);
-      console.log('TodayScheduleTimeline: time difference =', (nowTs - todayStartTs) / (1000 * 60), 'minutes into day');
-      console.log('TodayScheduleTimeline: total day length =', (todayEndTs - todayStartTs) / (1000 * 60), 'minutes');
 
       if (nowTs <= todayStartTs) {
         finalProgress = 0;
@@ -219,17 +194,12 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
       }
     }
 
-    console.log('TodayScheduleTimeline: calculated finalProgress =', finalProgress);
-
-    console.log('TodayScheduleTimeline: finalProgress =', finalProgress);
     return { gradientCSS: finalGradient, progressPctVis: finalProgress };
 
   }, [eventsWithBreaks, segments, measuredHeights, containerHeight, gapBetweenCards, nowTs, selectedScheduleDate, getEventColour]);
 
-  console.log('TodayScheduleTimeline render: n =', n, 'progressPctVis =', progressPctVis, 'gradientCSS =', gradientCSS);
 
   if (n === 0) {
-    console.log('TodayScheduleTimeline: No events, returning null');
     return null;
   }
 
@@ -324,7 +294,10 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
     return null;
   };
 
-  const countdownInfo = showCountdownInTimeline ? getCountdownInfo() : null;
+  const countdownInfo = useMemo(() => {
+    if (!showCountdownInTimeline) return null;
+    
+  }, [showCountdownInTimeline, eventsWithBreaks, nowTs]);
 
   // Notify parent component of countdown updates
   React.useEffect(() => {

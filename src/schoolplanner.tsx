@@ -2,7 +2,7 @@
 //   react, react-dom, lucide-react, @types/react, @types/react-dom
 // Favicon and title are set in index.html, see instructions below.
 import * as React from 'react';
-import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import {
   Calendar, BarChart3,
   Settings as SettingsIcon, LoaderCircle, Shield, ChevronsUpDown,
@@ -395,16 +395,13 @@ const SchoolPlanner = () => {
     const dayEvents: CalendarEvent[][] = [[], [], [], [], []];
 
     if (weekData) {
-      console.log('Debug: All events:', weekData.events);
       weekData.events.forEach((event: CalendarEvent) => {
         // Use the event's local date directly to determine the weekday
         const eventDate = new Date(event.dtstart);
         if (isNaN(eventDate.getTime())) {
-          console.warn('Skipping event with invalid date in render:', event);
           return;
         }
         const dayOfWeek = eventDate.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-        console.log(`Debug: Event local date ${eventDate.toLocaleString()}, dayOfWeek=${dayOfWeek}, summary=${event.summary}`);
 
         // Fix: Correctly map Sunday (0) to -1 and Saturday (6) to 5
         const dayIndex = dayOfWeek === 0 ? -1 : dayOfWeek - 1;
@@ -412,16 +409,10 @@ const SchoolPlanner = () => {
         // Only skip weekends, allow all weekdays (indexes 0-4)
         if (dayIndex >= 0 && dayIndex < 5) {
           dayEvents[dayIndex].push(event);
-          console.log(`Debug: Added event to day ${dayIndex} (${['Mon', 'Tue', 'Wed', 'Thu', 'Fri'][dayIndex]})`, event);
         } else {
-          console.log(`Debug: Skipped event with dayIndex ${dayIndex}, dayOfWeek=${dayOfWeek}`, event);
         }
       });
 
-      // Log the final arrays for each day
-      dayEvents.forEach((events, idx) => {
-        console.log(`Debug: Day ${idx} (${['Mon', 'Tue', 'Wed', 'Thu', 'Fri'][idx]}) has ${events.length} events`);
-      });
     }
 
     // Sort and insert breaks
@@ -701,65 +692,10 @@ const SchoolPlanner = () => {
 
 
   // Add state to track which event is hovered for expand/collapse
+
   // In renderHome, insert breaks for the day's events
   const renderHome = () => {
-    // Use toggle state to determine which day's events to show
-    let dayLabel: string;
-    let events: CalendarEvent[];
-    // Track which calendar date the displayed schedule belongs to
-    let selectedScheduleDate: Date | null = null;
-    if (showNextDay) {
-      // Determine the next "school day" to show
-      const now = new Date();
-      const nextDayEvents = findEventsByDayToggle(now, true);
-      if (nextDayEvents) {
-        const currentDay = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-        const targetDate = new Date(now);
-        if (currentDay === 6) {
-          // Saturday -> previous Friday
-          targetDate.setDate(now.getDate() - 1);
-        } else if (currentDay === 0) {
-          // Sunday -> previous Friday
-          targetDate.setDate(now.getDate() - 2);
-        } else if (currentDay === 5) {
-          // Friday -> next Monday
-          targetDate.setDate(now.getDate() + 3);
-        } else {
-          // Mon-Thu -> next day
-          targetDate.setDate(now.getDate() + 1);
-        }
-        dayLabel = `${targetDate.toLocaleDateString(undefined, { weekday: 'long' })}'s Schedule`;
-        const targetDayOfWeek = targetDate.getDay();
-        events = (weekData?.events.filter(event => event.dtstart.getDay() === targetDayOfWeek) || [])
-          .sort((a, b) => {
-            const aTime = a.dtstart.getHours() * 60 + a.dtstart.getMinutes();
-            const bTime = b.dtstart.getHours() * 60 + b.dtstart.getMinutes();
-            return aTime - bTime;
-          });
-        if (events.length) {
-          const d = events[0].dtstart;
-          selectedScheduleDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-        }
-      } else {
-        dayLabel = "No Schedule";
-        events = [];
-      }
-    } else {
-      // Always show today's weekday schedule (do not auto-jump to next day)
-      const now = new Date();
-      const todayDow = now.getDay(); // 0=Sun..6=Sat
-      dayLabel = 'Today';
-      events = (weekData?.events.filter(event => event.dtstart.getDay() === todayDow) || [])
-        .sort((a, b) => {
-          const aTime = a.dtstart.getHours() * 60 + a.dtstart.getMinutes();
-          const bTime = b.dtstart.getHours() * 60 + b.dtstart.getMinutes();
-          return aTime - bTime;
-        });
-      // Use today's date for timeline progress overlay
-      selectedScheduleDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    }
-    // Insert breaks between events for home screen too
-    const eventsWithBreaks = insertBreaksBetweenEvents(events);
+    const { dayLabel, selectedScheduleDate, eventsWithBreaks } = dayEventsData;
 
     // Prepare the list of events to show in the compact timeline view so the gradient matches
     const timelineEvents = (() => {
@@ -897,9 +833,15 @@ const SchoolPlanner = () => {
 
                   const currentEventFullIndex = computeCurrentEventFullIndex();
 
+                  // Pre-compute event indices to avoid O(n²) complexity
+                  const eventToIndexMap = new Map();
+                  eventsWithBreaks.forEach((event, index) => {
+                    eventToIndexMap.set(event, index);
+                  });
+
                   return timelineEvents.map((event, idx) => {
                     // Anchor countdown to the exact active event by global index
-                    const fullIndex = eventsWithBreaks.indexOf(event);
+                    const fullIndex = eventToIndexMap.get(event) ?? -1;
                     let isCurrentEvent = showCountdownInTimeline && fullIndex === currentEventFullIndex; // allow breaks to show countdown
                     if (isCurrentEvent && countdownRendered) {
                       isCurrentEvent = false;
@@ -1246,6 +1188,69 @@ const SchoolPlanner = () => {
     setShowNextDay(!showNextDay);
   };
 
+  // Memoize the basic day events calculation to prevent recalculation on every nowTs update
+  const dayEventsData = useMemo(() => {
+    // Use toggle state to determine which day's events to show
+    let dayLabel: string;
+    let events: CalendarEvent[];
+    // Track which calendar date the displayed schedule belongs to
+    let selectedScheduleDate: Date | null = null;
+    if (showNextDay) {
+      // Determine the next "school day" to show
+      const now = new Date();
+      const nextDayEvents = findEventsByDayToggle(now, true);
+      if (nextDayEvents) {
+        const currentDay = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+        const targetDate = new Date(now);
+        if (currentDay === 6) {
+          // Saturday -> previous Friday
+          targetDate.setDate(now.getDate() - 1);
+        } else if (currentDay === 0) {
+          // Sunday -> previous Friday
+          targetDate.setDate(now.getDate() - 2);
+        } else if (currentDay === 5) {
+          // Friday -> next Monday
+          targetDate.setDate(now.getDate() + 3);
+        } else {
+          // Mon-Thu -> next day
+          targetDate.setDate(now.getDate() + 1);
+        }
+        dayLabel = `${targetDate.toLocaleDateString(undefined, { weekday: 'long' })}'s Schedule`;
+        const targetDayOfWeek = targetDate.getDay();
+        events = (weekData?.events.filter(event => event.dtstart.getDay() === targetDayOfWeek) || [])
+          .sort((a, b) => {
+            const aTime = a.dtstart.getHours() * 60 + a.dtstart.getMinutes();
+            const bTime = b.dtstart.getHours() * 60 + b.dtstart.getMinutes();
+            return aTime - bTime;
+          });
+        if (events.length) {
+          const d = events[0].dtstart;
+          selectedScheduleDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        }
+      } else {
+        dayLabel = "No Schedule";
+        events = [];
+      }
+    } else {
+      // Always show today's weekday schedule (do not auto-jump to next day)
+      const now = new Date();
+      const todayDow = now.getDay(); // 0=Sun..6=Sat
+      dayLabel = 'Today';
+      events = (weekData?.events.filter(event => event.dtstart.getDay() === todayDow) || [])
+        .sort((a, b) => {
+          const aTime = a.dtstart.getHours() * 60 + a.dtstart.getMinutes();
+          const bTime = b.dtstart.getHours() * 60 + b.dtstart.getMinutes();
+          return aTime - bTime;
+        });
+      // Use today's date for timeline progress overlay
+      selectedScheduleDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    }
+    // Insert breaks between events for home screen too
+    const eventsWithBreaks = insertBreaksBetweenEvents(events);
+    
+    return { dayLabel, events, selectedScheduleDate, eventsWithBreaks };
+  }, [showNextDay, weekData]); // Only recalculate when these change, not on nowTs updates
+
 
   // Helper: get next occurrence of an event after now, treating week as repeating
   function getNextOccurrence(event: CalendarEvent, now: Date): Date {
@@ -1381,14 +1386,12 @@ const SchoolPlanner = () => {
           location: soonest.event.location || '',
         };
         setTabCountdown(info);
-        console.log('Updated tabCountdown:', info);
       } else {
         setNextEvent(null);
         setNextEventDate(null);
         setTimeLeft(null);
         setCountdownSearching(false);
         setTabCountdown(null);
-        console.log('Cleared tabCountdown - no upcoming events');
       }
     }, 1000);
     return () => clearInterval(interval);
@@ -1812,12 +1815,10 @@ const SchoolPlanner = () => {
   // --- Persist userName to localStorage on change ---
   React.useEffect(() => {
     if (welcomeStep === 'completed') {
-      console.log('[SaveEffect] Saving userName:', userName);
       if (userName !== undefined) {
         localStorage.setItem('userName', userName);
       }
     } else {
-      console.log('[SaveEffect] Not saving userName because welcomeStep is', welcomeStep);
     }
   }, [userName, welcomeStep]);
 
@@ -1854,9 +1855,6 @@ const SchoolPlanner = () => {
     const savedWeekData = localStorage.getItem('weekData');
     const savedSubjects = localStorage.getItem('subjects');
     const savedName = localStorage.getItem('userName');
-    console.log('[AtomicCheck] weekData:', savedWeekData);
-    console.log('[AtomicCheck] subjects:', savedSubjects);
-    console.log('[AtomicCheck] userName:', savedName);
     if (savedWeekData && savedSubjects && savedName) {
       try {
         // Parse and set weekData
@@ -1897,7 +1895,6 @@ const SchoolPlanner = () => {
   // --- Welcome screen URL logic ---
   React.useEffect(() => {
     if (isInitializing) return;
-    console.log('[NavEffect] welcomeStep:', welcomeStep, 'location.pathname:', location.pathname);
     if (welcomeStep !== 'completed' && location.pathname !== '/welcome') {
       navigate('/welcome', { replace: true });
     }
@@ -2070,8 +2067,17 @@ const SchoolPlanner = () => {
   // Tick every minute to update progress overlay, or every second if timeline countdown is enabled
   useEffect(() => {
     if (location.pathname !== '/home') return;
+    
     const interval = showCountdownInTimeline ? 1000 : 60000; // 1 second vs 1 minute
-    const id = setInterval(() => setNowTs(Date.now()), interval);
+    const id = setInterval(() => {
+      if (window.location.pathname === '/home') {
+        setNowTs(Date.now());
+      }
+    }, interval);
+    
+    // Set initial time immediately
+    setNowTs(Date.now());
+    
     return () => clearInterval(id);
   }, [showCountdownInTimeline, location.pathname]);
 
@@ -2222,10 +2228,17 @@ const SchoolPlanner = () => {
     }
   }, [location.pathname]);
 
+  // Reset timeline expanded state when navigating away from home
+  useEffect(() => {
+    if (location.pathname !== '/home') {
+      setTimelineExpanded(false);
+    }
+  }, [location.pathname]);
+
   // Main content routes
   // Only show welcome screen if not completed
   const mainContent = (
-    <Routes key={location.pathname}>
+    <Routes>
       {welcomeStep !== 'completed' ? (
         <>
           <Route path="/" element={<Navigate to="/welcome" replace />} />

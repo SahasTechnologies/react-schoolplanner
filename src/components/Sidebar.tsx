@@ -9,6 +9,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ navigate, location, colors, SettingsIcon }) => {
+
   // Determine overlay for hover based on mode
   // Use theme accent for active and hover backgrounds
   const accentBg = colors.buttonAccent;
