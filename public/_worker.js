@@ -9,11 +9,12 @@ export default {
       host === 'react-schoolplanner.pages.dev' ||
       host.endsWith('.react-schoolplanner.pages.dev')
     ) {
-      const target = new URL(request.url);
-      target.protocol = 'https:'; // ensure HTTPS on destination
-      target.hostname = 'school.sahas.dpdns.org';
-      // Path, search, and hash are preserved by default
-      return Response.redirect(target.toString(), 301);
+      // Serve our custom 301 info page instead of redirecting
+      const rewritten = new URL(url.toString());
+      rewritten.pathname = '/301.html';
+      rewritten.search = '';
+      rewritten.hash = '';
+      return env.ASSETS.fetch(new Request(rewritten.toString(), request));
     }
 
     return env.ASSETS.fetch(request);

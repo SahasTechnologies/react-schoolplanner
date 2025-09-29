@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="x-ua-compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>301 Moved Permanently</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+    .wrap {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: canvas;
+      color: canvastext;
+      padding: 24px;
+    }
+    .card {
+      width: min(720px, 100%);
+      border: 1px solid var(--border, rgba(128,128,128,.3));
+      border-radius: 12px;
+      padding: 24px;
+      background: color-mix(in oklab, canvas 92%, transparent);
+      box-shadow: 0 2px 10px rgba(0,0,0,.08);
+    }
+    .title { font-size: 28px; font-weight: 700; margin: 0 0 8px; }
+    .subtitle { font-size: 14px; opacity: .75; margin: 0 0 24px; }
+    .muted { opacity: .8; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+    .btn {
+      appearance: none; border: none; border-radius: 10px; cursor: pointer;
+      padding: 10px 14px; font-weight: 600; transition: .2s ease; font-size: 14px;
+    }
+    .btn-primary { background: #2563eb; color: white; }
+    .btn-primary:hover { filter: brightness(1.05); }
+    .btn-secondary { background: transparent; color: inherit; border: 1px solid rgba(128,128,128,.35); }
+    .btn-secondary:hover { background: color-mix(in oklab, canvas 90%, transparent); }
+    .code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .hr { height: 1px; background: rgba(128,128,128,.25); margin: 20px 0; border: 0; }
+    .notice { padding: 12px 14px; border: 1px dashed rgba(128,128,128,.4); border-radius: 8px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="title">301 Moved Permanently</div>
+      <p class="subtitle">This project has moved to our custom domain.</p>
+      <p>
+        The new home is:
+        <a class="code" id="newDomainLink" href="https://school.sahas.dpdns.org/" rel="noopener noreferrer">https://school.sahas.dpdns.org/</a>.
+      </p>
+      <div class="notice">
+        If you used this site before, you can download your data as a <span class="code">.school</span> backup and import it on the new site.
+      </div>
+      <div class="row">
+        <a class="btn btn-primary" href="https://school.sahas.dpdns.org/" rel="noopener noreferrer">Go to new site</a>
+        <button class="btn btn-secondary" id="downloadBtn">Download .school backup</button>
+      </div>
+      <hr class="hr" />
+      <details>
+        <summary class="muted">What will the backup include?</summary>
+        <ul>
+          <li>Subjects and colours</li>
+          <li>Weekly schedule (if saved)</li>
+          <li>Your name (if set)</li>
+          <li>Other extras may be ignored by import but are kept for completeness</li>
+        </ul>
+      </details>
+    </div>
+  </div>
+  <script>
+    // Build a .school file (base64 JSON) from localStorage
+    function buildSchoolData() {
+      const getJSON = (k) => {
+        try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch { return null; }
+      };
+
+      const subjects = getJSON('subjects') || [];
+      const weekData = getJSON('weekData');
+      const userName = localStorage.getItem('userName') || '';
+
+      // Collect subject notes if present (keys like subject_note_<normalized_name>)
+      const subjectNotes = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('subject_note_')) {
+          const note = localStorage.getItem(key);
+          if (note) subjectNotes[key.replace('subject_note_', '')] = note;
+        }
+      }
+
+      // Derive subjectColours array to match exporter style
+      const subjectColours = subjects.map(s => ({ name: s.name, colour: s.colour }));
+
+      const data = {
+        subjects,
+        subjectColours,
+        subjectNotes: Object.keys(subjectNotes).length ? subjectNotes : undefined,
+        weekData,
+        name: userName || undefined,
+        // Keep room for future keys without breaking import
+        _meta: {
+          exportedAt: new Date().toISOString(),
+          from: 'react-schoolplanner.pages.dev'
+        }
+      };
+      return data;
+    }
+
+    function downloadSchoolFile() {
+      try {
+        const data = buildSchoolData();
+        const json = JSON.stringify(data, null, 2);
+        const base64 = btoa(unescape(encodeURIComponent(json)));
+        const blob = new Blob([base64], { type: 'text/plain' });
+        const userName = localStorage.getItem('userName') || 'schoolplanner';
+        const fileName = userName + '-export.school';
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 0);
+      } catch (err) {
+        alert('Failed to create backup: ' + err);
+      }
+    }
+
+    document.getElementById('downloadBtn').addEventListener('click', downloadSchoolFile);
+  </script>
+</body>
+</html>
