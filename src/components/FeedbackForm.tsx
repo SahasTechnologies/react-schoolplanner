@@ -335,7 +335,6 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
       hasSubmittedRef.current = true;
       goTo(5);
     } catch (e:any) {
-      console.error(e);
       setError('Submission failed. Please try again in a moment.');
     } finally {
       setSubmitting(false);

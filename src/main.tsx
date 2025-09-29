@@ -6,7 +6,9 @@ import './index.css' // Keep base styles
 import { BrowserRouter } from 'react-router-dom';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <BrowserRouter>
-    <SchoolPlanner />
-  </BrowserRouter>,
+  <React.StrictMode>
+    <BrowserRouter>
+      <SchoolPlanner />
+    </BrowserRouter>
+  </React.StrictMode>
 )

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { CalendarEvent, isBreakEvent } from '../utils/calendarUtils';
 
 interface TodayScheduleTimelineProps {
@@ -203,8 +203,10 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
     return null;
   }
 
-  // Calculate countdown to next event
-  const getCountdownInfo = (): { time: string; event: string; type: 'current' | 'next' } | null => {
+
+  const countdownInfo = useMemo(() => {
+    if (!showCountdownInTimeline) return null;
+    
     const now = new Date(nowTs);
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -292,19 +294,19 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
       };
     }
     return null;
-  };
-
-  const countdownInfo = useMemo(() => {
-    if (!showCountdownInTimeline) return null;
-    
   }, [showCountdownInTimeline, eventsWithBreaks, nowTs]);
 
-  // Notify parent component of countdown updates
+  // Notify parent component of countdown updates, but only when the value actually changes
+  const lastSentRef = useRef<string>('__init__');
   React.useEffect(() => {
-    if (onCountdownUpdate) {
-      onCountdownUpdate(countdownInfo);
-    }
-  }, [countdownInfo, onCountdownUpdate]);
+    if (!onCountdownUpdate) return;
+    const nextStr = JSON.stringify(countdownInfo ?? null);
+    if (lastSentRef.current === nextStr) return; // no change, avoid extra updates
+    lastSentRef.current = nextStr;
+    onCountdownUpdate(countdownInfo);
+    // Intentionally exclude onCountdownUpdate identity from deps to avoid unnecessary repeats.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countdownInfo]);
 
   // Compute a stable clip-path so the overlay fills from top downward.
   // Add a small fudge on top when progress > 0 and at 100% on both edges to remove any visible caps.
