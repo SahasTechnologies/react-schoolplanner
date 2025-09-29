@@ -18,6 +18,7 @@
     // "moduleDetection": "force", // Changed to default behavior (implicitly removed "force")
     "noEmit": true,
     "jsx": "react-jsx",
+    "jsxImportSource": "react",
 
     /* Linting */
     "strict": true,

@@ -171,7 +171,7 @@ const SchoolPlanner = () => {
     'Globe','Link','Home','School','Laptop','Smartphone','ExternalLink'
   ]), []);
 
-  const isIconKnown = (name?: string) => !!name && knownIcons.has(name);
+  const isIconKnown = (name?: string) => (name ? knownIcons.has(name) : false);
 
   // Remove enhanced biweekly schedule and pattern logic
 
@@ -374,7 +374,7 @@ const SchoolPlanner = () => {
         setSubjects((prevSubjects: Subject[]) =>
           prevSubjects.map((subject: Subject) =>
             subject.id === selectedSubjectForEdit.id
-              ? { ...subject, name: editName, colour: editColour, icon: editIcon || undefined }
+              ? { ...subject, name: editName, colour: editColour, icon: isIconKnown(editIcon) ? editIcon : undefined }
               : subject
           )
         );
@@ -473,7 +473,7 @@ const SchoolPlanner = () => {
         </div>
       </div>
     );
-  };
+  }
 
 
 
@@ -1531,7 +1531,7 @@ const SchoolPlanner = () => {
     colors: any;
     onFullscreen?: () => void;
   };
-  const CountdownBox: React.FC<CountdownBoxProps> = ({ searching, nextEvent, nextEventDate, timeLeft, formatCountdown, getEventColour, effectiveMode, colors, onFullscreen }) => {
+  function CountdownBox({ searching, nextEvent, nextEventDate, timeLeft, formatCountdown, getEventColour, effectiveMode, colors, onFullscreen }: CountdownBoxProps) {
     // Custom colored icon
     function ColoredSubjectIcon({ summary }: { summary: string }) {
       const color = getEventColour(summary);
@@ -2478,14 +2478,10 @@ const SchoolPlanner = () => {
       </div>
     </div>
   );
-};
+}
 
 // Quote of the Day Widget
-const QuoteOfTheDayWidget: React.FC<{
-  theme: ThemeKey;
-  themeType: 'normal' | 'extreme';
-  effectiveMode: 'light' | 'dark';
-}> = ({ theme, themeType, effectiveMode }) => {
+function QuoteOfTheDayWidget({ theme, themeType, effectiveMode }: { theme: ThemeKey; themeType: 'normal' | 'extreme'; effectiveMode: 'light' | 'dark' }): React.ReactElement {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
   const url = getQuoteOfTheDayUrl(theme, themeType, effectiveMode);
@@ -2575,10 +2571,7 @@ interface LinkItem {
   icon: string;
 }
 
-const LinksWidget: React.FC<{
-  effectiveMode: 'light' | 'dark';
-  colors: any;
-}> = ({ effectiveMode, colors }) => {
+function LinksWidget({ effectiveMode, colors }: { effectiveMode: 'light' | 'dark'; colors: any }): React.ReactElement {
   // Default links as shown in the image
   const [links, setLinks] = React.useState<LinkItem[]>(() => {
     const saved = localStorage.getItem('quickLinks');
@@ -2635,6 +2628,12 @@ const LinksWidget: React.FC<{
   const [editUrl, setEditUrl] = React.useState('');
   const [editSubtitle, setEditSubtitle] = React.useState('');
   const [editIcon, setEditIcon] = React.useState('ExternalLink');
+
+  // Known icon names supported by this widget's renderIcon
+  const knownIcons = React.useMemo(() => new Set<string>([
+    'BookOpen','Clock','FileText','User','Printer','Calendar','Folder','CreditCard','Newspaper',
+    'Globe','Link','Home','School','Laptop','Smartphone','ExternalLink'
+  ]), []);
 
   // Helper function to render icon (prioritize lucide icons over emojis)
   const renderIcon = (iconName: string, size = 32) => {
@@ -2694,7 +2693,7 @@ const LinksWidget: React.FC<{
     migratedRef.current = true;
     try {
       const updated = links.map(l => {
-        if (!l.icon || l.icon === 'ExternalLink' || (l.icon && !isIconKnown(l.icon))) {
+        if (!l.icon || l.icon === 'ExternalLink' || (l.icon && !knownIcons.has(l.icon))) {
           return { ...l, icon: suggestIconForLink(l) };
         }
         return l;

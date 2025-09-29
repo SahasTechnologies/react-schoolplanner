@@ -3,10 +3,10 @@
 export const registerServiceWorker = async (): Promise<boolean> => {
   if ('serviceWorker' in navigator) {
     try {
-      const registration = await navigator.serviceWorker.register('/sw.js');
+      await navigator.serviceWorker.register('/sw.js');
       await navigator.serviceWorker.ready;
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -21,7 +21,7 @@ export const unregisterServiceWorker = async (): Promise<boolean> => {
         await registration.unregister();
         return true;
       }
-    } catch (error) {
+    } catch {
     }
   }
   return false;
@@ -35,7 +35,7 @@ export const clearAllCaches = async (): Promise<boolean> => {
         cacheNames.map(cacheName => caches.delete(cacheName))
       );
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -57,7 +57,7 @@ export const getServiceWorkerStatus = async (): Promise<'registered' | 'not-regi
       return 'registered';
     }
     return 'not-registered';
-  } catch (error) {
+  } catch {
     return 'not-registered';
   }
 };
@@ -88,7 +88,7 @@ export const checkForUpdates = async (): Promise<boolean> => {
       return true;
     }
     return false;
-  } catch (error) {
+  } catch {
     return false;
   }
 };
@@ -107,7 +107,7 @@ export const forceCacheUpdate = async (): Promise<boolean> => {
       return true;
     }
     return false;
-  } catch (error) {
+  } catch {
     return false;
   }
 };
@@ -128,7 +128,7 @@ export const checkCacheStatus = async (): Promise<{ hasCache: boolean; cacheSize
     }
     
     return { hasCache: false, cacheSize: 0 };
-  } catch (error) {
+  } catch {
     return { hasCache: false, cacheSize: 0 };
   }
 };
