@@ -4,16 +4,13 @@
 import * as React from 'react';
 import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import {
-  Calendar, BarChart3,
-  Settings as SettingsIcon, LoaderCircle, Shield, ChevronsUpDown,
-  Maximize, X, ExternalLink, Pencil, Plus, Trash2,
-  BookOpen, Clock, FileText, User, Printer, Folder, CreditCard, Newspaper,
-  Globe, Link as LinkIcon, Home, School, Laptop, Smartphone
+  Calendar,
+  Settings as SettingsIcon, ChevronsUpDown,
+  Maximize, X
 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { ThemeKey, getColors } from './utils/themeUtils';
 import { normalizeSubjectName } from './utils/subjectUtils.ts';
-import { getSubjectIcon } from './utils/subjectUtils.ts';
 import {
   CalendarEvent,
   WeekData,
@@ -25,44 +22,25 @@ import { ThemeModal } from './components/ThemeModal';
 import WelcomeScreen from './components/WelcomeScreen';
 import Settings from './components/Settings';
 import EventCard from './components/EventCard';
-import SubjectEditModal from './components/SubjectEditModal';
 
 import { Subject } from './types';
 import Sidebar from './components/Sidebar';
-import SubjectCard from './components/SubjectCard';
 import EventDetailsOverlay from './components/EventDetailsOverlay';
 import { createOfflineIndicatorElement } from './utils/offlineIndicatorUtils';
 import { processFile, exportData, defaultColours } from './utils/fileUtils.ts';
-import { getQuoteOfTheDayUrl } from './utils/quoteUtils.ts';
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported } from './utils/cacheUtils.ts';
 import { showSuccess, showError, showInfo, removeNotification } from './utils/notificationUtils';
 import NotFound from './components/NotFound';
-import ExamPanel from './components/ExamPanel';
 import { Exam } from './types';
-import bcrypt from 'bcryptjs';
-
-// Add password hashing function using bcrypt with fewer rounds for better performance
-const hashPassword = (password: string): string => {
-  const salt = bcrypt.genSaltSync(5); // Reduced from 10 to 5 rounds for better performance
-  return bcrypt.hashSync(password, salt);
-};
-
-// Memoize password comparison to avoid repeated hashing
-const memoizedComparePassword = (() => {
-  let lastPassword = '';
-  let lastHash = '';
-  let lastResult = false;
-
-  return (password: string, hash: string): boolean => {
-    if (password === lastPassword && hash === lastHash) {
-      return lastResult;
-    }
-    lastPassword = password;
-    lastHash = hash;
-    lastResult = bcrypt.compareSync(password, hash);
-    return lastResult;
-  };
-})();
+import { hashPassword, memoizedComparePassword } from './utils/passwordUtils';
+import QuoteOfTheDayWidget from './components/QuoteOfTheDayWidget';
+import LinksWidget from './components/LinksWidget';
+import CountdownBox from './components/CountdownBox';
+import FullscreenCountdown from './components/FullscreenCountdown';
+import { getGreeting, getDeterministicColour, formatCountdownForTab } from './utils/helperUtils';
+import { findNextNonBreakRepeatingEvent, findEventsByDayToggle } from './utils/eventHelpers';
+import WeekViewPage from './components/WeekViewPage';
+import MarkbookPage from './components/MarkbookPage';
 
 const SchoolPlanner = () => {
   const [weekData, setWeekData] = useState<WeekData | null>(null);
@@ -180,27 +158,9 @@ const SchoolPlanner = () => {
 
 
 
-  // Determine greeting based on time of day
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    if (hour < 21) return 'Good evening';
-    return 'Good night';
-  };
 
 
 
-  // Deterministic color fallback for unknown subjects
-  function getDeterministicColour(subjectName: string): string {
-    // Simple hash function (djb2)
-    let hash = 5381;
-    for (let i = 0; i < subjectName.length; i++) {
-      hash = ((hash << 5) + hash) + subjectName.charCodeAt(i);
-    }
-    const idx = Math.abs(hash) % defaultColours.length;
-    return defaultColours[idx];
-  }
 
 
   const getEventColour = (title: string): string => { // Changed to 'getEventColour'
@@ -210,7 +170,7 @@ const SchoolPlanner = () => {
     }
     const normalizedTitle = normalizeSubjectName(title, autoNamingEnabled);
     const subject = subjects.find((s: Subject) => normalizeSubjectName(s.name, autoNamingEnabled) === normalizedTitle);
-    return subject ? subject.colour : getDeterministicColour(normalizedTitle); // Use deterministic fallback
+    return subject ? subject.colour : getDeterministicColour(normalizedTitle, defaultColours); // Use deterministic fallback
   };
 
 
@@ -398,258 +358,57 @@ const SchoolPlanner = () => {
 
 
 
-  const renderWeekView = () => {
-    if (!weekData) return null;
-
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-    const dayEvents: CalendarEvent[][] = [[], [], [], [], []];
-
-    if (weekData) {
-      weekData.events.forEach((event: CalendarEvent) => {
-        // Use the event's local date directly to determine the weekday
-        const eventDate = new Date(event.dtstart);
-        if (isNaN(eventDate.getTime())) {
-          return;
-        }
-        const dayOfWeek = eventDate.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-
-        // Fix: Correctly map Sunday (0) to -1 and Saturday (6) to 5
-        const dayIndex = dayOfWeek === 0 ? -1 : dayOfWeek - 1;
-
-        // Only skip weekends, allow all weekdays (indexes 0-4)
-        if (dayIndex >= 0 && dayIndex < 5) {
-          dayEvents[dayIndex].push(event);
-        } else {
-        }
-      });
-
-    }
-
-    // Sort and insert breaks
-    const dayEventsWithBreaks = dayEvents.map(dayList => {
-      const sorted = [...dayList].sort((a, b) => a.dtstart.getTime() - b.dtstart.getTime());
-      return insertBreaksBetweenEvents(sorted);
-    });
-
-    return (
-      <div className="space-y-6">
-        <div className={`flex items-center gap-3 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
-          <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
-          <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Weekly Schedule</h2>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-          {days.map((day, index) => (
-            <div key={day} className={`${colors.container} rounded-lg ${colors.border} border`}>
-              <div className={`p-4 border-b ${colors.border}`}>
-                <h3 className={`font-semibold text-center ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{day}</h3>
-              </div>
-              <div className="p-3 space-y-2 min-h-[400px]">
-                {dayEventsWithBreaks[index].length === 0 ? (
-                  <div className="text-center text-gray-500 py-8">
-                    <Calendar size={32} className="mx-auto mb-2 opacity-50" />
-                    <p>No events</p>
-                  </div>
-                ) : (
-                  dayEventsWithBreaks[index].map((event, eventIndex) => (
-                    <EventCard
-                      key={eventIndex}
-                      event={event}
-                      index={eventIndex}
-                      isBreakEvent={isBreakEvent}
-                      getEventColour={getEventColour}
-                      autoNamingEnabled={autoNamingEnabled}
-                      effectiveMode={effectiveMode}
-                      infoOrder={infoOrder}
-                      infoShown={infoShown}
-                      showFirstInfoBeside={false} // Always false on calendar page
-                      onClick={() => setSelectedEvent(event)}
-                      subjects={subjects}
-                    />
-                  ))
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const renderWeekView = () => (
+    <WeekViewPage
+      weekData={weekData}
+      getEventColour={getEventColour}
+      autoNamingEnabled={autoNamingEnabled}
+      effectiveMode={effectiveMode}
+      colors={colors}
+      infoOrder={infoOrder}
+      infoShown={infoShown}
+      setSelectedEvent={setSelectedEvent}
+      subjects={subjects}
+    />
+  );
 
 
 
-  const renderMarkbook = () => {
-    // Helper: calculate average mark percentage for a subject (null if no marks)
-    const getAverageMark = (subject: Subject): number | null => {
-      const exams = examsBySubject[subject.id] || [];
-      const valid = exams.filter(e => e.mark !== null && e.total !== null && e.total !== 0);
-      if (valid.length === 0) return null;
-      const percentages = valid.map(e => ((e.mark as number) / (e.total as number)) * 100);
-      return percentages.reduce((a, b) => a + b, 0) / percentages.length;
-    };
+  const renderMarkbook = () => (
+    <MarkbookPage
+      subjects={subjects}
+      autoNamingEnabled={autoNamingEnabled}
+      effectiveMode={effectiveMode}
+      colors={colors}
+      subjectSortOption={subjectSortOption}
+      setSubjectSortOption={setSubjectSortOption}
+      selectedSubjectForExam={selectedSubjectForExam}
+      examsBySubject={examsBySubject}
+      handleSubjectSelect={handleSubjectSelect}
+      addExam={addExam}
+      updateExam={updateExam}
+      removeExam={removeExam}
+      startEditingSubject={startEditingSubject}
+      showSubjectEditModal={showSubjectEditModal}
+      selectedSubjectForEdit={selectedSubjectForEdit}
+      editName={editName}
+      setEditName={setEditName}
+      editColour={editColour}
+      setEditColour={setEditColour}
+      editIcon={editIcon}
+      setEditIcon={setEditIcon}
+      saveSubjectEdit={saveSubjectEdit}
+      cancelSubjectEdit={cancelSubjectEdit}
+      markbookPasswordEnabled={markbookPasswordEnabled}
+      isMarkbookLocked={isMarkbookLocked}
+      unlockAttempt={unlockAttempt}
+      setUnlockAttempt={setUnlockAttempt}
+      setIsMarkbookLocked={setIsMarkbookLocked}
+    />
+  );
 
-    // Apply sorting based on selected option
-    const sortedSubjects = [...subjects].sort((a, b) => {
-      switch (subjectSortOption) {
-        case 'alphabetical-asc':
-          return normalizeSubjectName(a.name, autoNamingEnabled).localeCompare(normalizeSubjectName(b.name, autoNamingEnabled));
-        case 'alphabetical-desc':
-          return normalizeSubjectName(b.name, autoNamingEnabled).localeCompare(normalizeSubjectName(a.name, autoNamingEnabled));
-        case 'marks-asc': {
-          const avgA = getAverageMark(a);
-          const avgB = getAverageMark(b);
-          if (avgA === null && avgB === null) return 0;
-          if (avgA === null) return 1;
-          if (avgB === null) return -1;
-          return avgA - avgB;
-        }
-        case 'marks-desc': {
-          const avgA = getAverageMark(a);
-          const avgB = getAverageMark(b);
-          if (avgA === null && avgB === null) return 0;
-          if (avgA === null) return 1;
-          if (avgB === null) return -1;
-          return avgB - avgA;
-        }
-        default:
-          return 0;
-      }
-    });
-
-    // Create the exam panel content - either login screen or actual exam panel
-    const examPanelContent = (markbookPasswordEnabled && isMarkbookLocked) ? (
-      <div className="flex flex-col items-center justify-center h-full min-h-[400px]">
-        <Shield className={effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400'} size={48} />
-        <h3 className={`text-xl font-semibold ${colors.text} mb-4`}>Password Protected</h3>
-        <p className={`text-sm ${colors.containerText} opacity-80 mb-6 text-center`}>
-          Enter your password to view your marks
-        </p>
-        <div className="w-full max-w-sm">
-          <input
-            type="password"
-            value={unlockAttempt}
-            onChange={(e) => setUnlockAttempt(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                const storedHash = localStorage.getItem('markbookPassword');
-                if (storedHash && memoizedComparePassword(unlockAttempt, storedHash)) {
-                  setIsMarkbookLocked(false);
-                  setUnlockAttempt('');
-                } else {
-                  showError('Incorrect Password', 'Please try again', { effectiveMode, colors });
-                }
-              }
-            }}
-            className={`w-full px-4 py-3 rounded-lg border ${colors.border} focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4 text-lg ${colors.container} ${colors.text}`}
-            placeholder="Enter password"
-            autoComplete="off"
-          />
-          <button
-            onClick={() => {
-              const storedHash = localStorage.getItem('markbookPassword');
-              if (storedHash && memoizedComparePassword(unlockAttempt, storedHash)) {
-                setIsMarkbookLocked(false);
-                setUnlockAttempt('');
-              } else {
-                showError('Incorrect Password', 'Please try again', { effectiveMode, colors });
-              }
-            }}
-            className={`w-full ${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-3 rounded-lg font-medium transition-colors duration-200`}
-          >
-            Unlock
-          </button>
-        </div>
-        {/* Footer */}
-        <p className={`mt-6 text-xs opacity-70 ${colors.containerText}`}>Protected by bcrypt hashing</p>
-      </div>
-    ) : (
-      <ExamPanel
-        subject={selectedSubjectForExam}
-        exams={selectedSubjectForExam ? examsBySubject[selectedSubjectForExam.id] || [] : []}
-        onAddExam={addExam}
-        onUpdateExam={updateExam}
-        onRemoveExam={removeExam}
-        effectiveMode={effectiveMode}
-        allSubjects={subjects}
-        examsBySubject={examsBySubject}
-        onBack={() => setSelectedSubjectForExam(null)}
-      />
-    );
-
-    // Always render markbook content with subjects list visible
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <BarChart3 className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
-          <h2 className={`text-2xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Markbook</h2>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left: Subjects list */}
-          <div className="space-y-4">
-            {/* Sort dropdown */}
-            <div className="flex items-center justify-between">
-              <label className={`text-sm font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Sort by:</label>
-              <select
-                value={subjectSortOption}
-                onChange={(e) => setSubjectSortOption(e.target.value as any)}
-                className={`border ${colors.border} rounded-md px-2 py-1 text-sm ${effectiveMode === 'light' ? 'bg-white text-black' : 'bg-gray-800 text-white'} focus:outline-none`}
-              >
-                <option value="marks-asc">Marks Ascending</option>
-                <option value="marks-desc">Marks Descending</option>
-                <option value="alphabetical-asc">Alphabetical Ascending</option>
-                <option value="alphabetical-desc">Alphabetical Descending</option>
-              </select>
-            </div>
-
-            <div className="space-y-4 overflow-y-auto pr-2 max-h-[calc(100vh-200px)]">
-              {sortedSubjects.length === 0 ? (
-                <div className="text-center py-16">
-                  <BarChart3 size={64} className="mx-auto mb-4 text-gray-600" />
-                  <p className={`text-gray-400 text-lg ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>No subjects found</p>
-                  <p className={`text-gray-500 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Upload a calendar file to see your subjects</p>
-                </div>
-              ) : (
-                sortedSubjects.map((subject: Subject) => (
-                  <SubjectCard
-                    key={subject.id}
-                    subject={subject}
-                    effectiveMode={effectiveMode}
-                    colors={colors}
-                    onEdit={startEditingSubject}
-                    onSelect={handleSubjectSelect}
-                  />
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Right: Exams panel */}
-          <div className={`${colors.container} rounded-lg ${colors.border} border p-4`}>
-            {examPanelContent}
-          </div>
-        </div>
-
-        <SubjectEditModal
-          showSubjectEditModal={showSubjectEditModal}
-          selectedSubjectForEdit={selectedSubjectForEdit}
-          editName={editName}
-          setEditName={setEditName}
-          editColour={editColour}
-          setEditColour={setEditColour}
-          editIcon={editIcon}
-          setEditIcon={setEditIcon}
-          saveSubjectEdit={saveSubjectEdit}
-          cancelSubjectEdit={cancelSubjectEdit}
-          effectiveMode={effectiveMode}
-          colors={colors}
-          defaultColours={defaultColours}
-        />
-      </div>
-    );
-  };
-
-  const renderSettings = () => {
-    return (
+  const renderSettings = () => (
+    <div className="pt-3">
       <Settings
         userName={userName}
         setUserName={setUserName}
@@ -696,10 +455,8 @@ const SchoolPlanner = () => {
         setNewPassword={setNewPassword}
         isMarkbookLocked={isMarkbookLocked}
       />
-    );
-  };
-
-
+    </div>
+  );
 
   // Add state to track which event is hovered for expand/collapse
 
@@ -760,9 +517,9 @@ const SchoolPlanner = () => {
           }} />
         </div>
         {/* Greeting */}
-        <div className="mt-0 mb-2">
-          <h1 className={`font-semibold leading-snug tracking-tight ${effectiveMode === 'light' ? 'text-black' : 'text-white'} text-lg sm:text-xl md:text-2xl whitespace-nowrap overflow-hidden text-ellipsis`}>
-            {`${getGreeting()}.`}
+        <div className="mt-0 mb-4">
+          <h1 className={`font-bold leading-snug tracking-tight ${effectiveMode === 'light' ? 'text-black' : 'text-white'} text-2xl sm:text-3xl md:text-4xl whitespace-nowrap overflow-hidden text-ellipsis`}>
+            {`${getGreeting(userName)}.`}
           </h1>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1074,6 +831,8 @@ const SchoolPlanner = () => {
                 effectiveMode={effectiveMode}
                 colors={colors}
                 onFullscreen={() => setIsCountdownFullscreen(true)}
+                autoNamingEnabled={autoNamingEnabled}
+                subjects={subjects}
               />
             )}
             {/* Links Widget above Quote Widget */}
@@ -1283,7 +1042,7 @@ const SchoolPlanner = () => {
     if (showNextDay) {
       // Determine the next "school day" to show
       const now = new Date();
-      const nextDayEvents = findEventsByDayToggle(now, true);
+      const nextDayEvents = findEventsByDayToggle(now, true, weekData?.events || []);
       if (nextDayEvents) {
         const currentDay = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
         const targetDate = new Date(now);
@@ -1356,113 +1115,9 @@ const SchoolPlanner = () => {
   }, [showNextDay, weekData]); // Only recalculate when these change, not on nowTs updates
 
 
-  // Helper: get next occurrence of an event after now, treating week as repeating
-  function getNextOccurrence(event: CalendarEvent, now: Date): Date {
-    const eventDay = event.dtstart.getDay(); // 0=Sun, 1=Mon, ...
-    const eventHour = event.dtstart.getHours();
-    const eventMinute = event.dtstart.getMinutes();
-    const eventSecond = event.dtstart.getSeconds();
-    let daysUntil = eventDay - now.getDay();
-    if (
-      daysUntil < 0 ||
-      (daysUntil === 0 && (
-        eventHour < now.getHours() ||
-        (eventHour === now.getHours() && eventMinute < now.getMinutes()) ||
-        (eventHour === now.getHours() && eventMinute === now.getMinutes() && eventSecond <= now.getSeconds())
-      ))
-    ) {
-      daysUntil += 7;
-    }
-    const next = new Date(now);
-    next.setDate(now.getDate() + daysUntil);
-    next.setHours(eventHour, eventMinute, eventSecond, 0);
-    return next;
-  }
 
   
 
-  // Find the next NON-break event (skip breaks)
-  function findNextNonBreakRepeatingEvent(now: Date): { event: CalendarEvent; date: Date } | null {
-    if (!weekData || !weekData.events || weekData.events.length === 0) return null;
-
-    const eventsWithBreaks = insertBreaksBetweenEvents(weekData.events);
-    const nexts = eventsWithBreaks
-      .filter((e: CalendarEvent & { isBreak?: boolean }) => !isBreakEvent(e))
-      .map((e: CalendarEvent & { isBreak?: boolean }) => ({
-        event: e,
-        date: getNextOccurrence(e, now)
-      }));
-
-    const soonest = nexts.reduce((min, curr) => (min === null || curr.date < min.date ? curr : min), null as { event: CalendarEvent; date: Date } | null);
-    return soonest;
-  }
-
-  // Function to find events based on toggle state (today or next day)
-  function findEventsByDayToggle(now: Date, forceNextDay: boolean): { event: CalendarEvent; date: Date } | null {
-    if (!weekData || !weekData.events || weekData.events.length === 0) return null;
-
-    const eventsWithBreaks = insertBreaksBetweenEvents(weekData.events);
-    const currentDay = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-
-    const targetDate = new Date(now);
-
-    if (forceNextDay) {
-      // Show next "school day" events (skip weekends appropriately)
-      if (currentDay === 6) {
-        // Saturday -> previous Friday
-        targetDate.setDate(now.getDate() - 1);
-      } else if (currentDay === 0) {
-        // Sunday -> previous Friday
-        targetDate.setDate(now.getDate() - 2);
-      } else if (currentDay === 5) {
-        // Friday -> next Monday
-        targetDate.setDate(now.getDate() + 3);
-      } else {
-        // Mon-Thu -> next day
-        targetDate.setDate(now.getDate() + 1);
-      }
-    }
-    // If not forceNextDay, use current date (today)
-
-    // Find events for the target date
-    const targetDayOfWeek = targetDate.getDay();
-    const dayEvents = eventsWithBreaks.filter(event => {
-      const eventDay = event.dtstart.getDay();
-      return eventDay === targetDayOfWeek;
-    });
-
-    if (dayEvents.length === 0) return null;
-
-    // Sort events by time and find the next one
-    const sortedEvents = dayEvents.sort((a, b) => {
-      const aTime = a.dtstart.getHours() * 60 + a.dtstart.getMinutes();
-      const bTime = b.dtstart.getHours() * 60 + b.dtstart.getMinutes();
-      return aTime - bTime;
-    });
-
-    // If showing today's events, find next event after current time
-    if (!forceNextDay) {
-      const currentTime = now.getHours() * 60 + now.getMinutes();
-      const upcomingEvent = sortedEvents.find(event => {
-        const eventTime = event.dtstart.getHours() * 60 + event.dtstart.getMinutes();
-        return eventTime > currentTime;
-      });
-
-      if (upcomingEvent) {
-        const eventDate = new Date(targetDate);
-        eventDate.setHours(upcomingEvent.dtstart.getHours(), upcomingEvent.dtstart.getMinutes(), upcomingEvent.dtstart.getSeconds(), 0);
-        return { event: upcomingEvent, date: eventDate };
-      }
-    } else {
-      // For next day, show first event of the day
-      const firstEvent = sortedEvents[0];
-      const eventDate = new Date(targetDate);
-      eventDate.setHours(firstEvent.dtstart.getHours(), firstEvent.dtstart.getMinutes(), firstEvent.dtstart.getSeconds(), 0);
-      return { event: firstEvent, date: eventDate };
-    }
-
-    return null;
-  }
 
   // --- Unified countdown effect ---
   useEffect(() => {
@@ -1477,7 +1132,7 @@ const SchoolPlanner = () => {
     setCountdownSearching(true);
     const interval = setInterval(() => {
       const now = new Date();
-      const soonest = findNextNonBreakRepeatingEvent(now);
+      const soonest = findNextNonBreakRepeatingEvent(now, weekData.events);
       if (soonest) {
         setNextEvent(soonest.event);
         setNextEventDate(soonest.date);
@@ -1501,284 +1156,10 @@ const SchoolPlanner = () => {
     return () => clearInterval(interval);
   }, [weekData]);
 
-  // Format time left as HH:MM:SS or MM:SS for tab and widget (hide hours if 0)
-  function formatCountdownForTab(ms: number | null): string {
-    if (ms === null) return '';
-    if (ms <= 0) return 'Now!';
-    const totalSeconds = Math.floor(ms / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-
-    if (hours > 0) {
-      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    } else {
-      return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    }
-  }
 
 
 
-  // Make CountdownBox a pure display component
-  type CountdownBoxProps = {
-    searching: boolean;
-    nextEvent: CalendarEvent | null;
-    nextEventDate: Date | null;
-    timeLeft: number | null;
-    formatCountdown: (ms: number | null) => string;
-    getEventColour: (title: string) => string;
-    effectiveMode: 'light' | 'dark';
-    colors: any;
-    onFullscreen?: () => void;
-  };
-  function CountdownBox({ searching, nextEvent, nextEventDate, timeLeft, formatCountdown, getEventColour, effectiveMode, colors, onFullscreen }: CountdownBoxProps) {
-    // Custom colored icon
-    function ColoredSubjectIcon({ summary }: { summary: string }) {
-      const color = getEventColour(summary);
-      const normalizedName = normalizeSubjectName(summary, autoNamingEnabled);
-      const subject = subjects.find(s => normalizeSubjectName(s.name, autoNamingEnabled) === normalizedName);
-      const icon = getSubjectIcon(subject || summary, 24, effectiveMode);
-      return React.cloneElement(icon, { style: { color } });
-    }
-    // Helper for event time string
-    function getEventTimeString(date: Date, event: CalendarEvent) {
-      if (!date) return '';
-      if (
-        event.dtstart.getHours() === 0 &&
-        event.dtstart.getMinutes() === 0 &&
-        (!event.dtend || (event.dtend.getHours() === 0 && event.dtend.getMinutes() === 0))
-      ) {
-        return 'All day';
-      }
-      // Use the original event time, not the calculated next occurrence date
-      return event.dtstart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-    return (
-      <div className={`${colors.container} rounded-lg ${colors.border} border p-6 flex flex-col items-center justify-center h-fit`}>
-        <div className="flex items-center justify-between w-full mb-2">
-          <div className="flex items-center gap-2">
-            <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
-            <span className={`text-lg font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Next Event Countdown</span>
-          </div>
-          {onFullscreen && (
-            <button
-              onClick={onFullscreen}
-              className={`p-1 rounded hover:bg-opacity-20 hover:bg-gray-500 transition-colors ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}
-              title="Fullscreen"
-            >
-              <Maximize size={18} />
-            </button>
-          )}
-        </div>
-        {searching ? (
-          <div className="flex flex-col items-center justify-center py-6">
-            <LoaderCircle className={`animate-spin mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`} size={32} />
-            <span className={`${effectiveMode === 'light' ? 'text-black' : 'text-gray-400'}`}>Searching...</span>
-          </div>
-        ) : nextEvent && nextEventDate ? (
-          <>
-            <div
-              className={`text-4xl font-bold mb-2`}
-              style={{
-                color: nextEvent ? getEventColour(nextEvent.summary) : (effectiveMode === 'light' ? '#000000' : '#ffffff'),
-                ...(effectiveMode === 'light' ? {} : { textShadow: '0 1px 4px rgba(0,0,0,0.15)' })
-              }}
-            >
-              {formatCountdown(timeLeft)}
-            </div>
-            <div className="flex items-center gap-2 mb-1">
-              <ColoredSubjectIcon summary={nextEvent.summary} />
-              <span className="text-base font-medium" style={{ color: getEventColour(nextEvent.summary) }}>{normalizeSubjectName(nextEvent.summary, true)}</span>
-            </div>
-            <div className={`text-sm ${effectiveMode === 'light' ? 'text-black opacity-80' : 'text-white opacity-80'}`}>
-              {(() => {
-                const now = new Date();
-                const daysDiff = Math.floor((nextEventDate.setHours(0, 0, 0, 0) - now.setHours(0, 0, 0, 0)) / (1000 * 60 * 60 * 24));
-                const timeStr = getEventTimeString(nextEventDate, nextEvent);
-                if (daysDiff === 1) {
-                  return `Tomorrow at ${timeStr}`;
-                } else if (daysDiff > 1) {
-                  const dayName = nextEventDate.toLocaleDateString(undefined, { weekday: 'long' });
-                  return `On ${dayName} at ${timeStr}`;
-                } else {
-                  return `at ${timeStr}`;
-                }
-              })()}
-            </div>
-          </>
-        ) : (
-          <div className={`text-lg ${effectiveMode === 'light' ? 'text-black' : 'text-gray-400'}`}>No upcoming events</div>
-        )}
-      </div>
-    );
-  };
 
-  // Fullscreen Countdown Modal
-  const FullscreenCountdown: React.FC<{
-    isOpen: boolean;
-    onClose: () => void;
-    searching: boolean;
-    nextEvent: CalendarEvent | null;
-    nextEventDate: Date | null;
-    timeLeft: number | null;
-    formatCountdown: (ms: number | null) => string;
-    getEventColour: (title: string) => string;
-  }> = ({ isOpen, onClose, searching, nextEvent, nextEventDate, timeLeft, formatCountdown, getEventColour }) => {
-    if (!isOpen) return null;
-
-    // Custom colored icon for fullscreen
-    function ColoredSubjectIcon({ summary }: { summary: string }) {
-      const color = getEventColour(summary);
-      const normalizedName = normalizeSubjectName(summary, autoNamingEnabled);
-      const subject = subjects.find(s => normalizeSubjectName(s.name, autoNamingEnabled) === normalizedName);
-      const icon = getSubjectIcon(subject || summary, 32, 'dark');
-      return React.cloneElement(icon, { style: { color } });
-    }
-
-    // Helper for event time string
-    function getEventTimeString(date: Date, event: CalendarEvent) {
-      if (!date) return '';
-      if (
-        event.dtstart.getHours() === 0 &&
-        event.dtstart.getMinutes() === 0 &&
-        (!event.dtend || (event.dtend.getHours() === 0 && event.dtend.getMinutes() === 0))
-      ) {
-        return 'All day';
-      }
-      return event.dtstart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-
-    const eventColor = nextEvent ? getEventColour(nextEvent.summary) : '#94a3b8';
-    const isBreak = nextEvent && isBreakEvent(nextEvent);
-    const displayColor = isBreak ? '#94a3b8' : eventColor;
-
-    return (
-      <div
-        className={`fixed inset-0 z-50 flex items-center justify-center ${colors.background}`}
-        style={{
-          width: '100vw',
-          height: '100vh',
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0
-        }}
-      >
-        {/* Circular glow effect from center */}
-        <div
-          className="absolute inset-0 flex items-center justify-center pointer-events-none"
-          style={{
-            background: `radial-gradient(circle at center, ${displayColor}15 0%, ${displayColor}08 30%, transparent 70%)`
-          }}
-        />
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className={`absolute top-6 right-6 transition-colors z-10 ${colors.text} hover:opacity-70`}
-          title="Close fullscreen"
-        >
-          <X size={32} />
-        </button>
-
-        {/* Main content */}
-        <div className="flex flex-col items-center justify-center text-center px-8">
-          {searching ? (
-            <div className="flex flex-col items-center justify-center">
-              <LoaderCircle className={`animate-spin mb-8 ${colors.text}`} size={64} />
-              <span
-                className={`text-2xl ${colors.text}`}
-                style={{
-                  opacity: 0.8,
-                  fontWeight: '400',
-                  fontFamily: "'Red Hat Text', sans-serif"
-                }}
-              >
-                Searching...
-              </span>
-            </div>
-          ) : nextEvent && nextEventDate ? (
-            <>
-              {/* Large countdown timer */}
-              <div
-                className="text-8xl md:text-9xl font-bold mb-8"
-                style={{
-                  color: displayColor,
-                  fontFamily: "'Red Hat Text', sans-serif",
-                  fontWeight: '700'
-                }}
-              >
-                {formatCountdown(timeLeft)}
-              </div>
-
-              {/* "to" text and subject name on same line */}
-              <div className="flex items-center gap-3 mb-6">
-                <span
-                  className={`text-2xl md:text-3xl ${colors.text}`}
-                  style={{
-                    opacity: 0.9,
-                    fontWeight: '400',
-                    fontFamily: "'Red Hat Text', sans-serif"
-                  }}
-                >
-                  to
-                </span>
-                <ColoredSubjectIcon summary={nextEvent.summary} />
-                <span
-                  className="text-2xl md:text-3xl"
-                  style={{
-                    color: displayColor,
-                    fontWeight: '600',
-                    fontFamily: "'Red Hat Text', sans-serif"
-                  }}
-                >
-                  {normalizeSubjectName(nextEvent.summary, true)}
-                </span>
-              </div>
-
-              {/* Event details - only time, no location */}
-              <div className="flex flex-col items-center gap-2">
-                {/* Time info */}
-                <div
-                  className={`text-xl ${colors.text}`}
-                  style={{
-                    opacity: 0.85,
-                    fontWeight: '400',
-                    fontFamily: "'Red Hat Text', sans-serif"
-                  }}
-                >
-                  {(() => {
-                    const now = new Date();
-                    const daysDiff = Math.floor((nextEventDate.setHours(0, 0, 0, 0) - now.setHours(0, 0, 0, 0)) / (1000 * 60 * 60 * 24));
-                    const timeStr = getEventTimeString(nextEventDate, nextEvent);
-                    if (daysDiff === 1) {
-                      return `Tomorrow at ${timeStr}`;
-                    } else if (daysDiff > 1) {
-                      const dayName = nextEventDate.toLocaleDateString(undefined, { weekday: 'long' });
-                      return `On ${dayName} at ${timeStr}`;
-                    } else {
-                      return `at ${timeStr}`;
-                    }
-                  })()}
-                </div>
-              </div>
-            </>
-          ) : (
-            <div
-              className={`text-3xl ${colors.text}`}
-              style={{
-                opacity: 0.8,
-                fontWeight: '400',
-                fontFamily: "'Red Hat Text', sans-serif"
-              }}
-            >
-              No upcoming events
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
 
   const renderWelcomeScreen = () => {
     return (
@@ -2390,6 +1771,9 @@ const SchoolPlanner = () => {
           timeLeft={timeLeft}
           formatCountdown={formatCountdownForTab}
           getEventColour={getEventColour}
+          colors={colors}
+          autoNamingEnabled={autoNamingEnabled}
+          subjects={subjects}
         />
 
         {/* Theme selection modal */}
@@ -2480,527 +1864,6 @@ const SchoolPlanner = () => {
   );
 }
 
-// Quote of the Day Widget
-function QuoteOfTheDayWidget({ theme, themeType, effectiveMode }: { theme: ThemeKey; themeType: 'normal' | 'extreme'; effectiveMode: 'light' | 'dark' }): React.ReactElement {
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState(false);
-  const url = getQuoteOfTheDayUrl(theme, themeType, effectiveMode);
-  const colors = getColors(theme, themeType, effectiveMode);
-  const iframeRef = React.useRef<HTMLIFrameElement>(null);
-  const mountTimeRef = React.useRef(Date.now());
-  const MIN_SPIN_MS = 800; // Increased minimum spinner time for better visibility
 
-  // Helper to stop spinner but keep minimum duration
-  const stopSpinner = () => {
-    const elapsed = Date.now() - mountTimeRef.current;
-    const remaining = MIN_SPIN_MS - elapsed;
-    if (remaining > 0) {
-      setTimeout(() => setLoading(false), remaining);
-    } else {
-      setLoading(false);
-    }
-  };
-
-  // Effect to handle iframe loading state
-  React.useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe) return;
-
-    // Reset loading state when url changes
-    setLoading(true);
-    mountTimeRef.current = Date.now();
-
-    const handleLoad = () => {
-      stopSpinner();
-    };
-
-    const handleError = () => {
-      setError(true);
-      stopSpinner();
-    };
-
-    iframe.addEventListener('load', handleLoad);
-    iframe.addEventListener('error', handleError);
-
-    return () => {
-      iframe.removeEventListener('load', handleLoad);
-      iframe.removeEventListener('error', handleError);
-    };
-  }, [url]); // Re-run when url changes
-
-  return (
-    <div className={`${colors.container} rounded-lg ${colors.border} border p-4 mb-4 flex flex-col items-center`}>
-      <div className="flex items-center gap-2 mb-2">
-        <div className="font-semibold text-lg" style={{ color: colors.text }}>Quote of the Day</div>
-      </div>
-      <div className="relative w-full h-[120px] flex items-center justify-center">
-        {loading && (
-          <div className="absolute inset-0 flex justify-center items-center">
-            <LoaderCircle className={`animate-spin ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`} size={32} />
-          </div>
-        )}
-        {error && (
-          <div className="text-center" style={{ color: colors.text }}>
-            Could not load quote.
-          </div>
-        )}
-        <iframe
-          ref={iframeRef}
-          title="Quote of the Day"
-          src={url}
-          width="100%"
-          height="120"
-          style={{
-            border: 'none',
-            borderRadius: '8px',
-            opacity: loading || error ? 0 : 1,
-            transition: 'opacity 0.5s',
-          }}
-        ></iframe>
-      </div>
-    </div>
-  );
-};
-
-// Links Widget Component
-interface LinkItem {
-  id: string;
-  name: string;
-  url: string;
-  subtitle: string;
-  icon: string;
-}
-
-function LinksWidget({ effectiveMode, colors }: { effectiveMode: 'light' | 'dark'; colors: any }): React.ReactElement {
-  // Default links as shown in the image
-  const [links, setLinks] = React.useState<LinkItem[]>(() => {
-    const saved = localStorage.getItem('quickLinks');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        // Fall back to defaults if parsing fails
-      }
-    }
-    return [
-      {
-        id: '1',
-        name: 'Moodle',
-        url: 'https://web1.baulkham-h.schools.nsw.edu.au/',
-        subtitle: 'web1.baulkham-h.schools.nsw.edu.au',
-        icon: 'Folder'
-      },
-      {
-        id: '2',
-        name: 'Calendar',
-        url: 'https://baulkham-h.sentral.com.au',
-        subtitle: 'baulkham-h.sentral.com.au',
-        icon: 'Clock'
-      },
-      {
-        id: '3',
-        name: 'Newsletter',
-        url: 'https://baulkham-h.schools.nsw.gov.au',
-        subtitle: 'baulkham-h.schools.nsw.gov.au',
-        icon: 'Newspaper'
-      },
-      {
-        id: '4',
-        name: 'Sentral',
-        url: 'https://baulkham-h.sentral.com.au/auth/portal?action=login_student',
-        subtitle: 'baulkham-h.sentral.com.au',
-        icon: 'CreditCard'
-      },
-      {
-        id: '5',
-        name: 'Printing',
-        url: 'http://10.209.96.176',
-        subtitle: '10.209.96.176',
-        icon: 'Printer'
-      }
-    ];
-  });
-
-  const [isEditing, setIsEditing] = React.useState(false);
-  const [editMode, setEditMode] = React.useState(false);
-  const [editingLink, setEditingLink] = React.useState<LinkItem | null>(null);
-  const [editName, setEditName] = React.useState('');
-  const [editUrl, setEditUrl] = React.useState('');
-  const [editSubtitle, setEditSubtitle] = React.useState('');
-  const [editIcon, setEditIcon] = React.useState('ExternalLink');
-
-  // Known icon names supported by this widget's renderIcon
-  const knownIcons = React.useMemo(() => new Set<string>([
-    'BookOpen','Clock','FileText','User','Printer','Calendar','Folder','CreditCard','Newspaper',
-    'Globe','Link','Home','School','Laptop','Smartphone','ExternalLink'
-  ]), []);
-
-  // Helper function to render icon (prioritize lucide icons over emojis)
-  const renderIcon = (iconName: string, size = 32) => {
-    // Check for lucide icons first
-    const iconProps = { 
-      size, 
-      className: `${effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} opacity-90` 
-    };
-    
-    switch (iconName) {
-      case 'BookOpen': return <BookOpen {...iconProps} />;
-      case 'Clock': return <Clock {...iconProps} />;
-      case 'FileText': return <FileText {...iconProps} />;
-      case 'User': return <User {...iconProps} />;
-      case 'Printer': return <Printer {...iconProps} />;
-      case 'Calendar': return <Calendar {...iconProps} />;
-      case 'Folder': return <Folder {...iconProps} />;
-      case 'CreditCard': return <CreditCard {...iconProps} />;
-      case 'Newspaper': return <Newspaper {...iconProps} />;
-      case 'Globe': return <Globe {...iconProps} />;
-      case 'Link': return <LinkIcon {...iconProps} />;
-      case 'Home': return <Home {...iconProps} />;
-      case 'School': return <School {...iconProps} />;
-      case 'Laptop': return <Laptop {...iconProps} />;
-      case 'Smartphone': return <Smartphone {...iconProps} />;
-      case 'ExternalLink': return <ExternalLink {...iconProps} />;
-      default: 
-        // Always default to ExternalLink for unknown values
-        return <ExternalLink {...iconProps} />;
-    }
-  };
-
-  // Suggest a sensible default icon based on the link name/url (used to migrate old saved links)
-  const suggestIconForLink = (link: LinkItem): string => {
-    const name = (link.name || '').toLowerCase();
-    let host = '';
-    try {
-      const u = link.url?.startsWith('http') ? link.url : `https://${link.url}`;
-      host = new URL(u).hostname.toLowerCase();
-    } catch {}
-    if (name.includes('moodle') || host.includes('moodle')) return 'Folder';
-    if (name.includes('calendar') || host.includes('sentral') || host.includes('calendar')) return 'Clock';
-    if (name.includes('news')) return 'Newspaper';
-    if (name.includes('sentral') || name.includes('portal')) return 'CreditCard';
-    if (name.includes('print')) return 'Printer';
-    if (name.includes('school')) return 'School';
-    if (name.includes('home')) return 'Home';
-    if (name.includes('profile') || name.includes('account')) return 'User';
-    if (host.includes('google') || host.includes('bing')) return 'Globe';
-    return 'ExternalLink';
-  };
-
-  // One-time migration to set better icons for existing saved links that default to ExternalLink
-  const migratedRef = React.useRef(false);
-  React.useEffect(() => {
-    if (migratedRef.current) return;
-    migratedRef.current = true;
-    try {
-      const updated = links.map(l => {
-        if (!l.icon || l.icon === 'ExternalLink' || (l.icon && !knownIcons.has(l.icon))) {
-          return { ...l, icon: suggestIconForLink(l) };
-        }
-        return l;
-      });
-      const changed = updated.some((l, i) => l.icon !== links[i].icon);
-      if (changed) setLinks(updated);
-    } catch {}
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Save links to localStorage whenever they change
-  React.useEffect(() => {
-    localStorage.setItem('quickLinks', JSON.stringify(links));
-  }, [links]);
-
-  const toggleEditMode = () => {
-    setEditMode(!editMode);
-  };
-
-  const addLink = () => {
-    const newLink: LinkItem = {
-      id: Date.now().toString(),
-      name: '',
-      url: '',
-      subtitle: '',
-      icon: 'ExternalLink'
-    };
-    setEditingLink(newLink);
-    setEditName('');
-    setEditUrl('');
-    setEditSubtitle('');
-    setEditIcon('ExternalLink');
-    setIsEditing(true);
-  };
-
-  const editLink = (link: LinkItem) => {
-    setEditingLink(link);
-    setEditName(link.name);
-    setEditUrl(link.url);
-    setEditSubtitle(link.subtitle);
-    setEditIcon(link.icon);
-    setIsEditing(true);
-  };
-
-  const saveLink = () => {
-    if (!editName.trim() || !editUrl.trim() || !editingLink) return;
-    
-    if (links.find(l => l.id === editingLink.id)) {
-      // Update existing link
-      setLinks(links.map(l => 
-        l.id === editingLink.id 
-          ? { 
-              ...l, 
-              name: editName.trim(), 
-              url: editUrl.trim(),
-              subtitle: editSubtitle.trim(),
-              icon: editIcon
-            }
-          : l
-      ));
-    } else {
-      // Add new link
-      setLinks([...links, { 
-        ...editingLink, 
-        name: editName.trim(), 
-        url: editUrl.trim(),
-        subtitle: editSubtitle.trim(),
-        icon: editIcon
-      }]);
-    }
-    
-    cancelEdit();
-  };
-
-  const deleteLink = (id: string) => {
-    setLinks(links.filter(l => l.id !== id));
-  };
-
-  const cancelEdit = () => {
-    setIsEditing(false);
-    setEditingLink(null);
-    setEditName('');
-    setEditUrl('');
-    setEditSubtitle('');
-    setEditIcon('ExternalLink');
-  };
-
-  const openLink = (url: string) => {
-    // Ensure URL has protocol
-    const finalUrl = url.startsWith('http') ? url : `https://${url}`;
-    window.open(finalUrl, '_blank', 'noopener,noreferrer');
-  };
-
-  return (
-    <div className={`${colors.container} rounded-lg ${colors.border} border p-6 mb-4 flex flex-col`}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className={`text-2xl font-semibold ${colors.text}`}>Links</h2>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={toggleEditMode}
-            className={`px-3 py-1 text-sm rounded ${effectiveMode === 'light' ? 'text-blue-600 hover:bg-blue-50' : 'text-blue-400 hover:bg-blue-900/20'} transition-colors`}
-          >
-            {editMode ? 'Done' : 'Edit'}
-          </button>
-        </div>
-      </div>
-
-      {/* Add Link Button */}
-      <div className="mb-4">
-        <button
-          onClick={addLink}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg ${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} font-medium transition-colors`}
-        >
-          <Plus size={16} />
-          Add Link
-        </button>
-      </div>
-
-      {/* Links Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {links.map((link) => (
-          <div
-            key={link.id}
-            onClick={() => !editMode && openLink(link.url)}
-            className={`relative p-6 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-lg ${colors.border} border-2 hover:opacity-80 group`}
-          >
-            {/* Edit mode controls */}
-            {editMode && (
-              <>
-                {/* Edit button */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    editLink(link);
-                  }}
-                  className={`absolute top-3 right-3 p-1 rounded ${effectiveMode === 'light' ? 'text-gray-600 hover:text-gray-800 hover:bg-white/80' : 'text-gray-300 hover:text-white hover:bg-gray-600/80'} transition-all`}
-                  title="Edit Link"
-                >
-                  <Pencil size={16} />
-                </button>
-
-                {/* Delete button */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (confirm('Are you sure you want to delete this link?')) {
-                      deleteLink(link.id);
-                    }
-                  }}
-                  className={`absolute top-3 left-3 p-1 rounded ${effectiveMode === 'light' ? 'text-red-600 hover:text-red-800 hover:bg-white/80' : 'text-red-400 hover:text-red-200 hover:bg-gray-600/80'} transition-all`}
-                  title="Delete Link"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </>
-            )}
-
-            <div className="flex items-start justify-between">
-              <div className="flex-1 min-w-0">
-                <h3 className={`text-2xl font-semibold ${colors.text} mb-2 truncate`}>
-                  {link.name}
-                </h3>
-                <p className={`text-sm ${effectiveMode === 'light' ? 'text-gray-500' : 'text-gray-400'} truncate`}>
-                  {link.subtitle}
-                </p>
-              </div>
-              
-              <div className="ml-4 flex-shrink-0">
-                {renderIcon(link.icon, 40)}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {links.length === 0 && !isEditing && (
-        <div className="text-center py-12">
-          <ExternalLink size={48} className={`mx-auto mb-4 ${effectiveMode === 'light' ? 'text-gray-400' : 'text-gray-600'}`} />
-          <p className={`text-lg ${colors.containerText} opacity-70 mb-2`}>No links added yet</p>
-          <button
-            onClick={addLink}
-            className={`px-4 py-2 rounded-lg ${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} font-medium transition-colors`}
-          >
-            Add Your First Link
-          </button>
-        </div>
-      )}
-
-      {/* Edit Modal */}
-      {isEditing && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
-          <div className={`${colors.container} rounded-lg ${colors.border} border p-6 w-full max-w-md`}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className={`text-lg font-semibold ${colors.text}`}>
-                {editingLink && links.find(l => l.id === editingLink.id) ? 'Edit Link' : 'Add Link'}
-              </h3>
-              <button
-                onClick={cancelEdit}
-                className={`${colors.text} opacity-70 hover:opacity-100 transition`}
-                title="Close"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className={`block text-sm font-medium ${colors.text} mb-1`}>Name</label>
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className={`w-full px-3 py-2 rounded border ${colors.border} focus:outline-none focus:ring-2 focus:ring-blue-500 ${colors.container} ${colors.text}`}
-                  placeholder="Link name"
-                  autoFocus
-                />
-              </div>
-              <div>
-                <label className={`block text-sm font-medium ${colors.text} mb-1`}>Subtitle</label>
-                <input
-                  type="text"
-                  value={editSubtitle}
-                  onChange={(e) => setEditSubtitle(e.target.value)}
-                  className={`w-full px-3 py-2 rounded border ${colors.border} focus:outline-none focus:ring-2 focus:ring-blue-500 ${colors.container} ${colors.text}`}
-                  placeholder="example.com"
-                />
-              </div>
-              <div>
-                <label className={`block text-sm font-medium ${colors.text} mb-1`}>URL</label>
-                <input
-                  type="url"
-                  value={editUrl}
-                  onChange={(e) => setEditUrl(e.target.value)}
-                  className={`w-full px-3 py-2 rounded border ${colors.border} focus:outline-none focus:ring-2 focus:ring-blue-500 ${colors.container} ${colors.text}`}
-                  placeholder="https://example.com"
-                />
-              </div>
-              <div>
-                <label className={`block text-sm font-medium ${colors.text} mb-1`}>Icon</label>
-                {/* Icon grid selector (similar to SubjectEditModal) */}
-                {(() => {
-                  const iconOptions = [
-                    { name: 'ExternalLink', component: ExternalLink, label: 'External' },
-                    { name: 'Folder', component: Folder, label: 'Folder' },
-                    { name: 'Clock', component: Clock, label: 'Clock' },
-                    { name: 'Calendar', component: Calendar, label: 'Calendar' },
-                    { name: 'Newspaper', component: Newspaper, label: 'News' },
-                    { name: 'CreditCard', component: CreditCard, label: 'ID Card' },
-                    { name: 'Printer', component: Printer, label: 'Printer' },
-                    { name: 'BookOpen', component: BookOpen, label: 'Book' },
-                    { name: 'FileText', component: FileText, label: 'Document' },
-                    { name: 'User', component: User, label: 'User' },
-                    { name: 'Globe', component: Globe, label: 'Web' },
-                    { name: 'Link', component: LinkIcon, label: 'Link' },
-                    { name: 'Home', component: Home, label: 'Home' },
-                    { name: 'School', component: School, label: 'School' },
-                    { name: 'Laptop', component: Laptop, label: 'Laptop' },
-                    { name: 'Smartphone', component: Smartphone, label: 'Phone' },
-                  ];
-                  return (
-                    <>
-                      <div className="grid grid-cols-6 gap-2 mb-2">
-                        {iconOptions.map((opt) => {
-                          const IconComp = opt.component;
-                          return (
-                            <button
-                              key={opt.name}
-                              type="button"
-                              onClick={() => setEditIcon(opt.name)}
-                              title={opt.label}
-                              className={`w-10 h-10 rounded-lg border-2 ${editIcon === opt.name ? 'border-blue-400 bg-blue-500/20' : 'border-gray-600 hover:border-gray-500'} flex items-center justify-center transition-all duration-200`}
-                            >
-                              <IconComp size={18} className={effectiveMode === 'light' ? 'text-black' : 'text-white'} />
-                            </button>
-                          );
-                        })}
-                      </div>
-                      {editIcon && (
-                        <div className={`text-xs ${colors.text} opacity-70`}>Selected: {editIcon}</div>
-                      )}
-                    </>
-                  );
-                })()}
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 mt-6">
-              <button
-                onClick={cancelEdit}
-                className={`px-4 py-2 rounded border ${colors.border} ${colors.text} hover:bg-opacity-10 ${effectiveMode === 'light' ? 'hover:bg-gray-200' : 'hover:bg-gray-700'} transition-colors`}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={saveLink}
-                disabled={!editName.trim() || !editUrl.trim()}
-                className={`px-4 py-2 rounded ${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
 
 export default SchoolPlanner;
