@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { GraduationCap, TrendingUp, Download } from 'lucide-react';
+import { School, TrendingUp, Download } from 'lucide-react';
 import ExportModal from './ExportModal';
+import { exportData } from '../utils/fileUtils';
+import type { Subject } from '../types';
 
 interface ExportOptions {
   subjects: boolean;
@@ -41,60 +43,74 @@ const RedirectPage: React.FC = () => {
 
   const handleExportData = (options: ExportOptions) => {
     try {
-      // Gather all data from localStorage based on selected options
-      const dataToExport: Record<string, any> = {
-        version: '1.0',
-        exportDate: new Date().toISOString(),
-        data: {}
-      };
+      // Get subjects and userName from localStorage
+      const subjectsData = localStorage.getItem('subjects');
+      const subjects: Subject[] = subjectsData ? JSON.parse(subjectsData) : [];
+      const userName = localStorage.getItem('userName') || '';
 
-      // Build keys array based on options
-      const keysToExport: string[] = [];
-      
-      if (options.subjects) keysToExport.push('weekData', 'subjects');
-      if (options.name) keysToExport.push('userName');
-      if (options.subjectColours) keysToExport.push('subjectColours');
-      if (options.subjectIcons) keysToExport.push('subjectIcons');
-      if (options.examsBySubject) keysToExport.push('examsBySubject', 'markbookPassword', 'markbookPasswordEnabled');
-      if (options.links) keysToExport.push('links');
-      if (options.preferences) {
-        keysToExport.push(
-          'autoNamingEnabled',
-          'theme',
-          'themeType',
-          'themeMode',
-          'offlineCachingEnabled',
-          'countdownInTitle',
-          'showCountdownInTimeline',
-          'showCountdownInSidebar',
-          'showFirstInfoBeside',
-          'infoOrder',
-          'infoShown'
-        );
+      // Use the proper export function for main data
+      if (options.subjects || options.subjectInfo || options.subjectNotes || options.subjectColours || options.subjectIcons || options.name) {
+        exportData(subjects, userName, {
+          subjects: options.subjects,
+          subjectInfo: options.subjectInfo,
+          subjectNotes: options.subjectNotes,
+          subjectColours: options.subjectColours,
+          subjectIcons: options.subjectIcons,
+          name: options.name,
+        });
       }
 
-      // Export each key
-      keysToExport.forEach(key => {
-        const value = localStorage.getItem(key);
-        if (value !== null) {
-          try {
-            dataToExport.data[key] = JSON.parse(value);
-          } catch {
-            dataToExport.data[key] = value;
-          }
-        }
-      });
+      // Also export additional data if requested (exams, links, preferences)
+      if (options.examsBySubject || options.links || options.preferences) {
+        const additionalData: Record<string, any> = {
+          version: '1.0',
+          exportDate: new Date().toISOString(),
+          data: {}
+        };
 
-      // Create blob and download
-      const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `school-planner-export-${new Date().toISOString().split('T')[0]}.school`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+        const keysToExport: string[] = [];
+        
+        if (options.examsBySubject) keysToExport.push('examsBySubject', 'markbookPassword', 'markbookPasswordEnabled');
+        if (options.links) keysToExport.push('links');
+        if (options.preferences) {
+          keysToExport.push(
+            'autoNamingEnabled',
+            'theme',
+            'themeType',
+            'themeMode',
+            'offlineCachingEnabled',
+            'countdownInTitle',
+            'showCountdownInTimeline',
+            'showCountdownInSidebar',
+            'showFirstInfoBeside',
+            'infoOrder',
+            'infoShown'
+          );
+        }
+
+        // Export each key
+        keysToExport.forEach(key => {
+          const value = localStorage.getItem(key);
+          if (value !== null) {
+            try {
+              additionalData.data[key] = JSON.parse(value);
+            } catch {
+              additionalData.data[key] = value;
+            }
+          }
+        });
+
+        // Create blob and download for additional data
+        const blob = new Blob([JSON.stringify(additionalData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `school-planner-additional-${new Date().toISOString().split('T')[0]}.school`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
 
       setShowExportModal(false);
     } catch (error) {
@@ -130,7 +146,7 @@ const RedirectPage: React.FC = () => {
         >
           {/* School Logo */}
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-            <GraduationCap
+            <School
               size={80}
               color={accentColor}
               style={{ margin: '0 auto' }}
