@@ -2176,7 +2176,7 @@ const SchoolPlanner = () => {
     }
     
     return () => clearInterval(id);
-  }, [showCountdownInTimeline]);
+  }, [showCountdownInTimeline, location.pathname]);
 
   // Reset timeline expanded state when countdown timeline is disabled
   useEffect(() => {
