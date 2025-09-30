@@ -43,10 +43,24 @@ const RedirectPage: React.FC = () => {
 
   const handleExportData = (options: ExportOptions) => {
     try {
+      // Debug: Log what's in localStorage
+      console.log('LocalStorage keys:', Object.keys(localStorage));
+      console.log('Raw subjects data:', localStorage.getItem('subjects'));
+      
       // Get subjects and userName from localStorage
       const subjectsData = localStorage.getItem('subjects');
       const subjects: Subject[] = subjectsData ? JSON.parse(subjectsData) : [];
       const userName = localStorage.getItem('userName') || '';
+
+      console.log('Parsed subjects:', subjects);
+      console.log('User name:', userName);
+
+      // Check if we have any data
+      if (subjects.length === 0) {
+        alert('No data found to export. Make sure you have imported your calendar data before exporting.');
+        setShowExportModal(false);
+        return;
+      }
 
       // Use the proper export function for main data
       if (options.subjects || options.subjectInfo || options.subjectNotes || options.subjectColours || options.subjectIcons || options.name) {
