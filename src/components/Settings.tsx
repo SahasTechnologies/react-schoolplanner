@@ -16,7 +16,9 @@ import {
   BadgeCheck,
   LoaderCircle,
   GripVertical,
-  BarChart3
+  BarChart3,
+  Github,
+  Heart
 } from 'lucide-react';
 import { ThemeKey } from '../utils/themeUtils';
 import { isServiceWorkerSupported, forceCacheUpdate } from '../utils/cacheUtils';
@@ -69,6 +71,8 @@ interface SettingsProps {
   setCountdownInTitle: (val: boolean) => void;
   showCountdownInTimeline: boolean;
   setShowCountdownInTimeline: (val: boolean) => void;
+  showCountdownInSidebar: boolean;
+  setShowCountdownInSidebar: (val: boolean) => void;
   exportModalState: ExportModalState;
   setExportModalState: React.Dispatch<React.SetStateAction<ExportModalState>>;
   handleExport: () => void;
@@ -110,6 +114,8 @@ const Settings: React.FC<SettingsProps> = ({
   setCountdownInTitle,
   showCountdownInTimeline,
   setShowCountdownInTimeline,
+  showCountdownInSidebar,
+  setShowCountdownInSidebar,
   setOfflineCachingEnabled,
   showFirstInfoBeside,
   setShowFirstInfoBeside,
@@ -122,11 +128,13 @@ const Settings: React.FC<SettingsProps> = ({
   draggedIdx,
   markbookPasswordEnabled,
   setMarkbookPasswordEnabled,
+  markbookPassword: _markbookPassword,
   setMarkbookPassword,
   showPasswordModal,
   setShowPasswordModal,
   newPassword,
   setNewPassword,
+  isMarkbookLocked: _isMarkbookLocked,
 }) => {
 
   const [showNameEditModal, setShowNameEditModal] = React.useState(false);
@@ -275,7 +283,7 @@ const Settings: React.FC<SettingsProps> = ({
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" checked={offlineCachingEnabled} onChange={async (e) => { const checked = e.target.checked; setIsToggleLoading(true); await setOfflineCachingEnabled(checked); setIsToggleLoading(false); }} className="sr-only peer" disabled={!serviceWorkerSupported || isToggleLoading} />
-            <div className={`w-11 h-6 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all`} style={{ backgroundColor: offlineCachingEnabled ? colors.buttonAccent : '#6b7280' }}></div>
+            <div className="w-11 h-6 peer-focus:outline-none rounded-full peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all" style={{ backgroundColor: offlineCachingEnabled ? colors.buttonAccent : '#6b7280' }}></div>
           </label>
         </div>
         
@@ -328,7 +336,17 @@ const Settings: React.FC<SettingsProps> = ({
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" checked={showCountdownInTimeline} onChange={e => setShowCountdownInTimeline(e.target.checked)} className="sr-only peer" />
-              <div className={`w-11 h-6 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all`} style={{ backgroundColor: showCountdownInTimeline ? colors.buttonAccent : '#6b7280' }}></div>
+              <div className="w-11 h-6 peer-focus:outline-none rounded-full peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all" style={{ backgroundColor: showCountdownInTimeline ? colors.buttonAccent : '#6b7280' }}></div>
+            </label>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={`font-medium ${colors.containerText}`}>Show Countdown in Sidebar</p>
+              <p className={`text-sm ${colors.containerText} opacity-80`}>Display countdown timer button in the sidebar navigation</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" checked={showCountdownInSidebar} onChange={e => setShowCountdownInSidebar(e.target.checked)} className="sr-only peer" />
+              <div className="w-11 h-6 peer-focus:outline-none rounded-full peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all" style={{ backgroundColor: showCountdownInSidebar ? colors.buttonAccent : '#6b7280' }}></div>
             </label>
           </div>
           <div className="flex items-center justify-between">
@@ -362,7 +380,7 @@ const Settings: React.FC<SettingsProps> = ({
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" checked={showFirstInfoBeside} onChange={e => setShowFirstInfoBeside(e.target.checked)} className="sr-only peer" />
-                <div className={`w-11 h-6 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all`} style={{ backgroundColor: showFirstInfoBeside ? colors.buttonAccent : '#6b7280' }}></div>
+                <div className="w-11 h-6 peer-focus:outline-none rounded-full peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all" style={{ backgroundColor: showFirstInfoBeside ? colors.buttonAccent : '#6b7280' }}></div>
               </label>
             </div>
             <div className={`p-4 rounded-lg ${colors.background} space-y-2 mb-6`}>
@@ -384,7 +402,7 @@ const Settings: React.FC<SettingsProps> = ({
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" checked={infoShown[item.key]} onChange={() => handleToggleInfoShown(item.key)} className="sr-only peer" />
-                    <div className={`w-9 h-5 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-4 after:w-4 after:transition-all`} style={{ backgroundColor: infoShown[item.key] ? colors.buttonAccent : '#6b7280' }}></div>
+                    <div className="w-9 h-5 peer-focus:outline-none rounded-full peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-4 after:w-4 after:transition-all" style={{ backgroundColor: infoShown[item.key] ? colors.buttonAccent : '#6b7280' }}></div>
                   </label>
                 </div>
               ))}
@@ -630,7 +648,7 @@ const Settings: React.FC<SettingsProps> = ({
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" checked={markbookPasswordEnabled} onChange={(e) => { setMarkbookPasswordEnabled(e.target.checked); if (!e.target.checked) setMarkbookPassword(''); }} className="sr-only peer" />
-                <div className={`w-11 h-6 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all`} style={{ backgroundColor: markbookPasswordEnabled ? colors.buttonAccent : '#6b7280' }}></div>
+                <div className="w-11 h-6 peer-focus:outline-none rounded-full peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all" style={{ backgroundColor: markbookPasswordEnabled ? colors.buttonAccent : '#6b7280' }}></div>
               </label>
             </div>
             {markbookPasswordEnabled && (
@@ -798,7 +816,7 @@ const Settings: React.FC<SettingsProps> = ({
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" checked={autoNamingEnabled} onChange={(e) => { setAutoNamingEnabled(e.target.checked); showSuccess( 'Auto-Naming Updated', `Auto-naming has been ${e.target.checked ? 'enabled' : 'disabled'} successfully!`, { effectiveMode, colors } ); }} className="sr-only peer" />
-              <div className={`w-11 h-6 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all`} style={{ backgroundColor: autoNamingEnabled ? colors.buttonAccent : '#6b7280' }}></div>
+              <div className="w-11 h-6 peer-focus:outline-none rounded-full peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all" style={{ backgroundColor: autoNamingEnabled ? colors.buttonAccent : '#6b7280' }}></div>
             </label>
           </div>
           <div className="flex items-center justify-between mt-4">
@@ -811,7 +829,7 @@ const Settings: React.FC<SettingsProps> = ({
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" checked={countdownInTitle} onChange={(e) => { setCountdownInTitle(e.target.checked); showSuccess( 'Countdown Setting Updated', `Countdown in browser tab has been ${e.target.checked ? 'enabled' : 'disabled'} successfully!`, { effectiveMode, colors } ); }} className="sr-only peer" />
-              <div className={`w-11 h-6 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/30 rounded-full peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all`} style={{ backgroundColor: countdownInTitle ? colors.buttonAccent : '#6b7280' }}></div>
+              <div className="w-11 h-6 peer-focus:outline-none rounded-full peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all" style={{ backgroundColor: countdownInTitle ? colors.buttonAccent : '#6b7280' }}></div>
             </label>
           </div>
           <hr className={`my-6 border-t ${colors.border}`} />
@@ -860,7 +878,7 @@ const Settings: React.FC<SettingsProps> = ({
       </div>
 
       {/* Feedback Form (Dummy replacement for YouForm) */}
-      <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
+      <div className={`${colors.container} rounded-lg ${colors.border} border p-6 mb-4`}>
         <div className="flex items-center gap-2 mb-4">
           <FileText className={colors.text} size={20} />
           <h3 className={`text-lg font-medium ${colors.text}`}>Feedback</h3>
@@ -872,6 +890,27 @@ const Settings: React.FC<SettingsProps> = ({
             effectiveMode={effectiveMode}
             colors={colors}
           />
+        </div>
+      </div>
+
+      {/* Footer with GitHub link and Made by */}
+      <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
+        <div className="flex flex-col items-center gap-4">
+          <a
+            href="https://github.com/SahasTechnologies/react-schoolplanner"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`flex items-center gap-2 ${colors.containerText} hover:${colors.text} transition-colors duration-200`}
+            title="View on GitHub"
+          >
+            <Github size={24} />
+            <span className="font-medium">View Source on GitHub</span>
+          </a>
+          <div className={`flex items-center gap-2 ${colors.containerText}`}>
+            <span>Made with</span>
+            <Heart size={18} className="text-red-500" fill="currentColor" />
+            <span>by Sahas</span>
+          </div>
         </div>
       </div>
     </div>

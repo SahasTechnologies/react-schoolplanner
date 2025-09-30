@@ -326,9 +326,10 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
   return (
     <>
       {/* Container controls rounding; children are square and clipped inside to avoid top/bottom gaps */}
+      {/* Only spans the height of the event cards, not the "Now" heading or "Show All" button */}
       <div
-        className="absolute left-3 top-0 bottom-0 w-[10px] rounded-full overflow-hidden"
-        style={{ pointerEvents: 'none' }}
+        className="absolute left-3 w-[10px] rounded-full overflow-hidden pointer-events-none"
+        style={{ top: 0, height: '100%' }}
       >
         {/* Base translucent gradient - always visible */}
         <div

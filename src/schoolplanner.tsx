@@ -454,6 +454,8 @@ const SchoolPlanner = () => {
         newPassword={newPassword}
         setNewPassword={setNewPassword}
         isMarkbookLocked={isMarkbookLocked}
+        showCountdownInSidebar={showCountdownInSidebar}
+        setShowCountdownInSidebar={setShowCountdownInSidebar}
       />
     </div>
   );
@@ -598,7 +600,7 @@ const SchoolPlanner = () => {
                             {countdownText}
                           </div>
                           <button
-                            onClick={() => setIsCountdownFullscreen(true)}
+                            onClick={openCountdownFullscreen}
                             className={`p-2 rounded hover:bg-opacity-20 transition-colors ${effectiveMode === 'light' ? 'hover:bg-gray-300' : 'hover:bg-gray-600'}`}
                             title="Fullscreen countdown"
                           >
@@ -686,9 +688,9 @@ const SchoolPlanner = () => {
 
                     return (
                       <div key={idx} className="relative z-10 w-full">
-                        {/* 'Now' heading above the current event */}
+                        {/* 'Now' heading above the current event - NOT included in gradient measurements */}
                         {isCurrentEvent && (
-                          <div className={`mb-2 text-base font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
+                          <div className={`mb-2 text-base font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'} pl-0`}>
                             Now
                           </div>
                         )}
@@ -696,6 +698,7 @@ const SchoolPlanner = () => {
                           ref={el => { cardRefs.current[idx] = el; }}
                           onMouseEnter={() => setHoveredIndex(idx)}
                           onMouseLeave={() => setHoveredIndex(null)}
+                          className="relative"
                         >
                           <EventCard
                             event={event}
@@ -743,7 +746,7 @@ const SchoolPlanner = () => {
                                     {timelineCountdownInfo?.time ?? ''}
                                   </span>
                                   <button
-                                    onClick={() => setIsCountdownFullscreen(true)}
+                                    onClick={openCountdownFullscreen}
                                     className={`p-2 rounded-md hover:opacity-80 transition-colors ${effectiveMode === 'light' ? 'text-black' : 'text-white'} opacity-80`}
                                     title="Fullscreen countdown"
                                   >
@@ -830,7 +833,7 @@ const SchoolPlanner = () => {
                 getEventColour={getEventColour}
                 effectiveMode={effectiveMode}
                 colors={colors}
-                onFullscreen={() => setIsCountdownFullscreen(true)}
+                onFullscreen={openCountdownFullscreen}
                 autoNamingEnabled={autoNamingEnabled}
                 subjects={subjects}
               />
@@ -858,6 +861,17 @@ const SchoolPlanner = () => {
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [countdownSearching, setCountdownSearching] = useState(true);
   const [isCountdownFullscreen, setIsCountdownFullscreen] = useState(false);
+
+  // Handle fullscreen countdown state and URL
+  const openCountdownFullscreen = () => {
+    setIsCountdownFullscreen(true);
+    navigate('/countdown');
+  };
+
+  const closeCountdownFullscreen = () => {
+    setIsCountdownFullscreen(false);
+    navigate(-1); // Go back to previous page
+  };
 
   // State for toggling between today and next day's schedule
   const [showNextDay, setShowNextDay] = useState(false);
@@ -1542,6 +1556,16 @@ const SchoolPlanner = () => {
   // State for expanded timeline view
   const [timelineExpanded, setTimelineExpanded] = useState(false);
 
+  // Add state for countdown in sidebar
+  const [showCountdownInSidebar, setShowCountdownInSidebar] = useState(() => {
+    const saved = localStorage.getItem('showCountdownInSidebar');
+    return saved === null ? true : saved === 'true'; // Default to true if not set
+  });
+  // Persist showCountdownInSidebar
+  useEffect(() => {
+    localStorage.setItem('showCountdownInSidebar', showCountdownInSidebar ? 'true' : 'false');
+  }, [showCountdownInSidebar]);
+
   // Tick every minute to update progress overlay, or every second if timeline countdown is enabled
   useEffect(() => {
     const interval = showCountdownInTimeline ? 1000 : 60000; // 1 second vs 1 minute
@@ -1711,6 +1735,15 @@ const SchoolPlanner = () => {
     }
   }, [location.pathname]);
 
+  // Open fullscreen countdown when /countdown URL is accessed
+  useEffect(() => {
+    if (location.pathname === '/countdown' && !isCountdownFullscreen) {
+      setIsCountdownFullscreen(true);
+    } else if (location.pathname !== '/countdown' && isCountdownFullscreen) {
+      setIsCountdownFullscreen(false);
+    }
+  }, [location.pathname, isCountdownFullscreen]);
+
   // Main content routes
   // Only show welcome screen if not completed
   const mainContent = (
@@ -1754,6 +1787,8 @@ const SchoolPlanner = () => {
           location={location}
           colors={colors}
           SettingsIcon={SettingsIcon}
+          showCountdownInSidebar={showCountdownInSidebar}
+          onCountdownClick={openCountdownFullscreen}
         />
       </div>
       
@@ -1764,7 +1799,7 @@ const SchoolPlanner = () => {
         {/* Fullscreen countdown modal */}
         <FullscreenCountdown
           isOpen={isCountdownFullscreen}
-          onClose={() => setIsCountdownFullscreen(false)}
+          onClose={closeCountdownFullscreen}
           searching={countdownSearching}
           nextEvent={nextEvent}
           nextEventDate={nextEventDate}
