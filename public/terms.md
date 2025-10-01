@@ -18,7 +18,6 @@ You agree not to, and you will not permit others to:
 - Access or use the Software to build a similar or competitive product or service.
 - Use the Software to send automated queries to any website or to send any unsolicited commercial emails.
 - Use any proprietary information or interfaces of the Software or other intellectual property of ours in the design, development, manufacture, licensing, or distribution of any applications, accessories, or devices for use with the Software.
-
 4. **Proprietary Rights**
 All content included in the Software, such as text, graphics, logos, icons, images, audio clips, digital downloads, data compilations, and software, is the property of the original creators and is protected by international copyright laws. The compilation of all content in the Software is our exclusive property, with all rights reserved.
 
@@ -26,7 +25,8 @@ All content included in the Software, such as text, graphics, logos, icons, imag
 The Software includes open-source components, which are licensed under their own respective licenses:
 - Google Material Design 3: 2025 Google Inc. Licensed under the Apache License, Version 2.0. You may not use this file except in compliance with the License. You may obtain a copy at http://www.apache.org/licenses/LICENSE-2.0. Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND.
 - Lucide: Licensed under the SIL Open Font License, Version 1.1. This license is available at https://scripts.sil.org/OFL. The icons may be used, studied, modified, and redistributed freely as long as they are not sold by themselves.
-- Kwize Quote of the Day: Incorporated under permission from Kwize.
+- BrainyQuote Quote of the Day: Quotes sourced from BrainyQuote.com. Widget implementation adapted from [Normal-Tangerine8609/Scriptable-Widgets](https://github.com/Normal-Tangerine8609/Scriptable-Widgets).
+- Merriam-Webster Word of the Day: Word definitions sourced from Merriam-Webster.com. Widget implementation adapted from [Normal-Tangerine8609/Scriptable-Widgets](https://github.com/Normal-Tangerine8609/Scriptable-Widgets).
 
 **Additional Credits (Dependencies Used):**
 - [React](https://react.dev/) & [ReactDOM](https://react.dev/) (MIT License)
@@ -63,7 +63,7 @@ The Software does not use cookies or any tracking technologies. We do not collec
 You are responsible for maintaining the security of your device and the confidentiality of your data. This includes but is not limited to using secure passwords, enabling device encryption where available, and safeguarding your device against unauthorized access.
 
 8. **Third-Party Services**
-The Software incorporates icons provided by Lucide, as well as the Kwize Quote of the Day feature. We have no control over, and assume no responsibility for, the content, privacy policies, or practices of any third-party services.
+The Software incorporates icons provided by Lucide, as well as the BrainyQuote Quote of the Day and Merriam-Webster Word of the Day features. We have no control over, and assume no responsibility for, the content, privacy policies, or practices of any third-party services.
 
 9. **Disclaimer of Warranties**
 9.1 **"AS IS" and "AS AVAILABLE"**

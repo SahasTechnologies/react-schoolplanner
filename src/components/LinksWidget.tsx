@@ -240,7 +240,7 @@ export default function LinksWidget({ effectiveMode, colors }: LinksWidgetProps)
   };
 
   return (
-    <div className={`${colors.container} rounded-lg ${colors.border} border p-6 mb-4 flex flex-col`}>
+    <div className={`${colors.container} rounded-lg ${colors.border} border p-6 flex flex-col`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h2 className={`text-2xl font-semibold ${colors.text}`}>Links</h2>

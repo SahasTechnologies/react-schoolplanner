@@ -1,22 +1,22 @@
 import * as React from 'react';
-import { LoaderCircle, Quote } from 'lucide-react';
+import { LoaderCircle, BookOpen } from 'lucide-react';
 import { ThemeKey, getColors } from '../utils/themeUtils';
-import { fetchQuoteOfTheDay, getCachedQuote, cacheQuote, QuoteOfTheDay } from '../utils/quoteOfTheDayUtils';
+import { fetchWordOfTheDay, getCachedWord, cacheWord, WordOfTheDay } from '../utils/wordOfTheDayUtils';
 
-interface QuoteOfTheDayWidgetProps {
+interface WordOfTheDayWidgetProps {
   theme: ThemeKey;
   themeType: 'normal' | 'extreme';
   effectiveMode: 'light' | 'dark';
 }
 
-export default function QuoteOfTheDayWidget({ 
+export default function WordOfTheDayWidget({ 
   theme, 
   themeType, 
   effectiveMode 
-}: QuoteOfTheDayWidgetProps): React.ReactElement {
+}: WordOfTheDayWidgetProps): React.ReactElement {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
-  const [quoteData, setQuoteData] = React.useState<QuoteOfTheDay | null>(null);
+  const [wordData, setWordData] = React.useState<WordOfTheDay | null>(null);
   const colors = getColors(theme, themeType, effectiveMode);
   const mountTimeRef = React.useRef(Date.now());
   const MIN_SPIN_MS = 800; // Minimum spinner time for better visibility
@@ -32,48 +32,45 @@ export default function QuoteOfTheDayWidget({
     }
   };
 
-  // Fetch quote data on mount
+  // Fetch word data on mount
   React.useEffect(() => {
-    const loadQuote = async () => {
-      console.log('[QuoteWidget] Component mounted, starting load...');
+    const loadWord = async () => {
+      console.log('[WordWidget] Component mounted, starting load...');
       setLoading(true);
       mountTimeRef.current = Date.now();
 
-      const quoteType = (localStorage.getItem('quoteType') || 'normal') as 'normal' | 'love' | 'art' | 'nature' | 'funny';
-      console.log('[QuoteWidget] Using quote type:', quoteType);
-
       // Check cache first
-      const cached = getCachedQuote(quoteType);
+      const cached = getCachedWord();
       if (cached) {
-        console.log('[QuoteWidget] Using cached quote');
-        setQuoteData(cached);
+        console.log('[WordWidget] Using cached word');
+        setWordData(cached);
         stopSpinner();
         return;
       }
 
       // Fetch new data
-      console.log('[QuoteWidget] No cache, fetching new quote...');
-      const data = await fetchQuoteOfTheDay(quoteType);
+      console.log('[WordWidget] No cache, fetching new word...');
+      const data = await fetchWordOfTheDay();
       if (data) {
-        console.log('[QuoteWidget] Successfully fetched quote');
-        setQuoteData(data);
-        cacheQuote(data, quoteType);
+        console.log('[WordWidget] Successfully fetched word');
+        setWordData(data);
+        cacheWord(data);
         stopSpinner();
       } else {
-        console.error('[QuoteWidget] Failed to fetch quote');
+        console.error('[WordWidget] Failed to fetch word');
         setError(true);
         stopSpinner();
       }
     };
 
-    loadQuote();
+    loadWord();
   }, []);
 
   return (
     <div className={`${colors.container} rounded-lg ${colors.border} border p-4 flex flex-col items-center`}>
       <div className="flex items-center gap-2 mb-3">
-        <Quote size={20} style={{ color: colors.text }} />
-        <div className="font-semibold text-lg" style={{ color: colors.text }}>Quote of the Day</div>
+        <BookOpen size={20} style={{ color: colors.text }} />
+        <div className="font-semibold text-lg" style={{ color: colors.text }}>Word of the Day</div>
       </div>
       <div className="relative w-full min-h-[140px] flex items-center justify-center">
         {loading && (
@@ -83,32 +80,36 @@ export default function QuoteOfTheDayWidget({
         )}
         {error && !loading && (
           <div className="text-center text-base" style={{ color: colors.text }}>
-            Could not load quote.
+            Could not load word of the day.
           </div>
         )}
-        {quoteData && !loading && (
-          <div className="w-full text-center space-y-3 py-2">
-            {/* Quote */}
-            <div className="text-base leading-relaxed px-2" style={{ color: colors.text }}>
-              "{quoteData.quote}"
+        {wordData && !loading && (
+          <div className="w-full text-center space-y-2 py-2">
+            {/* Word */}
+            <div className="font-bold text-2xl" style={{ color: colors.text }}>
+              {wordData.word}
             </div>
-            {/* Author */}
-            <div className="text-base text-right px-2 opacity-70" style={{ color: colors.text }}>
-              - {quoteData.author}
+            {/* Type and Pronunciation */}
+            <div className="text-base opacity-70" style={{ color: colors.text }}>
+              {wordData.type} | {wordData.pronunciation}
+            </div>
+            {/* Definition */}
+            <div className="text-base leading-relaxed px-2" style={{ color: colors.text }}>
+              {wordData.definition}
             </div>
           </div>
         )}
       </div>
-      {/* Link to BrainyQuote */}
-      {!loading && !error && quoteData && (
+      {/* Link to Merriam-Webster */}
+      {!loading && !error && (
         <a
-          href={quoteData.link}
+          href="https://www.merriam-webster.com/word-of-the-day"
           target="_blank"
           rel="noopener noreferrer"
           className="text-xs mt-2 opacity-60 hover:opacity-100 transition-opacity"
           style={{ color: colors.text }}
         >
-          View on BrainyQuote →
+          View on Merriam-Webster →
         </a>
       )}
     </div>

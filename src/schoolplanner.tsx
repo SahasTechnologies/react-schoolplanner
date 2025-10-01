@@ -11,7 +11,7 @@ import {
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { ThemeKey, getColors } from './utils/themeUtils';
 import { normalizeSubjectName } from './utils/subjectUtils.ts';
-import { CalendarEvent, WeekData, formatTime, insertBreaksBetweenEvents, isBreakEvent, groupAllEventsIntoActualWeeks, isEndOfDayEvent } from './utils/calendarUtils.ts';
+import { CalendarEvent, WeekData, insertBreaksBetweenEvents, isBreakEvent, isEndOfDayEvent } from './utils/calendarUtils.ts';
 import TodayScheduleTimeline from './components/TodayScheduleTimeline';
 import { ThemeModal } from './components/ThemeModal';
 import WelcomeScreen from './components/WelcomeScreen';
@@ -28,8 +28,9 @@ import { showSuccess, showError, showInfo, removeNotification } from './utils/no
 import NotFound from './components/NotFound';
 import { Exam } from './types';
 import { hashPassword, memoizedComparePassword } from './utils/passwordUtils';
-import QuoteOfTheDayWidget from './components/QuoteOfTheDayWidget';
 import LinksWidget from './components/LinksWidget';
+import QuoteOfTheDayWidget from './components/QuoteOfTheDayWidget';
+import WordOfTheDayWidget from './components/WordOfTheDayWidget';
 import CountdownBox from './components/CountdownBox';
 import FullscreenCountdown from './components/FullscreenCountdown';
 import { getGreeting, getDeterministicColour, formatCountdownForTab } from './utils/helperUtils';
@@ -46,6 +47,7 @@ const SchoolPlanner = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [widgetRefresh, setWidgetRefresh] = useState(0);
 
   // NEW: State for exam side panel
   const [selectedSubjectForExam, setSelectedSubjectForExam] = useState<Subject | null>(null);
@@ -66,6 +68,15 @@ const SchoolPlanner = () => {
   useEffect(() => {
     localStorage.setItem('examsBySubject', JSON.stringify(examsBySubject));
   }, [examsBySubject]);
+
+  // Listen for widget visibility changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setWidgetRefresh(prev => prev + 1);
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const handleSubjectSelect = (subject: Subject) => {
     setSelectedSubjectForExam(subject);
@@ -528,7 +539,7 @@ const SchoolPlanner = () => {
             {`${getGreeting(userName)}.`}
           </h1>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
           <div className={`${colors.container} rounded-lg ${colors.border} border p-6 col-span-1`}>
             <div className="flex items-center mb-4">
               <div className="flex items-center gap-2">
@@ -823,7 +834,7 @@ const SchoolPlanner = () => {
           </div>
           {/* Countdown box on the right */}
           <div className="flex flex-col gap-6">
-            {!showCountdownInTimeline && (
+            {!showCountdownInTimeline && localStorage.getItem('showCountdownWidget') !== 'false' && (
               <CountdownBox
                 searching={countdownSearching}
                 nextEvent={nextEvent}
@@ -839,16 +850,28 @@ const SchoolPlanner = () => {
               />
             )}
             {/* Links Widget above Quote Widget */}
-            <LinksWidget
-              effectiveMode={effectiveMode}
-              colors={colors}
-            />
+            {localStorage.getItem('showLinksWidget') !== 'false' && (
+              <LinksWidget
+                effectiveMode={effectiveMode}
+                colors={colors}
+              />
+            )}
             {/* Quote of the Day Widget below CountdownBox */}
-            <QuoteOfTheDayWidget
-              theme={theme}
-              themeType={themeType}
-              effectiveMode={effectiveMode}
-            />
+            {localStorage.getItem('showQuoteWidget') !== 'false' && (
+              <QuoteOfTheDayWidget
+                theme={theme}
+                themeType={themeType}
+                effectiveMode={effectiveMode}
+              />
+            )}
+            {/* Word of the Day Widget below Quote Widget */}
+            {localStorage.getItem('showWordWidget') !== 'false' && (
+              <WordOfTheDayWidget
+                theme={theme}
+                themeType={themeType}
+                effectiveMode={effectiveMode}
+              />
+            )}
           </div>
         </div>
       </div>

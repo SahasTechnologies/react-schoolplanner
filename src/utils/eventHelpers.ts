@@ -27,6 +27,7 @@ export function getNextOccurrence(event: CalendarEvent, now: Date): Date {
 
 /**
  * Find the next event (including breaks) in repeating weekly schedule
+ * Only returns events that are TODAY (not tomorrow)
  */
 export function findNextRepeatingEvent(
   now: Date,
@@ -35,11 +36,17 @@ export function findNextRepeatingEvent(
   if (!events || events.length === 0) return null;
 
   const eventsWithBreaks = insertBreaksBetweenEvents(events);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const endOfToday = new Date(today);
+  endOfToday.setHours(23, 59, 59, 999);
+
   const nexts = eventsWithBreaks
     .map((e: CalendarEvent & { isBreak?: boolean }) => ({
       event: e,
       date: getNextOccurrence(e, now)
-    }));
+    }))
+    // Only include events that are today (before end of today)
+    .filter(item => item.date.getTime() <= endOfToday.getTime());
 
   const soonest = nexts.reduce((min, curr) => (min === null || curr.date < min.date ? curr : min), null as { event: CalendarEvent; date: Date } | null);
   return soonest;
