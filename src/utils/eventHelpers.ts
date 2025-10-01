@@ -26,7 +26,28 @@ export function getNextOccurrence(event: CalendarEvent, now: Date): Date {
 }
 
 /**
+ * Find the next event (including breaks) in repeating weekly schedule
+ */
+export function findNextRepeatingEvent(
+  now: Date,
+  events: CalendarEvent[]
+): { event: CalendarEvent; date: Date } | null {
+  if (!events || events.length === 0) return null;
+
+  const eventsWithBreaks = insertBreaksBetweenEvents(events);
+  const nexts = eventsWithBreaks
+    .map((e: CalendarEvent & { isBreak?: boolean }) => ({
+      event: e,
+      date: getNextOccurrence(e, now)
+    }));
+
+  const soonest = nexts.reduce((min, curr) => (min === null || curr.date < min.date ? curr : min), null as { event: CalendarEvent; date: Date } | null);
+  return soonest;
+}
+
+/**
  * Find the next NON-break event (skip breaks) in repeating weekly schedule
+ * @deprecated Use findNextRepeatingEvent instead to include breaks
  */
 export function findNextNonBreakRepeatingEvent(
   now: Date,

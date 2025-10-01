@@ -188,7 +188,7 @@ const Settings: React.FC<SettingsProps> = ({
 
 
   return (
-    <div className={`space-y-6 ${colors.background}`}>
+    <div className={`space-y-8 ${colors.background}`}>
        <style>{`
         .markdown-content h1, .markdown-content h2, .markdown-content h3 {
           text-align: left; margin-bottom: 0.5em; margin-top: 1.5em; padding-left: 0; margin-left: 0; font-weight: 600;
@@ -221,7 +221,9 @@ const Settings: React.FC<SettingsProps> = ({
       {/* Data Section */}
       <div className={`${colors.container} rounded-lg ${colors.border} border p-6 mb-4`}>
         <div className="flex items-center gap-2 mb-4">
-          <User className={colors.containerText} size={20} />
+          <div className={`p-3 rounded-xl ${effectiveMode === 'light' ? 'bg-blue-100' : 'bg-blue-900/30'}`}>
+            <User size={20} className="text-blue-500" />
+          </div>
           <h3 className={`text-lg font-medium ${colors.containerText}`}>Data</h3>
         </div>
         <div className="flex items-center justify-between mb-4">
@@ -325,10 +327,22 @@ const Settings: React.FC<SettingsProps> = ({
       {/* Home Settings Section */}
       <div className={`${colors.container} rounded-lg ${colors.border} border p-6 mb-4`}>
         <div className="flex items-center gap-2 mb-4">
-          <Home className={colors.text} size={20} />
+          <div className={`p-3 rounded-xl ${effectiveMode === 'light' ? 'bg-blue-100' : 'bg-blue-900/30'}`}>
+            <Home size={20} className="text-blue-500" />
+          </div>
           <h3 className={`text-lg font-medium ${colors.text}`}>Home Settings</h3>
         </div>
         <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={`font-medium ${colors.containerText}`}>Use 24-Hour Time Format</p>
+              <p className={`text-sm ${colors.containerText} opacity-80`}>Display times in 24-hour format (e.g., 14:30) instead of 12-hour format (e.g., 2:30 PM)</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" checked={false} onChange={() => {}} className="sr-only peer" />
+              <div className="w-11 h-6 peer-focus:outline-none rounded-full peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all" style={{ backgroundColor: false ? colors.buttonAccent : '#6b7280' }}></div>
+            </label>
+          </div>
           <div className="flex items-center justify-between">
             <div>
               <p className={`font-medium ${colors.containerText}`}>Enable Countdown in Schedule</p>
@@ -497,7 +511,9 @@ const Settings: React.FC<SettingsProps> = ({
       {/* Legal Section */}
       <div className={`${colors.container} rounded-lg ${colors.border} border p-6 mb-4`}>
         <div className="flex items-center gap-2 mb-4">
-          <FileText className={colors.text} size={20} />
+          <div className={`p-3 rounded-xl ${effectiveMode === 'light' ? 'bg-blue-100' : 'bg-blue-900/30'}`}>
+            <FileText size={20} className="text-blue-500" />
+          </div>
           <h3 className={`text-lg font-medium ${colors.text}`}>Legal</h3>
         </div>
         <div className="space-y-4">
@@ -605,7 +621,9 @@ const Settings: React.FC<SettingsProps> = ({
       {/* Markbook Settings */}
       <div className={`${colors.container} rounded-lg ${colors.border} border p-6 mb-4`}>
         <div className="flex items-center gap-2 mb-4">
-          <BarChart3 className={colors.text} size={20} />
+          <div className={`p-3 rounded-xl ${effectiveMode === 'light' ? 'bg-blue-100' : 'bg-blue-900/30'}`}>
+            <BarChart3 size={20} className="text-blue-500" />
+          </div>
           <h3 className={`text-lg font-medium ${colors.text}`}>Markbook Settings</h3>
         </div>
         

@@ -238,9 +238,9 @@ export const groupAllEventsIntoActualWeeks = (allEvents: CalendarEvent[]): WeekD
 };
 
 // Helper to insert break events between events with >1min gap
-export function insertBreaksBetweenEvents(events: CalendarEvent[]): (CalendarEvent & { isBreak?: boolean })[] {
+export function insertBreaksBetweenEvents(events: CalendarEvent[]): (CalendarEvent & { isBreak?: boolean; isEndOfDay?: boolean })[] {
   if (!events || events.length === 0) return [];
-  const result: (CalendarEvent & { isBreak?: boolean })[] = [];
+  const result: (CalendarEvent & { isBreak?: boolean; isEndOfDay?: boolean })[] = [];
   for (let i = 0; i < events.length; i++) {
     result.push(events[i]);
     if (i < events.length - 1) {
@@ -258,6 +258,18 @@ export function insertBreaksBetweenEvents(events: CalendarEvent[]): (CalendarEve
       }
     }
   }
+  
+  // Add "End of Day" event after the last event
+  if (events.length > 0) {
+    const lastEvent = events[events.length - 1];
+    const lastEnd = lastEvent.dtend ? new Date(lastEvent.dtend as Date) : new Date(lastEvent.dtstart);
+    result.push({
+      dtstart: lastEnd,
+      summary: 'End of Day',
+      isEndOfDay: true,
+    });
+  }
+  
   return result;
 }
 
@@ -340,6 +352,11 @@ export function getTodayOrNextEvents(weekData: WeekData | null): { dayLabel: str
 // Add a type guard for isBreak
 export function isBreakEvent(event: CalendarEvent | (CalendarEvent & { isBreak?: boolean })): event is CalendarEvent & { isBreak: true } {
   return (event as any).isBreak === true;
+}
+
+// Add a type guard for isEndOfDay
+export function isEndOfDayEvent(event: CalendarEvent | (CalendarEvent & { isEndOfDay?: boolean })): event is CalendarEvent & { isEndOfDay: true } {
+  return (event as any).isEndOfDay === true;
 } 
 
 // Returns the next upcoming event (not a break) from weekData.events, or null if none

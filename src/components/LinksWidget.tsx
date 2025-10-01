@@ -9,7 +9,6 @@ interface LinkItem {
   id: string;
   name: string;
   url: string;
-  subtitle: string;
   icon: string;
 }
 
@@ -19,6 +18,24 @@ interface LinksWidgetProps {
 }
 
 export default function LinksWidget({ effectiveMode, colors }: LinksWidgetProps): React.ReactElement {
+  // Helper to extract clean URL for subtitle
+  const extractSubtitle = (url: string): string => {
+    try {
+      const parsed = new URL(url.startsWith('http') ? url : `https://${url}`);
+      let base = parsed.hostname + parsed.pathname;
+      // Remove trailing slash
+      if (base.endsWith('/')) base = base.slice(0, -1);
+      // Truncate if too long
+      const maxLength = 45;
+      if (base.length > maxLength) {
+        return base.substring(0, maxLength) + '...';
+      }
+      return base;
+    } catch {
+      return url;
+    }
+  };
+
   // Default links as shown in the image
   const [links, setLinks] = React.useState<LinkItem[]>(() => {
     const saved = localStorage.getItem('quickLinks');
@@ -34,35 +51,30 @@ export default function LinksWidget({ effectiveMode, colors }: LinksWidgetProps)
         id: '1',
         name: 'Moodle',
         url: 'https://web1.baulkham-h.schools.nsw.edu.au/',
-        subtitle: 'web1.baulkham-h.schools.nsw.edu.au',
         icon: 'Folder'
       },
       {
         id: '2',
         name: 'Calendar',
         url: 'https://baulkham-h.sentral.com.au',
-        subtitle: 'baulkham-h.sentral.com.au',
         icon: 'Clock'
       },
       {
         id: '3',
         name: 'Newsletter',
         url: 'https://baulkham-h.schools.nsw.gov.au',
-        subtitle: 'baulkham-h.schools.nsw.gov.au',
         icon: 'Newspaper'
       },
       {
         id: '4',
         name: 'Sentral',
         url: 'https://baulkham-h.sentral.com.au/auth/portal?action=login_student',
-        subtitle: 'baulkham-h.sentral.com.au',
         icon: 'CreditCard'
       },
       {
         id: '5',
         name: 'Printing',
         url: 'http://10.209.96.176',
-        subtitle: '10.209.96.176',
         icon: 'Printer'
       }
     ];
@@ -73,7 +85,6 @@ export default function LinksWidget({ effectiveMode, colors }: LinksWidgetProps)
   const [editingLink, setEditingLink] = React.useState<LinkItem | null>(null);
   const [editName, setEditName] = React.useState('');
   const [editUrl, setEditUrl] = React.useState('');
-  const [editSubtitle, setEditSubtitle] = React.useState('');
   const [editIcon, setEditIcon] = React.useState('ExternalLink');
 
   // Known icon names supported by this widget's renderIcon
@@ -165,13 +176,11 @@ export default function LinksWidget({ effectiveMode, colors }: LinksWidgetProps)
       id: Date.now().toString(),
       name: '',
       url: '',
-      subtitle: '',
       icon: 'ExternalLink'
     };
     setEditingLink(newLink);
     setEditName('');
     setEditUrl('');
-    setEditSubtitle('');
     setEditIcon('ExternalLink');
     setIsEditing(true);
   };
@@ -180,7 +189,6 @@ export default function LinksWidget({ effectiveMode, colors }: LinksWidgetProps)
     setEditingLink(link);
     setEditName(link.name);
     setEditUrl(link.url);
-    setEditSubtitle(link.subtitle);
     setEditIcon(link.icon);
     setIsEditing(true);
   };
@@ -196,7 +204,6 @@ export default function LinksWidget({ effectiveMode, colors }: LinksWidgetProps)
               ...l, 
               name: editName.trim(), 
               url: editUrl.trim(),
-              subtitle: editSubtitle.trim(),
               icon: editIcon
             }
           : l
@@ -207,7 +214,6 @@ export default function LinksWidget({ effectiveMode, colors }: LinksWidgetProps)
         ...editingLink, 
         name: editName.trim(), 
         url: editUrl.trim(),
-        subtitle: editSubtitle.trim(),
         icon: editIcon
       }]);
     }
@@ -224,7 +230,6 @@ export default function LinksWidget({ effectiveMode, colors }: LinksWidgetProps)
     setEditingLink(null);
     setEditName('');
     setEditUrl('');
-    setEditSubtitle('');
     setEditIcon('ExternalLink');
   };
 
@@ -305,7 +310,7 @@ export default function LinksWidget({ effectiveMode, colors }: LinksWidgetProps)
                   {link.name}
                 </h3>
                 <p className={`text-sm ${effectiveMode === 'light' ? 'text-gray-500' : 'text-gray-400'} truncate`}>
-                  {link.subtitle}
+                  {extractSubtitle(link.url)}
                 </p>
               </div>
               
@@ -360,16 +365,6 @@ export default function LinksWidget({ effectiveMode, colors }: LinksWidgetProps)
                 />
               </div>
               <div>
-                <label className={`block text-sm font-medium ${colors.text} mb-1`}>Subtitle</label>
-                <input
-                  type="text"
-                  value={editSubtitle}
-                  onChange={(e) => setEditSubtitle(e.target.value)}
-                  className={`w-full px-3 py-2 rounded border ${colors.border} focus:outline-none focus:ring-2 focus:ring-blue-500 ${colors.container} ${colors.text}`}
-                  placeholder="example.com"
-                />
-              </div>
-              <div>
                 <label className={`block text-sm font-medium ${colors.text} mb-1`}>URL</label>
                 <input
                   type="url"
@@ -378,6 +373,9 @@ export default function LinksWidget({ effectiveMode, colors }: LinksWidgetProps)
                   className={`w-full px-3 py-2 rounded border ${colors.border} focus:outline-none focus:ring-2 focus:ring-blue-500 ${colors.container} ${colors.text}`}
                   placeholder="https://example.com"
                 />
+                <p className={`text-xs ${colors.text} opacity-60 mt-1`}>
+                  Subtitle will be auto-generated: {editUrl ? extractSubtitle(editUrl) : 'example.com/...'}
+                </p>
               </div>
               <div>
                 <label className={`block text-sm font-medium ${colors.text} mb-1`}>Icon</label>

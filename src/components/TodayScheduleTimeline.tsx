@@ -1,8 +1,8 @@
 import React, { useMemo, useRef } from 'react';
-import { CalendarEvent, isBreakEvent } from '../utils/calendarUtils';
+import { CalendarEvent, isBreakEvent, isEndOfDayEvent } from '../utils/calendarUtils';
 
 interface TodayScheduleTimelineProps {
-  eventsWithBreaks: (CalendarEvent & { isBreak?: boolean })[];
+  eventsWithBreaks: (CalendarEvent & { isBreak?: boolean; isEndOfDay?: boolean })[];
   measuredHeights: number[];
   segments: { startPct: number; endPct: number }[];
   gapBetweenCards: number;
@@ -34,11 +34,16 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
     const rawHeights = measuredHeights.length === n ? measuredHeights : new Array(n).fill(64);
     const weightedHeights = rawHeights.map((h, i) => {
       const isBreak = isBreakEvent(eventsWithBreaks[i]);
-      return Math.max(isBreak ? 4 : 10, Math.round(h * (isBreak ? 0.35 : 1)));
+      const isEOD = isEndOfDayEvent(eventsWithBreaks[i]);
+      // Make End of Day and breaks very small in the gradient
+      return Math.max(isBreak || isEOD ? 4 : 10, Math.round(h * (isBreak || isEOD ? 0.35 : 1)));
     });
     const totalHeightEst = weightedHeights.reduce((a, b) => a + b, 0) + gapBetweenCards * Math.max(0, n - 1);
 
-    const colorsArr = eventsWithBreaks.map(e => isBreakEvent(e) ? '#94a3b8' : getEventColour(e.summary));
+    const colorsArr = eventsWithBreaks.map(e => {
+      if (isBreakEvent(e) || isEndOfDayEvent(e)) return '#94a3b8';
+      return getEventColour(e.summary);
+    });
     const blendPx = 10;
     const totalHeightForPct = containerHeight > 0 && segments.length === n ? containerHeight : totalHeightEst;
     if (totalHeightForPct <= 0) return { gradientCSS: 'none', progressPctVis: 0 };
@@ -236,50 +241,32 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
     }
 
     if (currentEvent) {
-      // If current event is a break, count down to the next non-break event start
-      if (isBreakEvent(currentEvent)) {
-        // Find the next non-break event after now
-        let nextNonBreak: any = null;
-        for (let i = 0; i < eventsWithBreaks.length; i++) {
-          const e = eventsWithBreaks[i];
-          if (!e.dtstart || !e.dtend) continue;
-          const eStart = new Date(today);
-          eStart.setHours(e.dtstart.getHours(), e.dtstart.getMinutes(), e.dtstart.getSeconds());
-          if (eStart.getTime() > nowTs && !isBreakEvent(e)) {
-            const eEnd = new Date(today);
-            eEnd.setHours(e.dtend.getHours(), e.dtend.getMinutes(), e.dtend.getSeconds());
-            nextNonBreak = { ...e, todayStart: eStart, todayEnd: eEnd };
-            break;
-          }
+      // Find the next event after the current one
+      let actualNextEvent: any = null;
+      for (let i = 0; i < eventsWithBreaks.length; i++) {
+        const event = eventsWithBreaks[i];
+        if (!event.dtstart || !event.dtend) continue;
+        
+        const eventStart = new Date(event.dtstart);
+        const todayEventStart = new Date(today);
+        todayEventStart.setHours(eventStart.getHours(), eventStart.getMinutes(), eventStart.getSeconds());
+        
+        if (todayEventStart.getTime() >= currentEvent.todayEnd.getTime()) {
+          const eventEnd = new Date(event.dtend);
+          const todayEventEnd = new Date(today);
+          todayEventEnd.setHours(eventEnd.getHours(), eventEnd.getMinutes(), eventEnd.getSeconds());
+          actualNextEvent = { ...event, todayStart: todayEventStart, todayEnd: todayEventEnd };
+          break;
         }
-        if (nextNonBreak) {
-          const timeLeft = nextNonBreak.todayStart.getTime() - nowTs;
-          const minutes = Math.floor(timeLeft / (1000 * 60));
-          const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-          return {
-            time: `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`,
-            event: nextNonBreak.summary,
-            type: 'next' as const,
-          };
-        }
-        // Fallback to current event end if no next non-break found
-        const cur: any = currentEvent;
-        const timeLeft = cur.todayEnd.getTime() - nowTs;
-        const minutes = Math.floor(timeLeft / (1000 * 60));
-        const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-        return {
-          time: `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`,
-          event: currentEvent.summary,
-          type: 'current' as const,
-        };
       }
-      // Normal event: show time until current event ends
+      
+      // Show time until current event ends, but display NEXT event's name
       const timeLeft = currentEvent.todayEnd.getTime() - nowTs;
       const minutes = Math.floor(timeLeft / (1000 * 60));
       const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
       return {
         time: `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`,
-        event: currentEvent.summary,
+        event: actualNextEvent ? actualNextEvent.summary : currentEvent.summary,
         type: 'current' as const,
       };
     } else if (nextEvent) {

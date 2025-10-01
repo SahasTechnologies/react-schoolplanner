@@ -11,12 +11,7 @@ import {
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { ThemeKey, getColors } from './utils/themeUtils';
 import { normalizeSubjectName } from './utils/subjectUtils.ts';
-import {
-  CalendarEvent,
-  WeekData,
-  insertBreaksBetweenEvents,
-  isBreakEvent,
-} from './utils/calendarUtils.ts';
+import { CalendarEvent, WeekData, formatTime, insertBreaksBetweenEvents, isBreakEvent, groupAllEventsIntoActualWeeks, isEndOfDayEvent } from './utils/calendarUtils.ts';
 import TodayScheduleTimeline from './components/TodayScheduleTimeline';
 import { ThemeModal } from './components/ThemeModal';
 import WelcomeScreen from './components/WelcomeScreen';
@@ -38,7 +33,7 @@ import LinksWidget from './components/LinksWidget';
 import CountdownBox from './components/CountdownBox';
 import FullscreenCountdown from './components/FullscreenCountdown';
 import { getGreeting, getDeterministicColour, formatCountdownForTab } from './utils/helperUtils';
-import { findNextNonBreakRepeatingEvent, findEventsByDayToggle } from './utils/eventHelpers';
+import { findNextRepeatingEvent, findEventsByDayToggle, getNextOccurrence } from './utils/eventHelpers';
 import WeekViewPage from './components/WeekViewPage';
 import MarkbookPage from './components/MarkbookPage';
 
@@ -464,17 +459,26 @@ const SchoolPlanner = () => {
 
   // In renderHome, insert breaks for the day's events
   const renderHome = () => {
-    const { dayLabel, selectedScheduleDate, eventsWithBreaks } = dayEventsData;
+    const { dayLabel, selectedScheduleDate, eventsWithBreaks, autoSwitchedToNextDay } = dayEventsData;
 
     // Prepare the list of events to show in the compact timeline view so the gradient matches
     const timelineEvents = (() => {
       // Default to all events
       let list = eventsWithBreaks;
 
+      // If forcing to show actual today (after events ended), show ALL events
+      if (forceShowActualToday) {
+        return eventsWithBreaks;
+      }
+
       // In compact mode (countdown enabled and not expanded), show ALL UPCOMING events (including breaks)
       if (showCountdownInTimeline && !timelineExpanded) {
         const now = new Date(nowTs);
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        // Use selectedScheduleDate if available (handles showing next day after events end)
+        const baseDate = selectedScheduleDate 
+          ? new Date(selectedScheduleDate)
+          : new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
         // Find the first event whose end time hasn't passed yet (current or next),
         // then show that event and everything after it for the rest of the day.
         let startIdx = -1;
@@ -483,9 +487,9 @@ const SchoolPlanner = () => {
           if (!e.dtstart || !e.dtend) continue; // require both for precise slicing
           const es = new Date(e.dtstart);
           const ee = new Date(e.dtend);
-          const ts = new Date(today);
+          const ts = new Date(baseDate);
           ts.setHours(es.getHours(), es.getMinutes(), es.getSeconds());
-          const te = new Date(today);
+          const te = new Date(baseDate);
           te.setHours(ee.getHours(), ee.getMinutes(), ee.getSeconds());
           if (nowTs <= te.getTime()) {
             startIdx = i;
@@ -536,7 +540,7 @@ const SchoolPlanner = () => {
                   onClick={handleDayToggle}
                   className={`p-2 rounded hover:bg-opacity-20 transition-colors ${effectiveMode === 'light' ? 'hover:bg-gray-300' : 'hover:bg-gray-600'
                     }`}
-                  title={showNextDay ? 'Show today\'s schedule' : 'Show next day\'s schedule'}
+                  title={showNextDay || autoSwitchedToNextDay ? 'Show today\'s schedule' : 'Show next day\'s schedule'}
                 >
                   <ChevronsUpDown
                     size={18}
@@ -561,15 +565,15 @@ const SchoolPlanner = () => {
                     ? new Date(selectedScheduleDate)
                     : new Date(today);
 
-                  // Only show BEFORE the first period (first non-break event of the displayed day)
-                  const firstNonBreak = eventsWithBreaks.find(e => !isBreakEvent(e));
-                  if (!firstNonBreak || !firstNonBreak.dtstart) return null;
+                  // Show BEFORE the first event (including breaks)
+                  const firstEvent = eventsWithBreaks[0];
+                  if (!firstEvent || !firstEvent.dtstart) return null;
 
-                  const firstStart = new Date(firstNonBreak.dtstart);
+                  const firstStart = new Date(firstEvent.dtstart);
                   const firstStartTime = new Date(baseDate);
                   firstStartTime.setHours(firstStart.getHours(), firstStart.getMinutes(), firstStart.getSeconds());
 
-                  // Hide if we've reached or passed the first period
+                  // Hide if we've reached or passed the first event
                   if (nowTs >= firstStartTime.getTime()) return null;
 
                   const timeUntil = firstStartTime.getTime() - nowTs;
@@ -583,17 +587,17 @@ const SchoolPlanner = () => {
                       <div className="flex items-center justify-between mb-4">
                         <div>
                           <p className={`text-sm ${colors.text} opacity-80`}>
-                            to {normalizeSubjectName(firstNonBreak.summary, autoNamingEnabled)}
+                            to {normalizeSubjectName(firstEvent.summary, autoNamingEnabled)}
                           </p>
                           <p className={`text-sm ${colors.text} opacity-60`}>
-                            {firstNonBreak.location ? `in ${firstNonBreak.location}` : ''}
+                            {firstEvent.location ? `in ${firstEvent.location}` : ''}
                           </p>
                         </div>
                         <div className="flex items-center gap-3">
                           <div
                             className={`text-4xl font-bold`}
                             style={{
-                              color: getEventColour(firstNonBreak.summary),
+                              color: getEventColour(firstEvent.summary),
                               ...(effectiveMode === 'light' ? {} : { textShadow: '0 1px 4px rgba(0,0,0,0.15)' })
                             }}
                           >
@@ -607,12 +611,6 @@ const SchoolPlanner = () => {
                             <Maximize size={16} className={effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} />
                           </button>
                         </div>
-                      </div>
-                      
-                      {/* Upcoming Section Header */}
-                      <div className="flex items-center gap-2 mb-4">
-                        <h4 className={`text-lg font-medium ${colors.text}`}>Upcoming</h4>
-                        <ChevronsUpDown size={16} className={`${colors.text} opacity-60`} />
                       </div>
                     </div>
                   );
@@ -718,15 +716,17 @@ const SchoolPlanner = () => {
 
                         {/* Countdown pill under current event */}
                         {isCurrentEvent && (countdownRendered = true) && (() => {
-                          // Determine the next non-break event (for label/color) after the current global index
+                          // Use the actual countdown event from timeline (includes breaks)
+                          const displaySummary = timelineCountdownInfo?.event || event.summary;
+                          // Find the actual next event for location info (not just non-break)
                           const globalIdx = currentEventFullIndex;
-                          let nextNonBreak: CalendarEvent | null = null;
+                          let nextEvent: CalendarEvent | null = null;
                           for (let i = globalIdx + 1; i < eventsWithBreaks.length; i++) {
                             const e = eventsWithBreaks[i];
-                            if (!isBreakEvent(e)) { nextNonBreak = e; break; }
+                            nextEvent = e;
+                            break;
                           }
-                          const displaySummary = nextNonBreak ? nextNonBreak.summary : event.summary;
-                          const displayLocationRaw = nextNonBreak ? (nextNonBreak.location || '') : (event.location || '');
+                          const displayLocationRaw = nextEvent ? (nextEvent.location || '') : (event.location || '');
                           const displayColor = getEventColour(displaySummary);
                           const cleanedLoc = displayLocationRaw.replace(/^Room:\s*/i, '').trim();
                           return (
@@ -875,6 +875,8 @@ const SchoolPlanner = () => {
 
   // State for toggling between today and next day's schedule
   const [showNextDay, setShowNextDay] = useState(false);
+  // State to force showing actual today even when all events have ended
+  const [forceShowActualToday, setForceShowActualToday] = useState(false);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [measuredHeights, setMeasuredHeights] = useState<number[]>([]);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -1042,8 +1044,21 @@ const SchoolPlanner = () => {
 
   // Toggle handler with weekend logic
   const handleDayToggle = () => {
-    // Simply flip the toggle; date selection logic is handled in render and helpers
-    setShowNextDay(!showNextDay);
+    const { autoSwitchedToNextDay } = dayEventsData;
+    
+    if (autoSwitchedToNextDay && !forceShowActualToday && !showNextDay) {
+      // Currently auto-showing next day, toggle to force show today
+      setForceShowActualToday(true);
+    } else if (forceShowActualToday) {
+      // Currently forcing today, toggle back to auto mode (which will show next day)
+      setForceShowActualToday(false);
+    } else if (showNextDay) {
+      // Currently manually showing next day, toggle back to auto mode
+      setShowNextDay(false);
+    } else {
+      // Currently showing today normally, toggle to next day
+      setShowNextDay(true);
+    }
   };
 
   // Memoize the basic day events calculation to prevent recalculation on every nowTs update
@@ -1053,6 +1068,7 @@ const SchoolPlanner = () => {
     let events: CalendarEvent[];
     // Track which calendar date the displayed schedule belongs to
     let selectedScheduleDate: Date | null = null;
+    let autoSwitchedToNextDay = false;
     if (showNextDay) {
       // Determine the next "school day" to show
       const now = new Date();
@@ -1073,7 +1089,7 @@ const SchoolPlanner = () => {
           // Mon-Thu -> next day
           targetDate.setDate(now.getDate() + 1);
         }
-        dayLabel = `${targetDate.toLocaleDateString(undefined, { weekday: 'long' })}'s Schedule`;
+        dayLabel = targetDate.toLocaleDateString(undefined, { weekday: 'long' });
         const targetDayOfWeek = targetDate.getDay();
         events = (weekData?.events.filter(event => event.dtstart.getDay() === targetDayOfWeek) || [])
           .sort((a, b) => {
@@ -1108,25 +1124,67 @@ const SchoolPlanner = () => {
           // Saturday -> next Monday is +2 days
           nextMonday.setDate(now.getDate() + 2);
         }
-        targetLabel = `Monday's Schedule`;
+        targetLabel = 'Monday';
         selectedScheduleDate = nextMonday;
       } else {
         selectedScheduleDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       }
       
-      dayLabel = targetLabel;
+      // Get today's events
       events = (weekData?.events.filter(event => event.dtstart.getDay() === targetDow) || [])
         .sort((a, b) => {
           const aTime = a.dtstart.getHours() * 60 + a.dtstart.getMinutes();
           const bTime = b.dtstart.getHours() * 60 + b.dtstart.getMinutes();
           return aTime - bTime;
         });
+      
+      // Check if all events have ended for today (only on weekdays)
+      // Unless user is forcing to see actual today
+      if (!forceShowActualToday && todayDow >= 1 && todayDow <= 5 && events.length > 0) {
+        const lastEvent = events[events.length - 1];
+        if (lastEvent.dtend) {
+          const lastEventEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          lastEventEnd.setHours(lastEvent.dtend.getHours(), lastEvent.dtend.getMinutes(), lastEvent.dtend.getSeconds());
+          
+          // If all events have ended, show next day's schedule
+          if (now.getTime() >= lastEventEnd.getTime()) {
+            autoSwitchedToNextDay = true;
+            // Calculate next day
+            const targetDate = new Date(now);
+            if (todayDow === 5) {
+              // Friday -> next Monday
+              targetDate.setDate(now.getDate() + 3);
+            } else {
+              // Mon-Thu -> next day
+              targetDate.setDate(now.getDate() + 1);
+            }
+            
+            dayLabel = targetDate.toLocaleDateString(undefined, { weekday: 'long' });
+            const nextDayOfWeek = targetDate.getDay();
+            events = (weekData?.events.filter(event => event.dtstart.getDay() === nextDayOfWeek) || [])
+              .sort((a, b) => {
+                const aTime = a.dtstart.getHours() * 60 + a.dtstart.getMinutes();
+                const bTime = b.dtstart.getHours() * 60 + b.dtstart.getMinutes();
+                return aTime - bTime;
+              });
+            selectedScheduleDate = targetDate;
+          } else {
+            dayLabel = targetLabel;
+          }
+        } else {
+          dayLabel = targetLabel;
+        }
+      } else {
+        // User is forcing to see actual today, or other conditions
+        dayLabel = targetLabel;
+        // Keep the events array as-is (today's events, even if they've ended)
+      }
     }
     // Insert breaks between events for home screen too
     const eventsWithBreaks = insertBreaksBetweenEvents(events);
     
-    return { dayLabel, events, selectedScheduleDate, eventsWithBreaks };
-  }, [showNextDay, weekData]); // Only recalculate when these change, not on nowTs updates
+    return { dayLabel, events, selectedScheduleDate, eventsWithBreaks, autoSwitchedToNextDay };
+  }, [showNextDay, weekData, nowTs, forceShowActualToday]); // Add nowTs and forceShowActualToday to recalculate when they change
 
 
 
@@ -1146,17 +1204,41 @@ const SchoolPlanner = () => {
     setCountdownSearching(true);
     const interval = setInterval(() => {
       const now = new Date();
-      const soonest = findNextNonBreakRepeatingEvent(now, weekData.events);
+      // Use findNextRepeatingEvent which includes breaks
+      const soonest = findNextRepeatingEvent(now, weekData.events);
       if (soonest) {
-        setNextEvent(soonest.event);
-        setNextEventDate(soonest.date);
-        const diff = soonest.date.getTime() - now.getTime();
+        // If the next event is a break or End of Day, find the next real event for display
+        let displayEvent = soonest.event;
+        let displayDate = soonest.date;
+        
+        if (isBreakEvent(soonest.event) || isEndOfDayEvent(soonest.event)) {
+          // Find next non-break, non-EOD event
+          const eventsWithBreaks = insertBreaksBetweenEvents(weekData.events);
+          const sortedEvents = eventsWithBreaks
+            .filter(e => !isBreakEvent(e) && !isEndOfDayEvent(e))
+            .map(e => ({
+              event: e,
+              date: getNextOccurrence(e, now)
+            }))
+            .sort((a, b) => a.date.getTime() - b.date.getTime());
+          
+          const nextRealEvent = sortedEvents.find(item => item.date.getTime() > now.getTime());
+          
+          if (nextRealEvent) {
+            displayEvent = nextRealEvent.event;
+            displayDate = nextRealEvent.date;
+          }
+        }
+        
+        setNextEvent(displayEvent);
+        setNextEventDate(displayDate);
+        const diff = displayDate.getTime() - now.getTime();
         setTimeLeft(diff > 0 ? diff : 0);
         setCountdownSearching(false);
         const info = {
           time: formatCountdownForTab(diff > 0 ? diff : 0),
-          event: normalizeSubjectName(soonest.event.summary, true),
-          location: soonest.event.location || '',
+          event: normalizeSubjectName(displayEvent.summary, true),
+          location: displayEvent.location || '',
         };
         setTabCountdown(info);
       } else {

@@ -1,6 +1,6 @@
 import React from 'react';
-import { Clock, MapPin, User, Utensils, CalendarRange } from 'lucide-react';
-import { CalendarEvent, formatTime } from '../utils/calendarUtils';
+import { Clock, MapPin, User, Utensils, CalendarRange, Clock3 } from 'lucide-react';
+import { CalendarEvent, formatTime, isEndOfDayEvent } from '../utils/calendarUtils';
 import { normalizeSubjectName, getSubjectIcon } from '../utils/subjectUtils';
 
 interface EventCardProps {
@@ -32,6 +32,28 @@ const EventCard: React.FC<EventCardProps> = ({
   subjects = [],
   forceTall = false
 }) => {
+  // Handle End of Day event
+  if (isEndOfDayEvent(event)) {
+    return (
+      <div
+        key={`end-of-day-${index}`}
+        className="rounded-2xl p-3 flex items-center justify-between text-sm font-semibold transition-all duration-300"
+        style={{ 
+          backgroundColor: effectiveMode === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)', 
+          color: effectiveMode === 'light' ? '#111827' : '#e5e7eb',
+          minHeight: forceTall ? 64 : 40,
+          boxShadow: effectiveMode === 'light' ? '0 1px 2px rgba(0,0,0,0.06)' : '0 1px 2px rgba(0,0,0,0.4)'
+        }}
+      >
+        <div className="flex-1 text-left flex items-center" style={{justifyContent: 'flex-start'}}>
+          End of Day
+          <span className="text-xs ml-2 opacity-60">{formatTime(event.dtstart)}</span>
+        </div>
+        <Clock3 size={20} className={effectiveMode === 'light' ? 'text-black' : 'text-white'} />
+      </div>
+    );
+  }
+
   if (isBreakEvent(event)) {
     return (
       <div
