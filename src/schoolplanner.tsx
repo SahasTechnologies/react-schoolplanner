@@ -47,7 +47,6 @@ const SchoolPlanner = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [widgetRefresh, setWidgetRefresh] = useState(0);
 
   // NEW: State for exam side panel
   const [selectedSubjectForExam, setSelectedSubjectForExam] = useState<Subject | null>(null);
@@ -72,7 +71,7 @@ const SchoolPlanner = () => {
   // Listen for widget visibility changes
   useEffect(() => {
     const handleStorageChange = () => {
-      setWidgetRefresh(prev => prev + 1);
+      // Trigger re-render when widget visibility changes
     };
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
