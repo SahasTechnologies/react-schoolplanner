@@ -26,8 +26,9 @@ export function getNextOccurrence(event: CalendarEvent, now: Date): Date {
 }
 
 /**
- * Find the next event (including breaks) in repeating weekly schedule
- * Only returns events that are TODAY (not tomorrow)
+ * Find the next event (including breaks and End of Day) in repeating weekly schedule
+ * Returns current ongoing event if it hasn't ended, next upcoming event today, or next school day's first event
+ * Handles Friday -> Monday and weekend -> Monday transitions
  */
 export function findNextRepeatingEvent(
   now: Date,
@@ -37,19 +38,75 @@ export function findNextRepeatingEvent(
 
   const eventsWithBreaks = insertBreaksBetweenEvents(events);
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const endOfToday = new Date(today);
-  endOfToday.setHours(23, 59, 59, 999);
+  const todayDow = now.getDay();
 
-  const nexts = eventsWithBreaks
-    .map((e: CalendarEvent & { isBreak?: boolean }) => ({
-      event: e,
-      date: getNextOccurrence(e, now)
-    }))
-    // Only include events that are today (before end of today)
-    .filter(item => item.date.getTime() <= endOfToday.getTime());
+  // Only today's events (keep order by time)
+  const todaysEvents = eventsWithBreaks
+    .filter(e => e.dtstart.getDay() === todayDow)
+    .map(e => {
+      const start = new Date(today);
+      start.setHours(e.dtstart.getHours(), e.dtstart.getMinutes(), e.dtstart.getSeconds(), 0);
+      const end = e.dtend
+        ? new Date(new Date(today).setHours(e.dtend.getHours(), e.dtend.getMinutes(), e.dtend.getSeconds(), 0))
+        : null; // End of Day has no end
+      return { event: e, start, end };
+    })
+    .sort((a, b) => a.start.getTime() - b.start.getTime());
 
-  const soonest = nexts.reduce((min, curr) => (min === null || curr.date < min.date ? curr : min), null as { event: CalendarEvent; date: Date } | null);
-  return soonest;
+  // 1) If currently in an event with an end, countdown to its end but label with the next event (incl. breaks/EOD)
+  if (todaysEvents.length > 0) {
+    const current = todaysEvents.find(e => e.end && now.getTime() >= e.start.getTime() && now.getTime() < e.end.getTime());
+    if (current) {
+      const next = todaysEvents.find(e => e.start.getTime() >= (current.end as Date).getTime());
+      const labelEvent = next ? next.event : current.event;
+      return { event: labelEvent, date: current.end as Date };
+    }
+
+    // 2) Otherwise, countdown to the next upcoming event's start (incl. breaks/EOD)
+    const upcoming = todaysEvents.find(e => now.getTime() < e.start.getTime());
+    if (upcoming) {
+      return { event: upcoming.event, date: upcoming.start };
+    }
+  }
+
+  // 3) All of today's events are over (or no events today), find next school day's first event
+  // Calculate next school day (skip weekends)
+  let nextDayOffset = 1;
+  let nextDow = (todayDow + nextDayOffset) % 7;
+  
+  // Handle Friday (5) -> Monday (1), Saturday (6) -> Monday (1), Sunday (0) -> Monday (1)
+  if (todayDow === 5) {
+    // Friday -> Monday
+    nextDayOffset = 3;
+    nextDow = 1;
+  } else if (todayDow === 6) {
+    // Saturday -> Monday
+    nextDayOffset = 2;
+    nextDow = 1;
+  } else if (todayDow === 0) {
+    // Sunday -> Monday
+    nextDayOffset = 1;
+    nextDow = 1;
+  }
+  
+  // Get next day's events
+  const nextDayEvents = eventsWithBreaks
+    .filter(e => e.dtstart.getDay() === nextDow)
+    .map(e => {
+      const nextDay = new Date(today);
+      nextDay.setDate(today.getDate() + nextDayOffset);
+      const start = new Date(nextDay);
+      start.setHours(e.dtstart.getHours(), e.dtstart.getMinutes(), e.dtstart.getSeconds(), 0);
+      return { event: e, start };
+    })
+    .sort((a, b) => a.start.getTime() - b.start.getTime());
+  
+  if (nextDayEvents.length > 0) {
+    // Return the first event of the next school day
+    return { event: nextDayEvents[0].event, date: nextDayEvents[0].start };
+  }
+
+  return null;
 }
 
 /**
@@ -92,11 +149,11 @@ export function findEventsByDayToggle(
   if (forceNextDay) {
     // Show next "school day" events (skip weekends appropriately)
     if (currentDay === 6) {
-      // Saturday -> previous Friday
-      targetDate.setDate(now.getDate() - 1);
+      // Saturday -> next Monday
+      targetDate.setDate(now.getDate() + 2);
     } else if (currentDay === 0) {
-      // Sunday -> previous Friday
-      targetDate.setDate(now.getDate() - 2);
+      // Sunday -> next Monday
+      targetDate.setDate(now.getDate() + 1);
     } else if (currentDay === 5) {
       // Friday -> next Monday
       targetDate.setDate(now.getDate() + 3);

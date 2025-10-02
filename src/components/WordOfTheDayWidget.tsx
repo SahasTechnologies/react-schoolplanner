@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { LoaderCircle, BookOpen, RefreshCw } from 'lucide-react';
+import { LoaderCircle, BookOpen } from 'lucide-react';
 import { ThemeKey, getColors } from '../utils/themeUtils';
 import { fetchWordOfTheDay, getCachedWord, cacheWord, WordOfTheDay, clearWordCache } from '../utils/wordOfTheDayUtils';
 
@@ -17,10 +17,10 @@ export default function WordOfTheDayWidget({
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
   const [wordData, setWordData] = React.useState<WordOfTheDay | null>(null);
-  const [showRefresh, setShowRefresh] = React.useState(false);
   const colors = getColors(theme, themeType, effectiveMode);
   const mountTimeRef = React.useRef(Date.now());
   const MIN_SPIN_MS = 800; // Minimum spinner time for better visibility
+  const hasCheckedForUpdate = React.useRef(false);
 
   // Helper to stop spinner but keep minimum duration
   const stopSpinner = () => {
@@ -34,11 +34,13 @@ export default function WordOfTheDayWidget({
   };
 
   // Fetch word data
-  const loadWord = React.useCallback(async (forceRefresh = false) => {
-    console.log('[WordWidget] Starting load...', forceRefresh ? '(forced refresh)' : '');
-    setLoading(true);
-    setError(false);
-    mountTimeRef.current = Date.now();
+  const loadWord = React.useCallback(async (forceRefresh = false, silent = false) => {
+    console.log('[WordWidget] Starting load...', forceRefresh ? '(forced refresh)' : '', silent ? '(silent)' : '');
+    if (!silent) {
+      setLoading(true);
+      setError(false);
+      mountTimeRef.current = Date.now();
+    }
 
     // Check cache first (unless forced refresh)
     if (!forceRefresh) {
@@ -46,7 +48,21 @@ export default function WordOfTheDayWidget({
       if (cached) {
         console.log('[WordWidget] Using cached word');
         setWordData(cached);
-        stopSpinner();
+        // Always stop loading when we have cache
+        setLoading(false);
+        // If this is a silent check, also fetch in background to see if there's an update
+        if (silent && !hasCheckedForUpdate.current) {
+          hasCheckedForUpdate.current = true;
+          console.log('[WordWidget] Checking for updates in background...');
+          const newData = await fetchWordOfTheDay();
+          if (newData && newData.word !== cached.word) {
+            console.log('[WordWidget] Found new word, updating...');
+            setWordData(newData);
+            cacheWord(newData);
+          } else {
+            console.log('[WordWidget] Word is up to date');
+          }
+        }
         return;
       }
     } else {
@@ -62,23 +78,22 @@ export default function WordOfTheDayWidget({
       cacheWord(data);
     } else {
       console.error('[WordWidget] Failed to fetch word');
-      setError(true);
+      if (!silent) setError(true);
     }
-    stopSpinner();
-    // After the first load attempt (success or failure), show the refresh button
-    if (!showRefresh) setShowRefresh(true);
+    if (!silent) stopSpinner();
   }, []);
 
-  // Fetch word data on mount
+  // Fetch word data on mount (silent check if cache exists)
   React.useEffect(() => {
-    loadWord(false);
+    loadWord(false, true);
   }, [loadWord]);
 
   // Listen for source changes from Settings
   React.useEffect(() => {
     const handleSourceChange = () => {
       console.log('[WordWidget] Source changed, refreshing...');
-      loadWord(true);
+      hasCheckedForUpdate.current = false; // Reset check flag
+      loadWord(true, false); // Force refresh, not silent
     };
     
     window.addEventListener('wordSourceChanged', handleSourceChange);
@@ -87,25 +102,9 @@ export default function WordOfTheDayWidget({
 
   return (
     <div className={`${colors.container} rounded-lg ${colors.border} border p-4 flex flex-col items-center`}>
-      <div className="flex items-center gap-2 mb-3 w-full justify-between">
-        <div className="flex items-center gap-2">
-          <BookOpen size={20} style={{ color: colors.text }} />
-          <div className="font-semibold text-lg" style={{ color: colors.text }}>Word of the Day</div>
-        </div>
-        {showRefresh && (
-          <button
-            onClick={() => loadWord(true)}
-            disabled={loading}
-            className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors disabled:opacity-50"
-            title="Refresh word"
-          >
-            <RefreshCw 
-              size={16} 
-              style={{ color: colors.text }} 
-              className={loading ? 'animate-spin' : ''}
-            />
-          </button>
-        )}
+      <div className="flex items-center gap-2 mb-3 w-full">
+        <BookOpen size={20} style={{ color: colors.text }} />
+        <div className="font-semibold text-lg" style={{ color: colors.text }}>Word of the Day</div>
       </div>
       <div className="relative w-full min-h-[140px] flex items-center justify-center">
         {loading && (
@@ -116,12 +115,6 @@ export default function WordOfTheDayWidget({
         {error && !loading && (
           <div className="text-center space-y-3" style={{ color: colors.text }}>
             <div className="text-base">Could not load word of the day.</div>
-            <button
-              onClick={() => loadWord(true)}
-              className={`px-4 py-2 rounded-lg ${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} text-sm font-medium transition-colors`}
-            >
-              Try Again
-            </button>
           </div>
         )}
         {wordData && !loading && (
@@ -130,10 +123,22 @@ export default function WordOfTheDayWidget({
             <div className="font-bold text-2xl" style={{ color: colors.text }}>
               {wordData.word}
             </div>
-            {/* Type and Pronunciation - only show pronunciation if different from word */}
-            <div className="text-base opacity-70" style={{ color: colors.text }}>
-              {wordData.type}{wordData.pronunciation !== wordData.word && ` | ${wordData.pronunciation}`}
-            </div>
+            {/* Type and Pronunciation - only show if meaningful data exists */}
+            {(() => {
+              const hasType = wordData.type && wordData.type.toLowerCase() !== 'word';
+              const hasPronunciation = wordData.pronunciation && wordData.pronunciation !== wordData.word;
+              
+              if (hasType || hasPronunciation) {
+                return (
+                  <div className="text-base opacity-70" style={{ color: colors.text }}>
+                    {hasType && wordData.type}
+                    {hasType && hasPronunciation && ' | '}
+                    {hasPronunciation && wordData.pronunciation}
+                  </div>
+                );
+              }
+              return null;
+            })()}
             {/* Definition */}
             <div className="text-base leading-relaxed px-2" style={{ color: colors.text }}>
               {wordData.definition}

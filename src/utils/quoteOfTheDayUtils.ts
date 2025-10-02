@@ -1,9 +1,10 @@
-// Utility to fetch Quote of the Day from BrainyQuote
+// Utility to fetch Quote of the Day from BrainyQuote, RandomQuotes API, or Baulko Bell Times
 
 export interface QuoteOfTheDay {
   quote: string;
   author: string;
   link: string;
+  source?: 'brainyquote' | 'random-quotes-api' | 'baulko-bell-times';
 }
 
 // Quote types mapping
@@ -52,11 +53,11 @@ async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs =
 export async function fetchQuoteOfTheDay(type: QuoteType = 'normal'): Promise<QuoteOfTheDay | null> {
   console.log('[QuoteOfTheDay] Starting fetch with type:', type);
   
-  // Try multiple CORS proxies in order
+  // Try multiple CORS proxies in order (proxy 3 is most reliable, so try it first)
   const proxies = [
+    'https://corsproxy.io/?',
     'https://api.codetabs.com/v1/proxy?quest=',
     'https://api.allorigins.win/get?url=',
-    'https://corsproxy.io/?',
   ];
   
   for (let i = 0; i < proxies.length; i++) {
@@ -150,6 +151,7 @@ export async function fetchQuoteOfTheDay(type: QuoteType = 'normal'): Promise<Qu
         quote,
         author,
         link,
+        source: 'brainyquote' as const,
       };
       console.log('[QuoteOfTheDay] Successfully parsed all data with proxy', i + 1);
       return result;
@@ -167,26 +169,18 @@ export async function fetchQuoteOfTheDay(type: QuoteType = 'normal'): Promise<Qu
   return null;
 }
 
-// Cache management
+// Cache management - Cache never expires, always returns cached quote if available
 export function getCachedQuote(quoteType: QuoteType = 'normal'): QuoteOfTheDay | null {
   try {
     const CACHE_KEY = `quoteOfTheDayCache_${quoteType}`;
-    const CACHE_DATE_KEY = `quoteOfTheDayCacheDate_${quoteType}`;
     
-    const cachedDate = localStorage.getItem(CACHE_DATE_KEY);
-    const today = new Date().toDateString();
-    
-    console.log(`[QuoteOfTheDay] Cache check for ${quoteType} - Cached date:`, cachedDate, 'Today:', today);
-    
-    if (cachedDate === today) {
-      const cached = localStorage.getItem(CACHE_KEY);
-      if (cached) {
-        console.log(`[QuoteOfTheDay] Using cached ${quoteType} quote from today`);
-        return JSON.parse(cached);
-      }
-    } else {
-      console.log(`[QuoteOfTheDay] Cache expired or not found for ${quoteType}, will fetch new quote`);
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      console.log(`[QuoteOfTheDay] Using cached ${quoteType} quote (no expiration)`);
+      return JSON.parse(cached);
     }
+    
+    console.log(`[QuoteOfTheDay] No cached quote found for ${quoteType}`);
   } catch (error) {
     console.error('[QuoteOfTheDay] Error reading cached quote:', error);
   }
@@ -196,27 +190,168 @@ export function getCachedQuote(quoteType: QuoteType = 'normal'): QuoteOfTheDay |
 export function cacheQuote(quote: QuoteOfTheDay, quoteType: QuoteType = 'normal'): void {
   try {
     const CACHE_KEY = `quoteOfTheDayCache_${quoteType}`;
-    const CACHE_DATE_KEY = `quoteOfTheDayCacheDate_${quoteType}`;
-    
-    const today = new Date().toDateString();
     localStorage.setItem(CACHE_KEY, JSON.stringify(quote));
-    localStorage.setItem(CACHE_DATE_KEY, today);
-    console.log(`[QuoteOfTheDay] Cached ${quoteType} quote for date:`, today);
+    console.log(`[QuoteOfTheDay] Cached ${quoteType} quote (permanent)`);
   } catch (error) {
     console.error('[QuoteOfTheDay] Error caching quote:', error);
   }
 }
 
-// Clear quote cache (for a single type or all types)
+// Clear quote cache (for a single type or all BrainyQuote types)
 export function clearQuoteCache(quoteType?: QuoteType): void {
   try {
     const types: QuoteType[] = quoteType ? [quoteType] : ['normal', 'love', 'art', 'nature', 'funny'];
     types.forEach((t) => {
       localStorage.removeItem(`quoteOfTheDayCache_${t}`);
-      localStorage.removeItem(`quoteOfTheDayCacheDate_${t}`);
     });
     console.log('[QuoteOfTheDay] Cleared quote cache for types:', types.join(', '));
   } catch (error) {
     console.error('[QuoteOfTheDay] Error clearing quote cache:', error);
+  }
+}
+
+// Fetch from RandomQuotes API
+export async function fetchRandomQuotesApiQuote(): Promise<QuoteOfTheDay | null> {
+  console.log('[RandomQuotesAPI] Fetching random quote...');
+  try {
+    const response = await fetch('https://random-quotes-freeapi.vercel.app/api/random');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('[RandomQuotesAPI] Received data:', data);
+
+    if (!data.quote || !data.author) {
+      throw new Error('Invalid response format');
+    }
+
+    const result: QuoteOfTheDay = {
+      quote: data.quote,
+      author: data.author,
+      link: 'https://random-quotes-freeapi.vercel.app/',
+      source: 'random-quotes-api',
+    };
+
+    console.log('[RandomQuotesAPI] Successfully fetched quote');
+    return result;
+  } catch (error) {
+    console.error('[RandomQuotesAPI] Failed to fetch:', error);
+    return null;
+  }
+}
+
+// Cache management for RandomQuotes API
+export function getCachedRandomQuotesQuote(): QuoteOfTheDay | null {
+  try {
+    const refreshMode = localStorage.getItem('randomQuotesRefreshMode') || 'daily';
+
+    if (refreshMode === 'reload') {
+      // Always return null to force refresh on every reload
+      console.log('[RandomQuotesAPI] Refresh mode is "reload", skipping cache');
+      return null;
+    }
+
+    // Daily mode: check if cache is from today
+    const cached = localStorage.getItem('randomQuoteCache');
+    const cachedDate = localStorage.getItem('randomQuoteCacheDate');
+    const today = new Date().toDateString();
+
+    if (cached && cachedDate === today) {
+      console.log('[RandomQuotesAPI] Using cached quote from today');
+      return JSON.parse(cached);
+    }
+
+    console.log('[RandomQuotesAPI] No valid cache found');
+    return null;
+  } catch (error) {
+    console.error('[RandomQuotesAPI] Error reading cache:', error);
+    return null;
+  }
+}
+
+export function cacheRandomQuotesQuote(quote: QuoteOfTheDay): void {
+  try {
+    const today = new Date().toDateString();
+    localStorage.setItem('randomQuoteCache', JSON.stringify(quote));
+    localStorage.setItem('randomQuoteCacheDate', today);
+    console.log('[RandomQuotesAPI] Cached quote for date:', today);
+  } catch (error) {
+    console.error('[RandomQuotesAPI] Error caching quote:', error);
+  }
+}
+
+// Fetch from Baulko Bell Times JSON
+export async function fetchBaulkoQuote(): Promise<QuoteOfTheDay | null> {
+  console.log('[BaulkoQuote] Fetching quote list...');
+  try {
+    const response = await fetch('https://baulkobelltimes.github.io/quotes.json', { cache: 'no-store' });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json() as { quote: string; author: string }[];
+    if (!Array.isArray(data) || data.length === 0) {
+      throw new Error('Invalid or empty quote list');
+    }
+
+    // Select a random quote from the list
+    const randomIndex = Math.floor(Math.random() * data.length);
+    const selected = data[randomIndex];
+
+    if (!selected?.quote || !selected?.author) {
+      throw new Error('Quote entry missing fields');
+    }
+
+    const result: QuoteOfTheDay = {
+      quote: selected.quote,
+      author: selected.author,
+      link: 'https://baulkobelltimes.github.io/',
+      source: 'baulko-bell-times',
+    };
+
+    console.log('[BaulkoQuote] Successfully selected quote');
+    return result;
+  } catch (error) {
+    console.error('[BaulkoQuote] Failed to fetch:', error);
+    return null;
+  }
+}
+
+// Cache management for Baulko quotes
+export function getCachedBaulkoQuote(): QuoteOfTheDay | null {
+  try {
+    const refreshMode = localStorage.getItem('baulkoQuoteRefreshMode') || 'daily';
+
+    if (refreshMode === 'reload') {
+      console.log('[BaulkoQuote] Refresh mode is "reload", skipping cache');
+      return null;
+    }
+
+    const cached = localStorage.getItem('baulkoQuoteCache');
+    const cachedDate = localStorage.getItem('baulkoQuoteCacheDate');
+    const today = new Date().toDateString();
+
+    if (cached && cachedDate === today) {
+      console.log('[BaulkoQuote] Using cached quote from today');
+      return JSON.parse(cached);
+    }
+
+    console.log('[BaulkoQuote] No valid cache found');
+    return null;
+  } catch (error) {
+    console.error('[BaulkoQuote] Error reading cache:', error);
+    return null;
+  }
+}
+
+export function cacheBaulkoQuote(quote: QuoteOfTheDay): void {
+  try {
+    const today = new Date().toDateString();
+    localStorage.setItem('baulkoQuoteCache', JSON.stringify(quote));
+    localStorage.setItem('baulkoQuoteCacheDate', today);
+    console.log('[BaulkoQuote] Cached quote for date:', today);
+  } catch (error) {
+    console.error('[BaulkoQuote] Error caching quote:', error);
   }
 }

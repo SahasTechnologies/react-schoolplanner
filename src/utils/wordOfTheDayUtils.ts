@@ -10,12 +10,12 @@ export interface WordOfTheDay {
   source: 'vocabulary' | 'dictionary' | 'worddaily' | 'merriam-webster' | 'britannica';
 }
 
-// Multi-proxy HTML fetch with timeout to improve reliability and speed
+// Multi-proxy HTML fetch with timeout to improve reliability and speed (proxy 3 is most reliable, so try it first)
 const WORD_FETCH_TIMEOUT_MS = 8000;
 const WORD_PROXIES = [
+  'https://corsproxy.io/?',
   'https://api.codetabs.com/v1/proxy?quest=',
   'https://api.allorigins.win/get?url=',
-  'https://corsproxy.io/?',
 ];
 
 async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = WORD_FETCH_TIMEOUT_MS): Promise<Response> {
@@ -462,32 +462,24 @@ export async function fetchWordOfTheDay(): Promise<WordOfTheDay | null> {
   return null;
 }
 
-// Cache management
+// Cache management - Cache never expires, always returns cached word if available for current source
 const CACHE_KEY = 'wordOfTheDayCache';
-const CACHE_DATE_KEY = 'wordOfTheDayCacheDate';
 
 export function getCachedWord(): WordOfTheDay | null {
   try {
-    const cachedDate = localStorage.getItem(CACHE_DATE_KEY);
-    const today = new Date().toDateString();
-    
-    console.log('[WordOfTheDay] Cache check - Cached date:', cachedDate, 'Today:', today);
-    
-    if (cachedDate === today) {
-      const cached = localStorage.getItem(CACHE_KEY);
-      if (cached) {
-        const parsed = JSON.parse(cached) as WordOfTheDay;
-        const preferredSource = localStorage.getItem('wordOfTheDaySource') || 'vocabulary';
-        if (parsed?.source === preferredSource) {
-          console.log('[WordOfTheDay] Using cached word from today for source:', preferredSource);
-          return parsed;
-        } else {
-          console.log('[WordOfTheDay] Cache source mismatch (cached:', parsed?.source, 'preferred:', preferredSource, ') - ignoring cache');
-        }
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      const parsed = JSON.parse(cached) as WordOfTheDay;
+      const preferredSource = localStorage.getItem('wordOfTheDaySource') || 'vocabulary';
+      if (parsed?.source === preferredSource) {
+        console.log('[WordOfTheDay] Using cached word for source:', preferredSource, '(no expiration)');
+        return parsed;
+      } else {
+        console.log('[WordOfTheDay] Cache source mismatch (cached:', parsed?.source, 'preferred:', preferredSource, ') - ignoring cache');
       }
-    } else {
-      console.log('[WordOfTheDay] Cache expired or not found, will fetch new word');
     }
+    
+    console.log('[WordOfTheDay] No cached word found');
   } catch (error) {
     console.error('[WordOfTheDay] Error reading cached word:', error);
   }
@@ -496,10 +488,8 @@ export function getCachedWord(): WordOfTheDay | null {
 
 export function cacheWord(word: WordOfTheDay): void {
   try {
-    const today = new Date().toDateString();
     localStorage.setItem(CACHE_KEY, JSON.stringify(word));
-    localStorage.setItem(CACHE_DATE_KEY, today);
-    console.log('[WordOfTheDay] Cached word for date:', today);
+    console.log('[WordOfTheDay] Cached word (permanent):', word.word);
   } catch (error) {
     console.error('[WordOfTheDay] Error caching word:', error);
   }
@@ -509,7 +499,6 @@ export function cacheWord(word: WordOfTheDay): void {
 export function clearWordCache(): void {
   try {
     localStorage.removeItem(CACHE_KEY);
-    localStorage.removeItem(CACHE_DATE_KEY);
     console.log('[WordOfTheDay] Cache cleared');
   } catch (error) {
     console.error('[WordOfTheDay] Error clearing cache:', error);

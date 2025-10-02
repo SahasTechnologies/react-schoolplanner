@@ -28,7 +28,8 @@ export function getDeterministicColour(subjectName: string, defaultColours: stri
  */
 export function formatCountdownForTab(ms: number | null): string {
   if (ms === null) return '';
-  if (ms <= 0) return 'Now!';
+  // Display 00:00 at zero to avoid flashing 'Now!'
+  if (ms <= 0) return '00:00';
   const totalSeconds = Math.floor(ms / 1000);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);

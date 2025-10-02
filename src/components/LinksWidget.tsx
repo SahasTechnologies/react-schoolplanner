@@ -10,6 +10,7 @@ interface LinkItem {
   name: string;
   url: string;
   icon: string;
+  customImage?: string; // Base64 or URL to custom image
 }
 
 interface LinksWidgetProps {
@@ -86,6 +87,10 @@ export default function LinksWidget({ effectiveMode, colors }: LinksWidgetProps)
   const [editName, setEditName] = React.useState('');
   const [editUrl, setEditUrl] = React.useState('');
   const [editIcon, setEditIcon] = React.useState('ExternalLink');
+  const [editCustomImage, setEditCustomImage] = React.useState<string>('');
+  const [viewMode, setViewMode] = React.useState<'full' | 'icon' | 'list'>(() => {
+    return (localStorage.getItem('linksViewMode') as 'full' | 'icon' | 'list') || 'full';
+  });
 
   // Known icon names supported by this widget's renderIcon
   const knownIcons = React.useMemo(() => new Set<string>([
@@ -167,6 +172,16 @@ export default function LinksWidget({ effectiveMode, colors }: LinksWidgetProps)
     localStorage.setItem('quickLinks', JSON.stringify(links));
   }, [links]);
 
+  // Listen for view mode changes
+  React.useEffect(() => {
+    const handleViewChange = () => {
+      const newMode = (localStorage.getItem('linksViewMode') as 'full' | 'icon' | 'list') || 'full';
+      setViewMode(newMode);
+    };
+    window.addEventListener('linksViewChanged', handleViewChange);
+    return () => window.removeEventListener('linksViewChanged', handleViewChange);
+  }, []);
+
   const toggleEditMode = () => {
     setEditMode(!editMode);
   };
@@ -190,6 +205,7 @@ export default function LinksWidget({ effectiveMode, colors }: LinksWidgetProps)
     setEditName(link.name);
     setEditUrl(link.url);
     setEditIcon(link.icon);
+    setEditCustomImage(link.customImage || '');
     setIsEditing(true);
   };
 
@@ -204,7 +220,8 @@ export default function LinksWidget({ effectiveMode, colors }: LinksWidgetProps)
               ...l, 
               name: editName.trim(), 
               url: editUrl.trim(),
-              icon: editIcon
+              icon: editIcon,
+              customImage: editCustomImage || undefined
             }
           : l
       ));
@@ -214,7 +231,8 @@ export default function LinksWidget({ effectiveMode, colors }: LinksWidgetProps)
         ...editingLink, 
         name: editName.trim(), 
         url: editUrl.trim(),
-        icon: editIcon
+        icon: editIcon,
+        customImage: editCustomImage || undefined
       }]);
     }
     
@@ -231,6 +249,7 @@ export default function LinksWidget({ effectiveMode, colors }: LinksWidgetProps)
     setEditName('');
     setEditUrl('');
     setEditIcon('ExternalLink');
+    setEditCustomImage('');
   };
 
   const openLink = (url: string) => {
@@ -254,73 +273,170 @@ export default function LinksWidget({ effectiveMode, colors }: LinksWidgetProps)
         </div>
       </div>
 
-      {/* Add Link Button */}
-      <div className="mb-4">
-        <button
-          onClick={addLink}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg ${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} font-medium transition-colors`}
-        >
-          <Plus size={16} />
-          Add Link
-        </button>
-      </div>
-
-      {/* Links Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {links.map((link) => (
-          <div
-            key={link.id}
-            onClick={() => !editMode && openLink(link.url)}
-            className={`relative p-6 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-lg ${colors.border} border-2 hover:opacity-80 group`}
+      {/* Add Link Button - Only show in edit mode */}
+      {editMode && (
+        <div className="mb-4">
+          <button
+            onClick={addLink}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg ${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} font-medium transition-colors`}
           >
-            {/* Edit mode controls */}
-            {editMode && (
-              <>
-                {/* Edit button */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    editLink(link);
-                  }}
-                  className={`absolute top-3 right-3 p-1 rounded ${effectiveMode === 'light' ? 'text-gray-600 hover:text-gray-800 hover:bg-white/80' : 'text-gray-300 hover:text-white hover:bg-gray-600/80'} transition-all`}
-                  title="Edit Link"
-                >
-                  <Pencil size={16} />
-                </button>
+            <Plus size={16} />
+            Add Link
+          </button>
+        </div>
+      )}
 
-                {/* Delete button */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (confirm('Are you sure you want to delete this link?')) {
-                      deleteLink(link.id);
-                    }
-                  }}
-                  className={`absolute top-3 left-3 p-1 rounded ${effectiveMode === 'light' ? 'text-red-600 hover:text-red-800 hover:bg-white/80' : 'text-red-400 hover:text-red-200 hover:bg-gray-600/80'} transition-all`}
-                  title="Delete Link"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </>
-            )}
+      {/* Links Display - Different views based on viewMode */}
+      {viewMode === 'full' && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {links.map((link) => (
+            <div
+              key={link.id}
+              onClick={() => !editMode && openLink(link.url)}
+              className={`relative p-6 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-lg ${colors.border} border-2 hover:opacity-80 group`}
+            >
+              {editMode && (
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      editLink(link);
+                    }}
+                    className={`absolute top-3 right-3 p-1 rounded ${effectiveMode === 'light' ? 'text-gray-600 hover:text-gray-800 hover:bg-white/80' : 'text-gray-300 hover:text-white hover:bg-gray-600/80'} transition-all`}
+                    title="Edit Link"
+                  >
+                    <Pencil size={16} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm('Are you sure you want to delete this link?')) {
+                        deleteLink(link.id);
+                      }
+                    }}
+                    className={`absolute top-3 left-3 p-1 rounded ${effectiveMode === 'light' ? 'text-red-600 hover:text-red-800 hover:bg-white/80' : 'text-red-400 hover:text-red-200 hover:bg-gray-600/80'} transition-all`}
+                    title="Delete Link"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </>
+              )}
+              <div className="flex items-start justify-between">
+                <div className="flex-1 min-w-0">
+                  <h3 className={`text-2xl font-semibold ${colors.text} mb-2 truncate`}>
+                    {link.name}
+                  </h3>
+                  <p className={`text-sm ${effectiveMode === 'light' ? 'text-gray-500' : 'text-gray-400'} truncate`}>
+                    {extractSubtitle(link.url)}
+                  </p>
+                </div>
+                <div className="ml-4 flex-shrink-0">
+                  {link.customImage ? (
+                    <img src={link.customImage} alt={link.name} className="w-10 h-10 rounded object-cover" />
+                  ) : (
+                    renderIcon(link.icon, 40)
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
-            <div className="flex items-start justify-between">
+      {viewMode === 'icon' && (
+        <div className="grid grid-cols-4 sm:grid-cols-6 gap-4">
+          {links.map((link) => (
+            <div key={link.id} className="relative group">
+              <div
+                onClick={() => !editMode && openLink(link.url)}
+                className={`flex flex-col items-center gap-2 p-4 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-lg ${colors.border} border-2 hover:opacity-80`}
+                title={link.name}
+              >
+                {link.customImage ? (
+                  <img src={link.customImage} alt={link.name} className="w-12 h-12 rounded object-cover" />
+                ) : (
+                  renderIcon(link.icon, 48)
+                )}
+                <span className={`text-xs ${colors.text} text-center truncate w-full`}>{link.name}</span>
+              </div>
+              {editMode && (
+                <div className="absolute -top-2 -right-2 flex gap-1">
+                  <button
+                    onClick={() => editLink(link)}
+                    className={`p-1 rounded-full ${effectiveMode === 'light' ? 'bg-gray-600 text-white' : 'bg-gray-300 text-black'} hover:opacity-80`}
+                    title="Edit"
+                  >
+                    <Pencil size={12} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm('Are you sure you want to delete this link?')) {
+                        deleteLink(link.id);
+                      }
+                    }}
+                    className={`p-1 rounded-full ${effectiveMode === 'light' ? 'bg-red-600 text-white' : 'bg-red-400 text-black'} hover:opacity-80`}
+                    title="Delete"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {viewMode === 'list' && (
+        <div className="space-y-2">
+          {links.map((link) => (
+            <div
+              key={link.id}
+              onClick={() => !editMode && openLink(link.url)}
+              className={`relative flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md ${colors.border} hover:opacity-80`}
+            >
+              <div className="flex-shrink-0">
+                {link.customImage ? (
+                  <img src={link.customImage} alt={link.name} className="w-8 h-8 rounded object-cover" />
+                ) : (
+                  renderIcon(link.icon, 32)
+                )}
+              </div>
               <div className="flex-1 min-w-0">
-                <h3 className={`text-2xl font-semibold ${colors.text} mb-2 truncate`}>
-                  {link.name}
-                </h3>
-                <p className={`text-sm ${effectiveMode === 'light' ? 'text-gray-500' : 'text-gray-400'} truncate`}>
+                <h4 className={`font-medium ${colors.text} truncate`}>{link.name}</h4>
+                <p className={`text-xs ${effectiveMode === 'light' ? 'text-gray-500' : 'text-gray-400'} truncate`}>
                   {extractSubtitle(link.url)}
                 </p>
               </div>
-              
-              <div className="ml-4 flex-shrink-0">
-                {renderIcon(link.icon, 40)}
-              </div>
+              {editMode && (
+                <div className="flex gap-1">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      editLink(link);
+                    }}
+                    className={`p-1 rounded ${effectiveMode === 'light' ? 'text-gray-600 hover:bg-gray-200' : 'text-gray-300 hover:bg-gray-700'}`}
+                    title="Edit"
+                  >
+                    <Pencil size={16} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm('Are you sure you want to delete this link?')) {
+                        deleteLink(link.id);
+                      }
+                    }}
+                    className={`p-1 rounded ${effectiveMode === 'light' ? 'text-red-600 hover:bg-red-50' : 'text-red-400 hover:bg-red-900/20'}`}
+                    title="Delete"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              )}
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {links.length === 0 && !isEditing && (
         <div className="text-center py-12">
@@ -378,9 +494,42 @@ export default function LinksWidget({ effectiveMode, colors }: LinksWidgetProps)
                 </p>
               </div>
               <div>
-                <label className={`block text-sm font-medium ${colors.text} mb-1`}>Icon</label>
-                {/* Icon grid selector (similar to SubjectEditModal) */}
-                {(() => {
+                <label className={`block text-sm font-medium ${colors.text} mb-1`}>Icon or Custom Image</label>
+                
+                {/* Custom Image Upload */}
+                <div className="mb-3">
+                  <label className={`block text-xs ${colors.text} opacity-70 mb-1`}>Upload Custom Logo (optional)</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          setEditCustomImage(event.target?.result as string || '');
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className={`w-full text-sm ${colors.text}`}
+                  />
+                  {editCustomImage && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <img src={editCustomImage} alt="Preview" className="w-10 h-10 rounded object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setEditCustomImage('')}
+                        className={`text-xs px-2 py-1 rounded ${effectiveMode === 'light' ? 'text-red-600 hover:bg-red-50' : 'text-red-400 hover:bg-red-900/20'}`}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Icon grid selector (only if no custom image) */}
+                {!editCustomImage && (() => {
                   const iconOptions = [
                     { name: 'ExternalLink', component: ExternalLink, label: 'External' },
                     { name: 'Folder', component: Folder, label: 'Folder' },

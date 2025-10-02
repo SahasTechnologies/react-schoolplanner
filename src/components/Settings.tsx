@@ -36,6 +36,11 @@ import {
   ChevronDown,
   MessageSquare,
   BookOpen,
+  HandHeart,
+  Landmark,
+  Copy,
+  Share2,
+  Link as LinkIcon,
 } from 'lucide-react';
 import { ThemeKey } from '../utils/themeUtils';
 import { isServiceWorkerSupported, forceCacheUpdate } from '../utils/cacheUtils';
@@ -175,6 +180,11 @@ const Settings: React.FC<SettingsProps> = ({
   const [loadingMarkdown, setLoadingMarkdown] = useState<string | null>(null);
   const [markdownError, setMarkdownError] = useState<string | null>(null);
   const [showPayIDDetails, setShowPayIDDetails] = useState(false);
+  const [isHeartHovered, setIsHeartHovered] = useState(false);
+  const [floatingHearts, setFloatingHearts] = useState<Array<{id: number, x: number, y: number}>>([]);
+  const [heartIdCounter, setHeartIdCounter] = useState(0);
+  const [copied, setCopied] = useState(false);
+  const [copyButtonPressed, setCopyButtonPressed] = useState(false);
 
   useEffect(() => {
     if (showTerms && !termsContent) {
@@ -208,6 +218,17 @@ const Settings: React.FC<SettingsProps> = ({
   const [showMarkbookSettings, setShowMarkbookSettings] = useState(false);
   const [markbookPasswordVerification, setMarkbookPasswordVerification] = useState('');
   const [showMarkbookPasswordVerification, setShowMarkbookPasswordVerification] = useState(false);
+  const [quoteProvider, setQuoteProvider] = useState(() => {
+    const stored = localStorage.getItem('quoteProvider');
+    if (stored === 'notion-quote') {
+      localStorage.setItem('quoteProvider', 'random-quotes-api');
+      return 'random-quotes-api';
+    }
+    return stored || 'brainyquote';
+  });
+  const [brainyQuoteType, setBrainyQuoteType] = useState(() => localStorage.getItem('quoteType') || 'normal');
+  const [randomQuotesRefreshMode, setRandomQuotesRefreshMode] = useState(() => localStorage.getItem('randomQuotesRefreshMode') || localStorage.getItem('notionQuoteRefreshMode') || 'daily');
+  const [baulkoQuoteRefreshMode, setBaulkoQuoteRefreshMode] = useState(() => localStorage.getItem('baulkoQuoteRefreshMode') || 'daily');
 
 
   return (
@@ -233,6 +254,44 @@ const Settings: React.FC<SettingsProps> = ({
         }
         .custom-scrollbar-light, .custom-scrollbar-dark {
           scrollbar-width: thin; scrollbar-color: ${colors.buttonAccent} ${colors.container};
+        }
+        @keyframes floatHeart {
+          0% {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+          }
+          50% {
+            transform: translateY(-30px) scale(1.2);
+            opacity: 0.8;
+          }
+          100% {
+            transform: translateY(-60px) scale(0.8);
+            opacity: 0;
+          }
+        }
+        @keyframes buttonBounce {
+          0% {
+            transform: scale(0.9);
+          }
+          50% {
+            transform: scale(1.08);
+          }
+          100% {
+            transform: scale(1);
+          }
+        }
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateX(-5px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.2s ease-out;
         }
       `}</style>
       
@@ -414,31 +473,128 @@ const Settings: React.FC<SettingsProps> = ({
             <div className="flex items-center gap-3">
               <Quote className={`${colors.accentText}`} size={18} />
               <div>
-                <p className={`font-medium ${colors.containerText}`}>Quote Type</p>
-                <p className={`text-sm ${colors.containerText} opacity-80`}>Choose which type of quote to display in the Quote of the Day widget</p>
+                <p className={`font-medium ${colors.containerText}`}>Quote Provider</p>
+                <p className={`text-sm ${colors.containerText} opacity-80`}>Choose which provider to use for the Quote of the Day widget</p>
               </div>
             </div>
             <select
-              value={localStorage.getItem('quoteType') || 'normal'}
+              value={quoteProvider}
               onChange={(e) => {
-                localStorage.setItem('quoteType', e.target.value);
+                const provider = e.target.value;
+                setQuoteProvider(provider);
+                localStorage.setItem('quoteProvider', provider);
+                // Clear all BrainyQuote caches
                 ['normal', 'love', 'art', 'nature', 'funny'].forEach(type => {
                   localStorage.removeItem(`quoteOfTheDayCache_${type}`);
-                  localStorage.removeItem(`quoteOfTheDayCacheDate_${type}`);
                 });
+                // Clear RandomQuotes API cache
+                localStorage.removeItem('randomQuoteCache');
+                localStorage.removeItem('randomQuoteCacheDate');
+                // Clear Baulko cache
+                localStorage.removeItem('baulkoQuoteCache');
+                localStorage.removeItem('baulkoQuoteCacheDate');
                 // Notify widgets to refresh automatically
                 window.dispatchEvent(new CustomEvent('quoteTypeChanged'));
-                showSuccess('Quote Type Updated', `Quote type changed to ${e.target.value}. The widget will refresh automatically!`, { effectiveMode, colors });
+                showSuccess('Quote Provider Updated', `Quote provider changed. The widget will refresh automatically!`, { effectiveMode, colors });
               }}
               className={`px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text}`}
             >
-              <option value="normal">Quote of the Day</option>
-              <option value="love">Love Quote</option>
-              <option value="art">Art Quote</option>
-              <option value="nature">Nature Quote</option>
-              <option value="funny">Funny Quote</option>
+              <option value="brainyquote">BrainyQuote</option>
+              <option value="random-quotes-api">RandomQuotes API</option>
+              <option value="baulko-bell-times">Baulko Bell Times</option>
             </select>
           </div>
+          {quoteProvider === 'brainyquote' && (
+            <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
+              <div className="flex items-center gap-3">
+                <Quote className={`${colors.accentText}`} size={18} />
+                <div>
+                  <p className={`font-medium ${colors.containerText}`}>BrainyQuote Quote Type</p>
+                  <p className={`text-sm ${colors.containerText} opacity-80`}>Choose which type of quote to display from BrainyQuote</p>
+                </div>
+              </div>
+              <select
+                value={brainyQuoteType}
+                onChange={(e) => {
+                  const type = e.target.value;
+                  setBrainyQuoteType(type);
+                  localStorage.setItem('quoteType', type);
+                  ['normal', 'love', 'art', 'nature', 'funny'].forEach(type => {
+                    localStorage.removeItem(`quoteOfTheDayCache_${type}`);
+                  });
+                  // Notify widgets to refresh automatically
+                  window.dispatchEvent(new CustomEvent('quoteTypeChanged'));
+                  showSuccess('Quote Type Updated', `Quote type changed to ${type}. The widget will refresh automatically!`, { effectiveMode, colors });
+                }}
+                className={`px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text}`}
+              >
+                <option value="normal">BrainyQuote Quote of the Day</option>
+                <option value="love">BrainyQuote Love Quote</option>
+                <option value="art">BrainyQuote Art Quote</option>
+                <option value="nature">BrainyQuote Nature Quote</option>
+                <option value="funny">BrainyQuote Funny Quote</option>
+              </select>
+            </div>
+          )}
+          {quoteProvider === 'random-quotes-api' && (
+            <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
+              <div className="flex items-center gap-3">
+                <Quote className={`${colors.accentText}`} size={18} />
+                <div>
+                  <p className={`font-medium ${colors.containerText}`}>RandomQuotes API Refresh Mode</p>
+                  <p className={`text-sm ${colors.containerText} opacity-80`}>Choose when to refresh the quote</p>
+                </div>
+              </div>
+              <select
+                value={randomQuotesRefreshMode}
+                onChange={(e) => {
+                  const mode = e.target.value;
+                  setRandomQuotesRefreshMode(mode);
+                  localStorage.setItem('randomQuotesRefreshMode', mode);
+                  if (mode === 'reload') {
+                    // Clear cache to force refresh on next reload
+                    localStorage.removeItem('randomQuoteCache');
+                    localStorage.removeItem('randomQuoteCacheDate');
+                  }
+                  showSuccess('Refresh Mode Updated', `RandomQuotes API will refresh ${mode === 'reload' ? 'on every page reload' : 'once daily at midnight'}`, { effectiveMode, colors });
+                  window.dispatchEvent(new CustomEvent('quoteTypeChanged'));
+                }}
+                className={`px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text}`}
+              >
+                <option value="daily">Daily (at midnight)</option>
+                <option value="reload">Every Page Reload</option>
+              </select>
+            </div>
+          )}
+          {quoteProvider === 'baulko-bell-times' && (
+            <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
+              <div className="flex items-center gap-3">
+                <Quote className={`${colors.accentText}`} size={18} />
+                <div>
+                  <p className={`font-medium ${colors.containerText}`}>Baulko Bell Times Refresh Mode</p>
+                  <p className={`text-sm ${colors.containerText} opacity-80`}>Choose when to refresh the quote</p>
+                </div>
+              </div>
+              <select
+                value={baulkoQuoteRefreshMode}
+                onChange={(e) => {
+                  const mode = e.target.value;
+                  setBaulkoQuoteRefreshMode(mode);
+                  localStorage.setItem('baulkoQuoteRefreshMode', mode);
+                  if (mode === 'reload') {
+                    localStorage.removeItem('baulkoQuoteCache');
+                    localStorage.removeItem('baulkoQuoteCacheDate');
+                  }
+                  showSuccess('Refresh Mode Updated', `Baulko Bell Times will refresh ${mode === 'reload' ? 'on every page reload' : 'once daily at midnight'}`, { effectiveMode, colors });
+                  window.dispatchEvent(new CustomEvent('quoteTypeChanged'));
+                }}
+                className={`px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text}`}
+              >
+                <option value="daily">Daily (at midnight)</option>
+                <option value="reload">Every Page Reload</option>
+              </select>
+            </div>
+          )}
           <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
             <div className="flex items-center gap-3">
               <BookOpen className={`${colors.accentText}`} size={18} />
@@ -452,7 +608,6 @@ const Settings: React.FC<SettingsProps> = ({
               onChange={(e) => {
                 localStorage.setItem('wordOfTheDaySource', e.target.value);
                 localStorage.removeItem('wordOfTheDayCache');
-                localStorage.removeItem('wordOfTheDayCacheDate');
                 const sourceNames: Record<string, string> = {
                   vocabulary: 'Vocabulary.com',
                   dictionary: 'Dictionary.com',
@@ -486,6 +641,28 @@ const Settings: React.FC<SettingsProps> = ({
               <Grid2x2 size={16} />
               Manage
             </button>
+          </div>
+          <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
+            <div className="flex items-center gap-3">
+              <LinkIcon className={`${colors.accentText}`} size={18} />
+              <div>
+                <p className={`font-medium ${colors.containerText}`}>Links View</p>
+                <p className={`text-sm ${colors.containerText} opacity-80`}>Choose how links are displayed in the Links widget</p>
+              </div>
+            </div>
+            <select
+              value={localStorage.getItem('linksViewMode') || 'full'}
+              onChange={(e) => {
+                localStorage.setItem('linksViewMode', e.target.value);
+                window.dispatchEvent(new CustomEvent('linksViewChanged'));
+                showSuccess('Links View Updated', `Links view changed to ${e.target.value}`, { effectiveMode, colors });
+              }}
+              className={`px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text}`}
+            >
+              <option value="full">Full</option>
+              <option value="icon">Icon Only</option>
+              <option value="list">List</option>
+            </select>
           </div>
           <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
             <div className="flex items-center gap-3">
@@ -1156,23 +1333,91 @@ const Settings: React.FC<SettingsProps> = ({
 
       {/* Donate Section */}
       <section className="mb-8">
+        <style>{`
+          @keyframes heartPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+          }
+          @keyframes heartPulseFast {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+          }
+        `}</style>
         <div className="flex items-center gap-2 mb-3">
-          <div className={`p-3 rounded-xl ${colors.containerOverlay}`}>
-            <Heart size={20} className={`${colors.accentText}`} />
+          <div 
+            className={`p-3 rounded-xl ${effectiveMode === 'light' ? 'bg-red-100' : 'bg-red-900/30'} cursor-pointer`}
+            onMouseEnter={() => setIsHeartHovered(true)}
+            onMouseLeave={() => setIsHeartHovered(false)}
+          >
+            <Heart 
+              size={20} 
+              className="text-red-500"
+              style={{
+                animation: isHeartHovered ? 'heartPulseFast 0.8s ease-in-out infinite' : 'heartPulse 1.5s ease-in-out infinite',
+                transition: 'transform 0.3s ease-in-out, fill 0.2s ease-in-out'
+              }}
+              fill={isHeartHovered ? 'currentColor' : 'none'}
+            />
           </div>
           <h3 className={`text-lg font-medium ${colors.text}`}>Donate</h3>
         </div>
         <div className="space-y-3">
           <div className={`${colors.container} ${colors.border} border rounded-2xl p-4`}>
-            <div className="flex items-start gap-3 mb-3">
-              <div className="flex-shrink-0 pt-0.5">
-                <Heart className="text-red-500" size={18} fill="currentColor" />
+            <div className="flex items-center gap-3">
+              <div 
+                className="relative cursor-pointer"
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const x = e.clientX - rect.left;
+                  const y = e.clientY - rect.top;
+                  const newHeart = { id: heartIdCounter, x, y };
+                  setFloatingHearts(prev => [...prev, newHeart]);
+                  setHeartIdCounter(prev => prev + 1);
+                  setTimeout(() => {
+                    setFloatingHearts(prev => prev.filter(h => h.id !== newHeart.id));
+                  }, 2000);
+                }}
+              >
+                <HandHeart className={`${colors.accentText}`} size={20} />
+                {floatingHearts.map(heart => (
+                  <Heart
+                    key={heart.id}
+                    size={16}
+                    className="absolute pointer-events-none text-red-500"
+                    fill="currentColor"
+                    style={{
+                      left: heart.x,
+                      top: heart.y,
+                      animation: 'floatHeart 2s ease-out forwards'
+                    }}
+                  />
+                ))}
               </div>
               <div>
                 <p className={`font-medium ${colors.containerText}`}>Support Our Work</p>
-                <p className={`text-sm ${colors.containerText} opacity-80 mb-2`}>
+                <p className={`text-sm ${colors.containerText} opacity-80`}>
                   Creating and maintaining a website like this takes time, effort, and resources. If you find this app helpful and would like to support its continued development, we appreciate your love but don't have a payment platform yet.
                 </p>
+              </div>
+            </div>
+          </div>
+          <div className={`${colors.container} ${colors.border} border rounded-2xl p-4`}>
+            <div className="flex items-center gap-3">
+              <Share2 className={`${colors.accentText}`} size={20} />
+              <div>
+                <p className={`font-medium ${colors.containerText}`}>Share the Love</p>
+                <p className={`text-sm ${colors.containerText} opacity-80`}>
+                  You can help by sharing this platform with friends, classmates, teachers, and anyone who might find it useful. Every share helps us grow and improve!
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className={`${colors.container} ${colors.border} border rounded-2xl p-4`}>
+            <div className="flex items-center gap-3 mb-3">
+              <Landmark className={`${colors.accentText}`} size={18} />
+              <div>
+                <p className={`font-medium ${colors.containerText}`}>PayID Donation</p>
+                <p className={`text-sm ${colors.containerText} opacity-80`}>For supporters in Australia</p>
               </div>
             </div>
             <div className={`${colors.background} rounded-lg p-3 ${colors.border} border`}>
@@ -1180,26 +1425,63 @@ const Settings: React.FC<SettingsProps> = ({
                 onClick={() => setShowPayIDDetails(!showPayIDDetails)}
                 className={`w-full flex items-center justify-between ${colors.containerText} hover:${colors.text} transition-colors`}
               >
-                <span className="text-sm font-medium">If you're in Australia, you can donate via PayID</span>
+                <span className="text-sm font-medium">PayID information</span>
                 <ChevronDown 
                   size={18} 
-                  className={`transition-transform duration-200 ${showPayIDDetails ? 'rotate-180' : ''}`}
+                  className={`transition-transform duration-500 ${showPayIDDetails ? 'rotate-180' : ''}`}
                 />
               </button>
-              {showPayIDDetails && (
+              <div 
+                className="overflow-hidden transition-all duration-500 ease-in-out"
+                style={{ 
+                  maxHeight: showPayIDDetails ? '500px' : '0',
+                  opacity: showPayIDDetails ? 1 : 0
+                }}
+              >
                 <div className={`mt-3 pt-3 border-t ${colors.border}`}>
                   <div className="space-y-2">
                     <div>
                       <p className={`text-xs ${colors.containerText} opacity-60 mb-1`}>PayID</p>
-                      <p className={`text-sm font-mono ${colors.containerText} font-semibold`}>thankyou@sahas.dpdns.org</p>
+                      <div className="flex items-center gap-2">
+                        <p className={`text-sm font-mono ${colors.containerText} font-semibold`}>thankyou@sahas.dpdns.org</p>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText('thankyou@sahas.dpdns.org');
+                            setCopied(true);
+                            setCopyButtonPressed(true);
+                            setTimeout(() => setCopyButtonPressed(false), 150);
+                            setTimeout(() => setCopied(false), 2000);
+                          }}
+                          onMouseDown={() => setCopyButtonPressed(true)}
+                          onMouseUp={() => setCopyButtonPressed(false)}
+                          onMouseLeave={() => setCopyButtonPressed(false)}
+                          className={`${colors.text} hover:${colors.accentText} px-2 py-1 rounded transition-all duration-150 flex items-center gap-1`}
+                          style={{
+                            transform: copyButtonPressed ? 'scale(0.9)' : 'scale(1)',
+                            animation: !copyButtonPressed && copied ? 'buttonBounce 0.2s ease-out' : 'none'
+                          }}
+                        >
+                          <Copy size={14} />
+                        </button>
+                        {copied && (
+                          <span className={`text-xs ${colors.accentText} font-medium animate-fadeIn`}>Copied</span>
+                        )}
+                      </div>
                     </div>
                     <div>
                       <p className={`text-xs ${colors.containerText} opacity-60 mb-1`}>Verify the payee is</p>
                       <p className={`text-sm ${colors.containerText} font-semibold`}>SAHAS SHIMPI</p>
                     </div>
+                    <div className="mt-3 pt-3 border-t border-opacity-30" style={{ borderColor: colors.border }}>
+                      <p className={`text-xs ${colors.containerText} opacity-70 leading-relaxed`}>
+                        This site is free to use. If you enjoy it and want to chip in, you can make a small 
+                        donation to help cover costs. I'm not a charity, so donations aren't tax‑deductible, 
+                        but your support means a lot.
+                      </p>
+                    </div>
                   </div>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>

@@ -215,28 +215,43 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
     const now = new Date(nowTs);
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
+    // Do not show countdown when viewing a different day's schedule
+    const selectedY = selectedScheduleDate
+      ? new Date(
+          selectedScheduleDate.getFullYear(),
+          selectedScheduleDate.getMonth(),
+          selectedScheduleDate.getDate()
+        ).getTime()
+      : null;
+    const todayY = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+    if (selectedY !== null && selectedY !== todayY) return null;
+
     // Find current and next events
     let currentEvent: any = null;
     let nextEvent: any = null;
 
     for (let i = 0; i < eventsWithBreaks.length; i++) {
       const event = eventsWithBreaks[i];
-      if (!event.dtstart || !event.dtend) continue;
+      if (!event.dtstart) continue;
 
       const eventStart = new Date(event.dtstart);
-      const eventEnd = new Date(event.dtend);
-
-      // Convert to today's times
       const todayEventStart = new Date(today);
       todayEventStart.setHours(eventStart.getHours(), eventStart.getMinutes(), eventStart.getSeconds());
-      const todayEventEnd = new Date(today);
-      todayEventEnd.setHours(eventEnd.getHours(), eventEnd.getMinutes(), eventEnd.getSeconds());
 
-      if (nowTs >= todayEventStart.getTime() && nowTs < todayEventEnd.getTime()) {
+      // Some events (End of Day) have no dtend; only consider them for nextEvent, not currentEvent
+      const hasEnd = !!event.dtend;
+      const todayEventEnd = hasEnd ? new Date(today) : null;
+      if (hasEnd && event.dtend) {
+        const eventEnd = new Date(event.dtend);
+        todayEventEnd!.setHours(eventEnd.getHours(), eventEnd.getMinutes(), eventEnd.getSeconds());
+      }
+
+      // Current event requires an end time window
+      if (hasEnd && todayEventEnd && nowTs >= todayEventStart.getTime() && nowTs < todayEventEnd.getTime()) {
         currentEvent = { ...event, todayStart: todayEventStart, todayEnd: todayEventEnd };
         break;
       } else if (nowTs < todayEventStart.getTime() && !nextEvent) {
-        nextEvent = { ...event, todayStart: todayEventStart, todayEnd: todayEventEnd };
+        nextEvent = { ...event, todayStart: todayEventStart, todayEnd: todayEventEnd ?? undefined } as any;
       }
     }
 
@@ -245,17 +260,20 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
       let actualNextEvent: any = null;
       for (let i = 0; i < eventsWithBreaks.length; i++) {
         const event = eventsWithBreaks[i];
-        if (!event.dtstart || !event.dtend) continue;
-        
+        if (!event.dtstart) continue;
+
         const eventStart = new Date(event.dtstart);
         const todayEventStart = new Date(today);
         todayEventStart.setHours(eventStart.getHours(), eventStart.getMinutes(), eventStart.getSeconds());
-        
+
         if (todayEventStart.getTime() >= currentEvent.todayEnd.getTime()) {
-          const eventEnd = new Date(event.dtend);
-          const todayEventEnd = new Date(today);
-          todayEventEnd.setHours(eventEnd.getHours(), eventEnd.getMinutes(), eventEnd.getSeconds());
-          actualNextEvent = { ...event, todayStart: todayEventStart, todayEnd: todayEventEnd };
+          let todayEventEnd: Date | undefined = undefined;
+          if (event.dtend) {
+            const eventEnd = new Date(event.dtend);
+            todayEventEnd = new Date(today);
+            todayEventEnd.setHours(eventEnd.getHours(), eventEnd.getMinutes(), eventEnd.getSeconds());
+          }
+          actualNextEvent = { ...event, todayStart: todayEventStart, todayEnd: todayEventEnd } as any;
           break;
         }
       }
