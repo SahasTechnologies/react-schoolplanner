@@ -36,6 +36,18 @@ function parseHtmlEntities(str: string): string {
     .replace(/&gt;/g, '>');
 }
 
+// Timeout-enabled fetch to avoid long hangs per proxy
+const QUOTE_FETCH_TIMEOUT_MS = 6000;
+async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = QUOTE_FETCH_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(id);
+  }
+}
+
 // Fetch Quote of the Day data using CORS proxy with fallback
 export async function fetchQuoteOfTheDay(type: QuoteType = 'normal'): Promise<QuoteOfTheDay | null> {
   console.log('[QuoteOfTheDay] Starting fetch with type:', type);
@@ -53,8 +65,8 @@ export async function fetchQuoteOfTheDay(type: QuoteType = 'normal'): Promise<Qu
       const targetUrl = encodeURIComponent('https://www.brainyquote.com/quote_of_the_day');
       const fetchUrl = proxyUrl + targetUrl;
       console.log(`[QuoteOfTheDay] Attempt ${i + 1}/${proxies.length} - Fetching from proxy:`, proxyUrl);
-      
-      const response = await fetch(fetchUrl);
+
+      const response = await fetchWithTimeout(fetchUrl);
       console.log('[QuoteOfTheDay] Response status:', response.status);
       
       if (!response.ok) {
@@ -192,5 +204,19 @@ export function cacheQuote(quote: QuoteOfTheDay, quoteType: QuoteType = 'normal'
     console.log(`[QuoteOfTheDay] Cached ${quoteType} quote for date:`, today);
   } catch (error) {
     console.error('[QuoteOfTheDay] Error caching quote:', error);
+  }
+}
+
+// Clear quote cache (for a single type or all types)
+export function clearQuoteCache(quoteType?: QuoteType): void {
+  try {
+    const types: QuoteType[] = quoteType ? [quoteType] : ['normal', 'love', 'art', 'nature', 'funny'];
+    types.forEach((t) => {
+      localStorage.removeItem(`quoteOfTheDayCache_${t}`);
+      localStorage.removeItem(`quoteOfTheDayCacheDate_${t}`);
+    });
+    console.log('[QuoteOfTheDay] Cleared quote cache for types:', types.join(', '));
+  } catch (error) {
+    console.error('[QuoteOfTheDay] Error clearing quote cache:', error);
   }
 }

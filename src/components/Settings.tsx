@@ -33,6 +33,9 @@ import {
   Sun,
   Moon,
   Monitor,
+  ChevronDown,
+  MessageSquare,
+  BookOpen,
 } from 'lucide-react';
 import { ThemeKey } from '../utils/themeUtils';
 import { isServiceWorkerSupported, forceCacheUpdate } from '../utils/cacheUtils';
@@ -171,6 +174,7 @@ const Settings: React.FC<SettingsProps> = ({
   const [licenseContent, setLicenseContent] = useState<string>('');
   const [loadingMarkdown, setLoadingMarkdown] = useState<string | null>(null);
   const [markdownError, setMarkdownError] = useState<string | null>(null);
+  const [showPayIDDetails, setShowPayIDDetails] = useState(false);
 
   useEffect(() => {
     if (showTerms && !termsContent) {
@@ -422,7 +426,9 @@ const Settings: React.FC<SettingsProps> = ({
                   localStorage.removeItem(`quoteOfTheDayCache_${type}`);
                   localStorage.removeItem(`quoteOfTheDayCacheDate_${type}`);
                 });
-                showSuccess('Quote Type Updated', `Quote type changed to ${e.target.value}. Refresh to see the new quote!`, { effectiveMode, colors });
+                // Notify widgets to refresh automatically
+                window.dispatchEvent(new CustomEvent('quoteTypeChanged'));
+                showSuccess('Quote Type Updated', `Quote type changed to ${e.target.value}. The widget will refresh automatically!`, { effectiveMode, colors });
               }}
               className={`px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text}`}
             >
@@ -431,6 +437,38 @@ const Settings: React.FC<SettingsProps> = ({
               <option value="art">Art Quote</option>
               <option value="nature">Nature Quote</option>
               <option value="funny">Funny Quote</option>
+            </select>
+          </div>
+          <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
+            <div className="flex items-center gap-3">
+              <BookOpen className={`${colors.accentText}`} size={18} />
+              <div>
+                <p className={`font-medium ${colors.containerText}`}>Word of the Day Source</p>
+                <p className={`text-sm ${colors.containerText} opacity-80`}>Choose which source to use for the Word of the Day widget</p>
+              </div>
+            </div>
+            <select
+              value={localStorage.getItem('wordOfTheDaySource') || 'vocabulary'}
+              onChange={(e) => {
+                localStorage.setItem('wordOfTheDaySource', e.target.value);
+                localStorage.removeItem('wordOfTheDayCache');
+                localStorage.removeItem('wordOfTheDayCacheDate');
+                const sourceNames: Record<string, string> = {
+                  vocabulary: 'Vocabulary.com',
+                  dictionary: 'Dictionary.com',
+                  worddaily: 'WordDaily.com',
+                  britannica: 'Britannica Dictionary'
+                };
+                // Dispatch custom event to trigger widget refresh
+                window.dispatchEvent(new CustomEvent('wordSourceChanged'));
+                showSuccess('Word Source Updated', `Word source changed to ${sourceNames[e.target.value] || e.target.value}. The widget will refresh automatically!`, { effectiveMode, colors });
+              }}
+              className={`px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text}`}
+            >
+              <option value="vocabulary">Vocabulary.com</option>
+              <option value="dictionary">Dictionary.com</option>
+              <option value="worddaily">WordDaily.com</option>
+              <option value="britannica">Britannica Dictionary</option>
             </select>
           </div>
           <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
@@ -724,56 +762,6 @@ const Settings: React.FC<SettingsProps> = ({
         </div>
       )}
 
-      {/* Legal Section */}
-      <section className="mb-8">
-        <div className="flex items-center gap-2 mb-3">
-          <div className={`p-3 rounded-xl ${colors.containerOverlay}`}>
-            <FileText size={20} className={`${colors.accentText}`} />
-          </div>
-          <h3 className={`text-lg font-medium ${colors.text}`}>Legal</h3>
-        </div>
-        <div className="space-y-3">
-          <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
-            <div className="flex items-center gap-2">
-              <FileText className={colors.accentText} size={18} />
-              <span className={`font-medium ${colors.text}`}>Terms and Conditions</span>
-            </div>
-            <button
-              onClick={() => setShowTerms(true)}
-              className={`${colors.buttonAccent} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
-            >
-              <FileText size={16} />
-              Read
-            </button>
-          </div>
-          <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
-            <div className="flex items-center gap-2">
-              <Shield className={colors.accentText} size={18} />
-              <span className={`font-medium ${colors.text}`}>Privacy Policy</span>
-            </div>
-            <button
-              onClick={() => setShowPrivacy(true)}
-              className={`${colors.buttonAccent} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
-            >
-              <FileText size={16} />
-              Read
-            </button>
-          </div>
-          <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
-            <div className="flex items-center gap-2">
-              <BadgeCheck className={colors.accentText} size={18} />
-              <span className={`font-medium ${colors.text}`}>Licensing</span>
-            </div>
-            <button
-              onClick={() => setShowLicensing(true)}
-              className={`${colors.buttonAccent} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
-            >
-              <FileText size={16} />
-              Read
-            </button>
-          </div>
-        </div>
-      </section>
       
       {/* Legal Modals */}
       {showTerms && (
@@ -1055,7 +1043,9 @@ const Settings: React.FC<SettingsProps> = ({
       {/* Preferences Section */}
       <section className="mb-8">
         <div className="flex items-center gap-2 mb-3">
-          <Calendar className={colors.text} size={20} />
+          <div className={`p-3 rounded-xl ${colors.containerOverlay}`}>
+            <Calendar size={20} className={`${colors.accentText}`} />
+          </div>
           <h3 className={`text-lg font-medium ${colors.text}`}>Preferences</h3>
         </div>
         <div className="space-y-3">
@@ -1164,10 +1154,63 @@ const Settings: React.FC<SettingsProps> = ({
         </div>
       </section>
 
+      {/* Donate Section */}
+      <section className="mb-8">
+        <div className="flex items-center gap-2 mb-3">
+          <div className={`p-3 rounded-xl ${colors.containerOverlay}`}>
+            <Heart size={20} className={`${colors.accentText}`} />
+          </div>
+          <h3 className={`text-lg font-medium ${colors.text}`}>Donate</h3>
+        </div>
+        <div className="space-y-3">
+          <div className={`${colors.container} ${colors.border} border rounded-2xl p-4`}>
+            <div className="flex items-start gap-3 mb-3">
+              <div className="flex-shrink-0 pt-0.5">
+                <Heart className="text-red-500" size={18} fill="currentColor" />
+              </div>
+              <div>
+                <p className={`font-medium ${colors.containerText}`}>Support Our Work</p>
+                <p className={`text-sm ${colors.containerText} opacity-80 mb-2`}>
+                  Creating and maintaining a website like this takes time, effort, and resources. If you find this app helpful and would like to support its continued development, we appreciate your love but don't have a payment platform yet.
+                </p>
+              </div>
+            </div>
+            <div className={`${colors.background} rounded-lg p-3 ${colors.border} border`}>
+              <button
+                onClick={() => setShowPayIDDetails(!showPayIDDetails)}
+                className={`w-full flex items-center justify-between ${colors.containerText} hover:${colors.text} transition-colors`}
+              >
+                <span className="text-sm font-medium">If you're in Australia, you can donate via PayID</span>
+                <ChevronDown 
+                  size={18} 
+                  className={`transition-transform duration-200 ${showPayIDDetails ? 'rotate-180' : ''}`}
+                />
+              </button>
+              {showPayIDDetails && (
+                <div className={`mt-3 pt-3 border-t ${colors.border}`}>
+                  <div className="space-y-2">
+                    <div>
+                      <p className={`text-xs ${colors.containerText} opacity-60 mb-1`}>PayID</p>
+                      <p className={`text-sm font-mono ${colors.containerText} font-semibold`}>thankyou@sahas.dpdns.org</p>
+                    </div>
+                    <div>
+                      <p className={`text-xs ${colors.containerText} opacity-60 mb-1`}>Verify the payee is</p>
+                      <p className={`text-sm ${colors.containerText} font-semibold`}>SAHAS SHIMPI</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Feedback Form (Dummy replacement for YouForm) */}
       <section className="mb-8">
         <div className="flex items-center gap-2 mb-3">
-          <FileText className={colors.text} size={20} />
+          <div className={`p-3 rounded-xl ${colors.containerOverlay}`}>
+            <MessageSquare size={20} className={`${colors.accentText}`} />
+          </div>
           <h3 className={`text-lg font-medium ${colors.text}`}>Feedback</h3>
         </div>
         <div className={`${colors.container} ${colors.border} border rounded-2xl p-4`}>
@@ -1178,6 +1221,57 @@ const Settings: React.FC<SettingsProps> = ({
               effectiveMode={effectiveMode}
               colors={colors}
             />
+          </div>
+        </div>
+      </section>
+
+      {/* Legal Section */}
+      <section className="mb-8">
+        <div className="flex items-center gap-2 mb-3">
+          <div className={`p-3 rounded-xl ${colors.containerOverlay}`}>
+            <FileText size={20} className={`${colors.accentText}`} />
+          </div>
+          <h3 className={`text-lg font-medium ${colors.text}`}>Legal</h3>
+        </div>
+        <div className="space-y-3">
+          <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
+            <div className="flex items-center gap-2">
+              <FileText className={colors.accentText} size={18} />
+              <span className={`font-medium ${colors.text}`}>Terms and Conditions</span>
+            </div>
+            <button
+              onClick={() => setShowTerms(true)}
+              className={`${colors.buttonAccent} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
+            >
+              <FileText size={16} />
+              Read
+            </button>
+          </div>
+          <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
+            <div className="flex items-center gap-2">
+              <Shield className={colors.accentText} size={18} />
+              <span className={`font-medium ${colors.text}`}>Privacy Policy</span>
+            </div>
+            <button
+              onClick={() => setShowPrivacy(true)}
+              className={`${colors.buttonAccent} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
+            >
+              <FileText size={16} />
+              Read
+            </button>
+          </div>
+          <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
+            <div className="flex items-center gap-2">
+              <BadgeCheck className={colors.accentText} size={18} />
+              <span className={`font-medium ${colors.text}`}>Licensing</span>
+            </div>
+            <button
+              onClick={() => setShowLicensing(true)}
+              className={`${colors.buttonAccent} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
+            >
+              <FileText size={16} />
+              Read
+            </button>
           </div>
         </div>
       </section>

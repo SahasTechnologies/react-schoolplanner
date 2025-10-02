@@ -1,6 +1,6 @@
 # Licensing
 
-_Last Updated: 19 March 2025_
+_Last Updated: 2 October 2025_
 
 This app is provided under the MIT License. By using the app, you agree to the following terms:
 
@@ -42,12 +42,14 @@ The OFL allows the licensed icons to be used, studied, modified and redistribute
 
 ## Copyright
 
-(c) 2025 School Planner
-
 This software is provided as free and open-source, meaning it can be used, studied, modified, and distributed by anyone for any purpose. However, under no circumstances may this software be sold, whether as a standalone product or as part of any package or offering. Additionally, this software must not be renamed or rebranded under any other name by any individual or entity. Any modifications or derivative works must clearly acknowledge the original creators and must not imply ownership or authorship. Redistribution of this software, in whole or in part, must retain this license paragraph unaltered, ensuring that the terms of free use, restriction against sale, and preservation of original authorship are maintained in any and all copies, modifications, or distributions.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ---
 
-Quote of the day from Kwize was used to make the Quote of the Day widget. 
+## Third-Party Attributions
+
+**Quote of the Day Widget**: Quote data from Kwize was used to make the Quote of the Day widget.
+
+**Word of the Day Widget**: The parsing logic for fetching Word of the Day content from Vocabulary.com, Dictionary.com, WordDaily.com, Britannica Dictionary, and Merriam-Webster is based on code from [Normal-Tangerine8609/Scriptable-Widgets](https://github.com/Normal-Tangerine8609/Scriptable-Widgets). Multiple sources available with user preference setting.
