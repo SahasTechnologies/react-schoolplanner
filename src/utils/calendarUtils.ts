@@ -274,10 +274,11 @@ export function insertBreaksBetweenEvents(events: CalendarEvent[]): (CalendarEve
 }
 
 export const formatTime = (date: Date): string => {
+  const use24Hour = localStorage.getItem('use24HourFormat') === 'true';
   return date.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
-    hour12: false
+    hour12: !use24Hour
   });
 };
 

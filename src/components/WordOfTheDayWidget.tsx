@@ -120,7 +120,7 @@ export default function WordOfTheDayWidget({
         {wordData && !loading && (
           <div className="w-full text-center space-y-2 py-2">
             {/* Word */}
-            <div className="font-bold text-2xl" style={{ color: colors.text }}>
+            <div className={`font-bold text-2xl ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
               {wordData.word}
             </div>
             {/* Type and Pronunciation - only show if meaningful data exists */}
@@ -130,7 +130,7 @@ export default function WordOfTheDayWidget({
               
               if (hasType || hasPronunciation) {
                 return (
-                  <div className="text-base opacity-70" style={{ color: colors.text }}>
+                  <div className={`text-base opacity-70 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
                     {hasType && wordData.type}
                     {hasType && hasPronunciation && ' | '}
                     {hasPronunciation && wordData.pronunciation}
@@ -140,7 +140,7 @@ export default function WordOfTheDayWidget({
               return null;
             })()}
             {/* Definition */}
-            <div className="text-base leading-relaxed px-2" style={{ color: colors.text }}>
+            <div className={`text-base leading-relaxed px-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
               {wordData.definition}
             </div>
           </div>

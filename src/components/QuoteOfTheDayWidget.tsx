@@ -198,11 +198,11 @@ export default function QuoteOfTheDayWidget({
         {quoteData && !loading && (
           <div className="w-full text-center space-y-3 py-2">
             {/* Quote */}
-            <div className="text-base leading-relaxed px-2" style={{ color: colors.text }}>
+            <div className={`text-base leading-relaxed px-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
               "{quoteData.quote}"
             </div>
             {/* Author */}
-            <div className="text-base text-right px-2 opacity-70" style={{ color: colors.text }}>
+            <div className={`text-base text-right px-2 opacity-70 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
               - {quoteData.author}
             </div>
           </div>

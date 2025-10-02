@@ -111,7 +111,7 @@ const ConfettiCanvas: React.FC<{ className?: string; durationMs?: number }> = ({
   return <canvas ref={canvasRef} className={className} />;
 };
 
-const FORM_ENDPOINT = 'https://formsubmit.co/ajax/42c917da0328f31b1dea91f093a6778e';
+const FORM_ENDPOINT = 'https://formsubmit.co/ajax/3b648867dccdbbc25deec547a473850f';
 
 interface FeedbackFormProps {
   theme: ThemeKey;
@@ -191,6 +191,11 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
   const hasSubmittedRef = useRef(false);
   // welcome button pop effect
   const [goPop, setGoPop] = useState(false);
+  // Contact email states
+  const [wantsContact, setWantsContact] = useState(false);
+  const [contactEmail, setContactEmail] = useState('');
+  // Track completion for partial submissions
+  const completionRef = useRef<string[]>([]);
 
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -206,7 +211,8 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
       case 0: return 1;
       case 1: return rating !== null && rating >= 9 ? 3 : 2;
       case 2: return 3;
-      case 3: return 5; // submit from step 3 now
+      case 3: return 4; // go to contact email step
+      case 4: return 5; // submit from step 4
       default: return 5;
     }
   }, [rating]);
@@ -228,15 +234,30 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
       setError('Please choose a rating.');
       return;
     }
-    // If we are on the text step (step 3), submit now with the freshest textarea value.
-    if (step === 3) {
-      const finalText = textAreaRef.current?.value ?? anythingElse;
+    // Track completion when user proceeds from each step
+    if (step === 1 && !completionRef.current.includes('Rating')) {
+      completionRef.current.push('Rating');
+    } else if (step === 2 && !completionRef.current.includes('How to get to 10')) {
+      completionRef.current.push('How to get to 10');
+    } else if (step === 3 && !completionRef.current.includes('Comments')) {
+      completionRef.current.push('Comments');
+    }
+    // If we are on the contact email step (step 4), validate and submit
+    if (step === 4) {
+      if (wantsContact && !contactEmail.trim()) {
+        setError('Please enter your email address.');
+        return;
+      }
+      if (!completionRef.current.includes('Contact Email')) {
+        completionRef.current.push('Contact Email');
+      }
+      const finalText = anythingElse;
       submit(finalText);
       return;
     }
     const target = nextStepFrom(step);
     goTo(target);
-  }, [step, rating, anythingElse, nextStepFrom, goTo]);
+  }, [step, rating, anythingElse, wantsContact, contactEmail, nextStepFrom, goTo]);
 
   // Pop animation then advance
   const handleGo = useCallback(() => {
@@ -247,6 +268,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
 
   const handlePickRating = (n: number) => {
     setRating(n);
+    // Don't add to completion here - wait for next() call
     // slight delay for micro-interaction before transitioning
     setTimeout(() => {
       if (step === 1) {
@@ -256,18 +278,90 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
     }, 220);
   };
 
+  // Initialize completion tracking
+  useEffect(() => {
+    if (step === 0) {
+      completionRef.current = ['Welcome'];
+    }
+  }, [step]);
+
+  // Save form state to cache for autosave
+  const saveToCache = useCallback(() => {
+    const formState = {
+      rating,
+      howToTen,
+      anythingElse,
+      wantsContact,
+      contactEmail,
+      completion: completionRef.current,
+      timestamp: Date.now()
+    };
+    localStorage.setItem('feedbackFormCache', JSON.stringify(formState));
+  }, [rating, howToTen, anythingElse, wantsContact, contactEmail]);
+
+  // Load cached data on mount and send if exists
+  useEffect(() => {
+    const cached = localStorage.getItem('feedbackFormCache');
+    if (cached) {
+      try {
+        const formState = JSON.parse(cached);
+        // Send the cached partial submission
+        const fd = new FormData();
+        if (formState.rating !== null) fd.append('rating', String(formState.rating));
+        fd.append('how_to_get_to_10', formState.howToTen || '');
+        fd.append('comments', formState.anythingElse || '');
+        if (formState.wantsContact && formState.contactEmail) {
+          fd.append('contact_email', formState.contactEmail);
+        }
+        fd.append('completion', (formState.completion || []).join(', '));
+        fd.append('_captcha', 'false');
+        fd.append('_subject', 'SchoolPlanner Feedback (Auto-saved)');
+        fd.append('_template', 'table');
+        fd.append('_honey', '');
+        fd.append('timestamp', new Date(formState.timestamp).toISOString());
+        
+        fetch(FORM_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Accept': 'application/json' },
+          body: fd,
+        }).then(() => {
+          localStorage.removeItem('feedbackFormCache');
+        }).catch(() => {});
+      } catch {}
+    }
+  }, []);
+
+  // Save to cache before unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (step > 0 && step < 5 && !hasSubmittedRef.current) {
+        saveToCache();
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [step, saveToCache]);
+
+  // Detect navigation within the app
+  useEffect(() => {
+    const handlePopState = () => {
+      if (step > 0 && step < 5 && !hasSubmittedRef.current) {
+        saveToCache();
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [step, saveToCache]);
+
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (submittingRef.current) return; // ignore keyboard submits while submitting
     if (displayStep === 0 && e.key === 'Enter') {
       e.preventDefault();
       goTo(1);
     }
-    if ((displayStep === 2 || displayStep === 3) && e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    if ((displayStep === 2 || displayStep === 3 || displayStep === 4) && e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
-      if (displayStep === 3) {
-        const finalText = textAreaRef.current?.value ?? anythingElse;
-        submit(finalText);
-      } else next();
+      next();
     }
   };
 
@@ -300,24 +394,31 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
   };
 
 
-  const submit = async (finalAnything?: string) => {
-    if (hasSubmittedRef.current || submittingRef.current) return; // guard against duplicates
+  const submit = async (finalAnything?: string, isPartial = false) => {
+    if (!isPartial && (hasSubmittedRef.current || submittingRef.current)) return; // guard against duplicates
     try {
-      setError(null);
-      setSubmitting(true);
-      submittingRef.current = true;
+      if (!isPartial) {
+        setError(null);
+        setSubmitting(true);
+        submittingRef.current = true;
+      }
       const fd = new FormData();
       if (rating !== null) fd.append('rating', String(rating));
       // Always include how_to_get_to_10 so the field shows up in the email, even when rating >= 9
       fd.append('how_to_get_to_10', (rating !== null && rating < 9) ? howToTen : '');
       // Capture free text reliably: prefer state, fall back to current textarea value
       const comments = finalAnything ?? ((anythingElse ?? '').length ? anythingElse : (textAreaRef.current?.value ?? ''));
-      // Send under both 'anything_else' and 'comments' for maximum compatibility/visibility in emails
-      fd.append('anything_else', comments);
+      // Send comments only (remove duplicated 'anything_else')
       fd.append('comments', comments);
+      // Add contact email if provided
+      if (wantsContact && contactEmail.trim()) {
+        fd.append('contact_email', contactEmail.trim());
+      }
+      // Add completion status
+      fd.append('completion', completionRef.current.join(', '));
       // Common formsubmit options
       fd.append('_captcha', 'false');
-      fd.append('_subject', 'SchoolPlanner Feedback');
+      fd.append('_subject', isPartial ? 'SchoolPlanner Feedback (Partial)' : 'SchoolPlanner Feedback');
       fd.append('_template', 'table');
       // Honeypot (bots fill this; we leave blank)
       fd.append('_honey', '');
@@ -332,13 +433,19 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
       if (!res.ok) throw new Error('Network response was not ok');
       // Optional: check JSON status
       // const data = await res.json();
-      hasSubmittedRef.current = true;
-      goTo(5);
+      if (!isPartial) {
+        hasSubmittedRef.current = true;
+        goTo(5);
+      }
     } catch (e:any) {
-      setError('Submission failed. Please try again in a moment.');
+      if (!isPartial) {
+        setError('Submission failed. Please try again in a moment.');
+      }
     } finally {
-      setSubmitting(false);
-      submittingRef.current = false;
+      if (!isPartial) {
+        setSubmitting(false);
+        submittingRef.current = false;
+      }
     }
   };
 
@@ -420,6 +527,54 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
               placeholder="Your answer here..."
               className={`w-full h-40 rounded-lg ${colors.input} ${colors.inputBorder} focus:outline-none focus:ring-2 focus:${colors.accent} p-4 ${colors.placeholder}`}
             />
+            <div className="flex items-center gap-3">
+              <PrimaryButton onClick={next} colors={colors}>Next</PrimaryButton>
+              <span className={`${colors.textSecondary} text-sm`}>press Ctrl + Enter ↵</span>
+            </div>
+          </div>
+          </SlideContent>
+        </SlideContainer>
+      )}
+
+      {displayStep === 4 && (
+        <SlideContainer colors={colors}>
+          <SlideContent exiting={isExiting}>
+          <div className="space-y-4">
+            <h3 className="text-3xl sm:text-4xl font-bold">Want us to contact you about your feedback?</h3>
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={wantsContact}
+                    onChange={(e) => setWantsContact(e.target.checked)}
+                    className="peer sr-only"
+                  />
+                  <div className={`w-5 h-5 rounded border-2 ${colors.border} peer-checked:${colors.buttonAccent} peer-checked:border-transparent transition-all flex items-center justify-center`}>
+                    {wantsContact && (
+                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <span className={`text-lg ${colors.text}`}>Yes, please contact me</span>
+              </label>
+              {wantsContact && (
+                <div className="space-y-2 animate-fadeIn">
+                  <label className={`block text-sm font-medium ${colors.text}`}>Your Email Address</label>
+                  <input
+                    type="email"
+                    value={contactEmail}
+                    onChange={(e) => setContactEmail(e.target.value)}
+                    placeholder="your.email@example.com"
+                    className={`w-full px-4 py-3 rounded-lg ${colors.input} ${colors.inputBorder} focus:outline-none focus:ring-2 focus:${colors.accent} ${colors.placeholder}`}
+                    autoFocus
+                  />
+                </div>
+              )}
+            </div>
+            {error && <p className="text-red-200 text-sm">{error}</p>}
             <div className="flex items-center gap-3">
               <PrimaryButton onClick={next} disabled={submitting} colors={colors}>{submitting ? 'Submitting…' : 'Submit'}</PrimaryButton>
               <span className={`${colors.textSecondary} text-sm`}>press Ctrl + Enter ↵</span>

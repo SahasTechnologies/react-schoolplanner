@@ -261,8 +261,11 @@ export default function LinksWidget({ effectiveMode, colors }: LinksWidgetProps)
   return (
     <div className={`${colors.container} rounded-lg ${colors.border} border p-6 flex flex-col`}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className={`text-2xl font-semibold ${colors.text}`}>Links</h2>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <LinkIcon size={20} style={{ color: colors.text }} />
+          <h2 className={`text-lg font-semibold ${colors.text}`}>Links</h2>
+        </div>
         <div className="flex items-center gap-2">
           <button
             onClick={toggleEditMode}
@@ -401,14 +404,14 @@ export default function LinksWidget({ effectiveMode, colors }: LinksWidgetProps)
                   renderIcon(link.icon, 32)
                 )}
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 flex items-center justify-between gap-3">
                 <h4 className={`font-medium ${colors.text} truncate`}>{link.name}</h4>
-                <p className={`text-xs ${effectiveMode === 'light' ? 'text-gray-500' : 'text-gray-400'} truncate`}>
+                <p className={`text-xs ${effectiveMode === 'light' ? 'text-gray-500' : 'text-gray-400'} truncate flex-shrink-0`}>
                   {extractSubtitle(link.url)}
                 </p>
               </div>
               {editMode && (
-                <div className="flex gap-1">
+                <div className="flex gap-1 flex-shrink-0">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();

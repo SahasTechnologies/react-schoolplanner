@@ -461,6 +461,8 @@ const SchoolPlanner = () => {
         isMarkbookLocked={isMarkbookLocked}
         showCountdownInSidebar={showCountdownInSidebar}
         setShowCountdownInSidebar={setShowCountdownInSidebar}
+        use24HourFormat={use24HourFormat}
+        setUse24HourFormat={setUse24HourFormat}
       />
     </div>
   );
@@ -1663,6 +1665,16 @@ const SchoolPlanner = () => {
   useEffect(() => {
     localStorage.setItem('showCountdownInSidebar', showCountdownInSidebar ? 'true' : 'false');
   }, [showCountdownInSidebar]);
+
+  // Add state for 24-hour time format
+  const [use24HourFormat, setUse24HourFormat] = useState(() => {
+    const saved = localStorage.getItem('use24HourFormat');
+    return saved === 'true'; // Default to false (12-hour format)
+  });
+  // Persist use24HourFormat
+  useEffect(() => {
+    localStorage.setItem('use24HourFormat', use24HourFormat ? 'true' : 'false');
+  }, [use24HourFormat]);
 
   // Tick every minute to update progress overlay, or every second if timeline countdown is enabled
   useEffect(() => {

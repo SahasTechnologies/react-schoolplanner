@@ -74,7 +74,7 @@ export default function WidgetsModal({
                 onChange={() => handleToggle('showLinks')}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 peer-focus:outline-none rounded-full peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all" style={{ backgroundColor: widgetSettings.showLinks ? colors.buttonAccent : '#6b7280' }}></div>
+              <div className={`w-11 h-6 rounded-full relative transition-colors ${widgetSettings.showLinks ? colors.buttonAccent : 'bg-gray-500'} peer-focus:outline-none peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-white/20 after:rounded-full after:h-5 after:w-5 after:transition-all`}></div>
             </label>
           </div>
 
@@ -94,7 +94,7 @@ export default function WidgetsModal({
                 onChange={() => handleToggle('showQuote')}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 peer-focus:outline-none rounded-full peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all" style={{ backgroundColor: widgetSettings.showQuote ? colors.buttonAccent : '#6b7280' }}></div>
+              <div className={`w-11 h-6 rounded-full relative transition-colors ${widgetSettings.showQuote ? colors.buttonAccent : 'bg-gray-500'} peer-focus:outline-none peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-white/20 after:rounded-full after:h-5 after:w-5 after:transition-all`}></div>
             </label>
           </div>
 
@@ -114,7 +114,7 @@ export default function WidgetsModal({
                 onChange={() => handleToggle('showWord')}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 peer-focus:outline-none rounded-full peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all" style={{ backgroundColor: widgetSettings.showWord ? colors.buttonAccent : '#6b7280' }}></div>
+              <div className={`w-11 h-6 rounded-full relative transition-colors ${widgetSettings.showWord ? colors.buttonAccent : 'bg-gray-500'} peer-focus:outline-none peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-white/20 after:rounded-full after:h-5 after:w-5 after:transition-all`}></div>
             </label>
           </div>
 
@@ -135,7 +135,7 @@ export default function WidgetsModal({
                 disabled={isCountdownDisabled}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 peer-focus:outline-none rounded-full peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all" style={{ backgroundColor: !isCountdownDisabled && widgetSettings.showCountdown ? colors.buttonAccent : '#6b7280' }}></div>
+              <div className={`w-11 h-6 rounded-full relative transition-colors ${!isCountdownDisabled && widgetSettings.showCountdown ? colors.buttonAccent : 'bg-gray-500'} peer-focus:outline-none peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-white/20 after:rounded-full after:h-5 after:w-5 after:transition-all`}></div>
             </label>
           </div>
 

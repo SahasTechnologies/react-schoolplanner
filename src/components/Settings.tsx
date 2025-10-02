@@ -35,6 +35,7 @@ import {
   Monitor,
   ChevronDown,
   MessageSquare,
+  Mail,
   BookOpen,
   HandHeart,
   Landmark,
@@ -114,6 +115,9 @@ interface SettingsProps {
   setNewPassword: (password: string) => void;
   // New: whether the markbook is currently locked
   isMarkbookLocked: boolean;
+  // 24-hour time format
+  use24HourFormat: boolean;
+  setUse24HourFormat: (enabled: boolean) => void;
 }
 
 const Settings: React.FC<SettingsProps> = ({
@@ -160,6 +164,8 @@ const Settings: React.FC<SettingsProps> = ({
   newPassword,
   setNewPassword,
   isMarkbookLocked: _isMarkbookLocked,
+  use24HourFormat,
+  setUse24HourFormat,
 }) => {
 
   const [showNameEditModal, setShowNameEditModal] = React.useState(false);
@@ -170,6 +176,18 @@ const Settings: React.FC<SettingsProps> = ({
   const [serviceWorkerSupported] = React.useState(isServiceWorkerSupported());
   const [isUpdatingCache, setIsUpdatingCache] = React.useState(false);
   const [isToggleLoading, setIsToggleLoading] = React.useState(false);
+
+  // Track whether widgets are enabled to conditionally show their settings
+  const [quoteWidgetEnabled, setQuoteWidgetEnabled] = React.useState(() => localStorage.getItem('showQuoteWidget') !== 'false');
+  const [wordWidgetEnabled, setWordWidgetEnabled] = React.useState(() => localStorage.getItem('showWordWidget') !== 'false');
+  React.useEffect(() => {
+    const handleStorage = () => {
+      setQuoteWidgetEnabled(localStorage.getItem('showQuoteWidget') !== 'false');
+      setWordWidgetEnabled(localStorage.getItem('showWordWidget') !== 'false');
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   const [showTerms, setShowTerms] = React.useState(false);
   const [showPrivacy, setShowPrivacy] = React.useState(false);
@@ -437,8 +455,8 @@ const Settings: React.FC<SettingsProps> = ({
               </div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" checked={false} onChange={() => {}} className="sr-only peer" />
-              <div className={`w-14 h-7 rounded-full relative transition-colors ${false ? colors.buttonAccent : 'bg-gray-500'} peer-focus:outline-none peer-checked:after:translate-x-7 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-white/20 after:rounded-full after:h-6 after:w-6 after:transition-all`}></div>
+              <input type="checkbox" checked={use24HourFormat} onChange={e => setUse24HourFormat(e.target.checked)} className="sr-only peer" />
+              <div className={`w-14 h-7 rounded-full relative transition-colors ${use24HourFormat ? colors.buttonAccent : 'bg-gray-500'} peer-focus:outline-none peer-checked:after:translate-x-7 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-white/20 after:rounded-full after:h-6 after:w-6 after:transition-all`}></div>
             </label>
           </div>
           <div className="space-y-1">
@@ -469,43 +487,45 @@ const Settings: React.FC<SettingsProps> = ({
               </label>
             </div>
           </div>
-          <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
-            <div className="flex items-center gap-3">
-              <Quote className={`${colors.accentText}`} size={18} />
-              <div>
-                <p className={`font-medium ${colors.containerText}`}>Quote Provider</p>
-                <p className={`text-sm ${colors.containerText} opacity-80`}>Choose which provider to use for the Quote of the Day widget</p>
+          {quoteWidgetEnabled && (
+          <div className="space-y-1">
+            <div className={`${colors.container} ${colors.border} border rounded-t-2xl rounded-b-lg p-4 flex items-center justify-between`}>
+              <div className="flex items-center gap-3">
+                <Quote className={`${colors.accentText}`} size={18} />
+                <div>
+                  <p className={`font-medium ${colors.containerText}`}>Quote Provider</p>
+                  <p className={`text-sm ${colors.containerText} opacity-80`}>Choose which provider to use for the Quote of the Day widget</p>
+                </div>
               </div>
+              <select
+                value={quoteProvider}
+                onChange={(e) => {
+                  const provider = e.target.value;
+                  setQuoteProvider(provider);
+                  localStorage.setItem('quoteProvider', provider);
+                  // Clear all BrainyQuote caches
+                  ['normal', 'love', 'art', 'nature', 'funny'].forEach(type => {
+                    localStorage.removeItem(`quoteOfTheDayCache_${type}`);
+                  });
+                  // Clear RandomQuotes API cache
+                  localStorage.removeItem('randomQuoteCache');
+                  localStorage.removeItem('randomQuoteCacheDate');
+                  // Clear Baulko cache
+                  localStorage.removeItem('baulkoQuoteCache');
+                  localStorage.removeItem('baulkoQuoteCacheDate');
+                  // Notify widgets to refresh automatically
+                  window.dispatchEvent(new CustomEvent('quoteTypeChanged'));
+                  showSuccess('Quote Provider Updated', `Quote provider changed. The widget will refresh automatically!`, { effectiveMode, colors });
+                }}
+                className={`px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text}`}
+              >
+                <option value="brainyquote">BrainyQuote</option>
+                <option value="baulko-bell-times">Baulko Bell Times</option>
+                <option value="random-quotes-api">RandomQuotes API</option>
+              </select>
             </div>
-            <select
-              value={quoteProvider}
-              onChange={(e) => {
-                const provider = e.target.value;
-                setQuoteProvider(provider);
-                localStorage.setItem('quoteProvider', provider);
-                // Clear all BrainyQuote caches
-                ['normal', 'love', 'art', 'nature', 'funny'].forEach(type => {
-                  localStorage.removeItem(`quoteOfTheDayCache_${type}`);
-                });
-                // Clear RandomQuotes API cache
-                localStorage.removeItem('randomQuoteCache');
-                localStorage.removeItem('randomQuoteCacheDate');
-                // Clear Baulko cache
-                localStorage.removeItem('baulkoQuoteCache');
-                localStorage.removeItem('baulkoQuoteCacheDate');
-                // Notify widgets to refresh automatically
-                window.dispatchEvent(new CustomEvent('quoteTypeChanged'));
-                showSuccess('Quote Provider Updated', `Quote provider changed. The widget will refresh automatically!`, { effectiveMode, colors });
-              }}
-              className={`px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text}`}
-            >
-              <option value="brainyquote">BrainyQuote</option>
-              <option value="random-quotes-api">RandomQuotes API</option>
-              <option value="baulko-bell-times">Baulko Bell Times</option>
-            </select>
-          </div>
-          {quoteProvider === 'brainyquote' && (
-            <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
+            {quoteProvider === 'brainyquote' && (
+              <div className={`${colors.container} ${colors.border} border rounded-b-2xl rounded-t-lg p-4 flex items-center justify-between`}>
               <div className="flex items-center gap-3">
                 <Quote className={`${colors.accentText}`} size={18} />
                 <div>
@@ -534,98 +554,103 @@ const Settings: React.FC<SettingsProps> = ({
                 <option value="nature">BrainyQuote Nature Quote</option>
                 <option value="funny">BrainyQuote Funny Quote</option>
               </select>
-            </div>
-          )}
-          {quoteProvider === 'random-quotes-api' && (
-            <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
-              <div className="flex items-center gap-3">
-                <Quote className={`${colors.accentText}`} size={18} />
-                <div>
-                  <p className={`font-medium ${colors.containerText}`}>RandomQuotes API Refresh Mode</p>
-                  <p className={`text-sm ${colors.containerText} opacity-80`}>Choose when to refresh the quote</p>
+              </div>
+            )}
+            {quoteProvider === 'random-quotes-api' && (
+              <div className={`${colors.container} ${colors.border} border rounded-b-2xl rounded-t-lg p-4 flex items-center justify-between`}>
+                <div className="flex items-center gap-3">
+                  <Quote className={`${colors.accentText}`} size={18} />
+                  <div>
+                    <p className={`font-medium ${colors.containerText}`}>RandomQuotes API Refresh Mode</p>
+                    <p className={`text-sm ${colors.containerText} opacity-80`}>Choose when to refresh the quote</p>
+                  </div>
                 </div>
+                <select
+                  value={randomQuotesRefreshMode}
+                  onChange={(e) => {
+                    const mode = e.target.value;
+                    setRandomQuotesRefreshMode(mode);
+                    localStorage.setItem('randomQuotesRefreshMode', mode);
+                    if (mode === 'reload') {
+                      // Clear cache to force refresh on next reload
+                      localStorage.removeItem('randomQuoteCache');
+                      localStorage.removeItem('randomQuoteCacheDate');
+                    }
+                    showSuccess('Refresh Mode Updated', `RandomQuotes API will refresh ${mode === 'reload' ? 'on every page reload' : 'once daily at midnight'}`, { effectiveMode, colors });
+                    window.dispatchEvent(new CustomEvent('quoteTypeChanged'));
+                  }}
+                  className={`px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text}`}
+                >
+                  <option value="daily">Daily (at midnight)</option>
+                  <option value="reload">Every Page Reload</option>
+                </select>
               </div>
-              <select
-                value={randomQuotesRefreshMode}
-                onChange={(e) => {
-                  const mode = e.target.value;
-                  setRandomQuotesRefreshMode(mode);
-                  localStorage.setItem('randomQuotesRefreshMode', mode);
-                  if (mode === 'reload') {
-                    // Clear cache to force refresh on next reload
-                    localStorage.removeItem('randomQuoteCache');
-                    localStorage.removeItem('randomQuoteCacheDate');
-                  }
-                  showSuccess('Refresh Mode Updated', `RandomQuotes API will refresh ${mode === 'reload' ? 'on every page reload' : 'once daily at midnight'}`, { effectiveMode, colors });
-                  window.dispatchEvent(new CustomEvent('quoteTypeChanged'));
-                }}
-                className={`px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text}`}
-              >
-                <option value="daily">Daily (at midnight)</option>
-                <option value="reload">Every Page Reload</option>
-              </select>
-            </div>
-          )}
-          {quoteProvider === 'baulko-bell-times' && (
-            <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
-              <div className="flex items-center gap-3">
-                <Quote className={`${colors.accentText}`} size={18} />
-                <div>
-                  <p className={`font-medium ${colors.containerText}`}>Baulko Bell Times Refresh Mode</p>
-                  <p className={`text-sm ${colors.containerText} opacity-80`}>Choose when to refresh the quote</p>
+            )}
+            {quoteProvider === 'baulko-bell-times' && (
+              <div className={`${colors.container} ${colors.border} border rounded-b-2xl rounded-t-lg p-4 flex items-center justify-between`}>
+                <div className="flex items-center gap-3">
+                  <Quote className={`${colors.accentText}`} size={18} />
+                  <div>
+                    <p className={`font-medium ${colors.containerText}`}>Baulko Bell Times Refresh Mode</p>
+                    <p className={`text-sm ${colors.containerText} opacity-80`}>Choose when to refresh the quote</p>
+                  </div>
                 </div>
+                <select
+                  value={baulkoQuoteRefreshMode}
+                  onChange={(e) => {
+                    const mode = e.target.value;
+                    setBaulkoQuoteRefreshMode(mode);
+                    localStorage.setItem('baulkoQuoteRefreshMode', mode);
+                    if (mode === 'reload') {
+                      localStorage.removeItem('baulkoQuoteCache');
+                      localStorage.removeItem('baulkoQuoteCacheDate');
+                    }
+                    showSuccess('Refresh Mode Updated', `Baulko Bell Times will refresh ${mode === 'reload' ? 'on every page reload' : 'once daily at midnight'}`, { effectiveMode, colors });
+                    window.dispatchEvent(new CustomEvent('quoteTypeChanged'));
+                  }}
+                  className={`px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text}`}
+                >
+                  <option value="daily">Daily (at midnight)</option>
+                  <option value="reload">Every Page Reload</option>
+                </select>
               </div>
-              <select
-                value={baulkoQuoteRefreshMode}
-                onChange={(e) => {
-                  const mode = e.target.value;
-                  setBaulkoQuoteRefreshMode(mode);
-                  localStorage.setItem('baulkoQuoteRefreshMode', mode);
-                  if (mode === 'reload') {
-                    localStorage.removeItem('baulkoQuoteCache');
-                    localStorage.removeItem('baulkoQuoteCacheDate');
-                  }
-                  showSuccess('Refresh Mode Updated', `Baulko Bell Times will refresh ${mode === 'reload' ? 'on every page reload' : 'once daily at midnight'}`, { effectiveMode, colors });
-                  window.dispatchEvent(new CustomEvent('quoteTypeChanged'));
-                }}
-                className={`px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text}`}
-              >
-                <option value="daily">Daily (at midnight)</option>
-                <option value="reload">Every Page Reload</option>
-              </select>
-            </div>
-          )}
-          <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
-            <div className="flex items-center gap-3">
-              <BookOpen className={`${colors.accentText}`} size={18} />
-              <div>
-                <p className={`font-medium ${colors.containerText}`}>Word of the Day Source</p>
-                <p className={`text-sm ${colors.containerText} opacity-80`}>Choose which source to use for the Word of the Day widget</p>
-              </div>
-            </div>
-            <select
-              value={localStorage.getItem('wordOfTheDaySource') || 'vocabulary'}
-              onChange={(e) => {
-                localStorage.setItem('wordOfTheDaySource', e.target.value);
-                localStorage.removeItem('wordOfTheDayCache');
-                const sourceNames: Record<string, string> = {
-                  vocabulary: 'Vocabulary.com',
-                  dictionary: 'Dictionary.com',
-                  worddaily: 'WordDaily.com',
-                  britannica: 'Britannica Dictionary'
-                };
-                // Dispatch custom event to trigger widget refresh
-                window.dispatchEvent(new CustomEvent('wordSourceChanged'));
-                showSuccess('Word Source Updated', `Word source changed to ${sourceNames[e.target.value] || e.target.value}. The widget will refresh automatically!`, { effectiveMode, colors });
-              }}
-              className={`px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text}`}
-            >
-              <option value="vocabulary">Vocabulary.com</option>
-              <option value="dictionary">Dictionary.com</option>
-              <option value="worddaily">WordDaily.com</option>
-              <option value="britannica">Britannica Dictionary</option>
-            </select>
+            )}
           </div>
+          )}
+          
+          {wordWidgetEnabled && (
+            <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
+              <div className="flex items-center gap-3">
+                <BookOpen className={`${colors.accentText}`} size={18} />
+                <div>
+                  <p className={`font-medium ${colors.containerText}`}>Word of the Day Source</p>
+                  <p className={`text-sm ${colors.containerText} opacity-80`}>Choose which source to use for the Word of the Day widget</p>
+                </div>
+              </div>
+              <select
+                value={localStorage.getItem('wordOfTheDaySource') || 'vocabulary'}
+                onChange={(e) => {
+                  localStorage.setItem('wordOfTheDaySource', e.target.value);
+                  localStorage.removeItem('wordOfTheDayCache');
+                  const sourceNames: Record<string, string> = {
+                    vocabulary: 'Vocabulary.com',
+                    dictionary: 'Dictionary.com',
+                    worddaily: 'WordDaily.com',
+                    britannica: 'Britannica Dictionary'
+                  };
+                  // Dispatch custom event to trigger widget refresh
+                  window.dispatchEvent(new CustomEvent('wordSourceChanged'));
+                  showSuccess('Word Source Updated', `Word source changed to ${sourceNames[e.target.value] || e.target.value}. The widget will refresh automatically!`, { effectiveMode, colors });
+                }}
+                className={`px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text}`}
+              >
+                <option value="vocabulary">Vocabulary.com</option>
+                <option value="dictionary">Dictionary.com</option>
+                <option value="worddaily">WordDaily.com</option>
+                <option value="britannica">Britannica Dictionary</option>
+              </select>
+            </div>
+          )}
           <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
             <div className="flex items-center gap-3">
               <Grid2x2 className={`${colors.accentText}`} size={18} />
@@ -1475,7 +1500,7 @@ const Settings: React.FC<SettingsProps> = ({
                     <div className="mt-3 pt-3 border-t border-opacity-30" style={{ borderColor: colors.border }}>
                       <p className={`text-xs ${colors.containerText} opacity-70 leading-relaxed`}>
                         This site is free to use. If you enjoy it and want to chip in, you can make a small 
-                        donation to help cover costs. I'm not a charity, so donations aren't tax‑deductible, 
+                        donation to help cover costs. This is not a charity, so donations aren't tax‑deductible, 
                         but your support means a lot.
                       </p>
                     </div>
@@ -1503,6 +1528,46 @@ const Settings: React.FC<SettingsProps> = ({
               effectiveMode={effectiveMode}
               colors={colors}
             />
+          </div>
+        </div>
+        
+        {/* Email alternative box */}
+        <div className={`mt-3 ${colors.container} ${colors.border} border rounded-2xl p-4`}>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${colors.containerOverlay}`}>
+                <Mail size={18} className={`${colors.accentText}`} />
+              </div>
+              <div>
+                <p className={`font-medium ${colors.containerText}`}>Email</p>
+                <p className={`text-sm ${colors.containerText} opacity-80`}>You can also email anything about the site to</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <p className={`text-sm font-mono ${colors.containerText} font-semibold`}>school@sahas.dpdns.org</p>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText('school@sahas.dpdns.org');
+                  setCopied(true);
+                  setCopyButtonPressed(true);
+                  setTimeout(() => setCopyButtonPressed(false), 150);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                onMouseDown={() => setCopyButtonPressed(true)}
+                onMouseUp={() => setCopyButtonPressed(false)}
+                onMouseLeave={() => setCopyButtonPressed(false)}
+                className={`${colors.text} hover:${colors.accentText} px-2 py-1 rounded transition-all duration-150 flex items-center gap-1`}
+                style={{
+                  transform: copyButtonPressed ? 'scale(0.9)' : 'scale(1)',
+                  animation: !copyButtonPressed && copied ? 'buttonBounce 0.2s ease-out' : 'none'
+                }}
+              >
+                <Copy size={14} />
+              </button>
+              {copied && (
+                <span className={`text-xs ${colors.accentText} font-medium animate-fadeIn`}>Copied</span>
+              )}
+            </div>
           </div>
         </div>
       </section>
