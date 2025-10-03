@@ -53,7 +53,8 @@ export default function FullscreenCountdown({
     ) {
       return 'All day';
     }
-    return event.dtstart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const use24Hour = localStorage.getItem('use24HourFormat') === 'true';
+    return event.dtstart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: !use24Hour });
   }
 
   const eventColor = nextEvent ? getEventColour(nextEvent.summary) : '#94a3b8';
@@ -157,7 +158,9 @@ export default function FullscreenCountdown({
               >
                 {(() => {
                   const now = new Date();
-                  const daysDiff = Math.floor((nextEventDate.setHours(0, 0, 0, 0) - now.setHours(0, 0, 0, 0)) / (1000 * 60 * 60 * 24));
+                  const eventDateCopy = new Date(nextEventDate);
+                  const nowCopy = new Date(now);
+                  const daysDiff = Math.floor((eventDateCopy.setHours(0, 0, 0, 0) - nowCopy.setHours(0, 0, 0, 0)) / (1000 * 60 * 60 * 24));
                   const timeStr = getEventTimeString(nextEventDate, nextEvent);
                   if (daysDiff === 1) {
                     return `Tomorrow at ${timeStr}`;
@@ -168,6 +171,17 @@ export default function FullscreenCountdown({
                     return `at ${timeStr}`;
                   }
                 })()}
+              </div>
+              {/* DST notice */}
+              <div
+                className={`text-sm ${colors.text}`}
+                style={{
+                  opacity: 0.6,
+                  fontWeight: '400',
+                  fontFamily: "'Red Hat Text', sans-serif"
+                }}
+              >
+                Accounting for daylight saving
               </div>
             </div>
           </>

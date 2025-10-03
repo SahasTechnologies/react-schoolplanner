@@ -698,7 +698,96 @@ const SchoolPlanner = () => {
               {`${getGreeting(userName)}.`}
             </h1>
             {weekBadgeText && (
-              <span className={`inline-flex items-center px-4 py-1.5 rounded-xl border ${colors.border} ${colors.container} ${colors.containerText} text-base sm:text-lg font-semibold whitespace-nowrap`}>{weekBadgeText}</span>
+              <div className="relative group">
+                <span className={`inline-flex items-center px-4 py-1.5 rounded-xl border ${colors.border} ${colors.container} ${colors.containerText} text-base sm:text-lg font-semibold whitespace-nowrap cursor-pointer transition-all`}>{weekBadgeText}</span>
+                <div className={`absolute right-0 top-full mt-2 p-4 rounded-xl border ${colors.border} ${colors.container} shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 min-w-[200px]`}>
+                  {(() => {
+                    const source = (localStorage.getItem('weekSource') as 'nsw' | 'custom') || 'nsw';
+                    const now = new Date(nowTs);
+                    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    let percentage = 0;
+                    let label = '';
+                    let daysRemaining = 0;
+                    
+                    if (source === 'nsw' && !isHolidayBadge) {
+                      const div = (localStorage.getItem('weekNswDivision') as 'eastern' | 'western') || 'eastern';
+                      const year = now.getFullYear();
+                      const terms = getCachedNswTerms(year);
+                      if (terms) {
+                        const term = terms[div].find(t => {
+                          const start = new Date(t.start);
+                          const end = new Date(t.end);
+                          return now.getTime() >= start.getTime() && now.getTime() <= end.getTime();
+                        });
+                        if (term) {
+                          const start = new Date(term.start).getTime();
+                          const end = new Date(term.end).getTime();
+                          const current = now.getTime();
+                          percentage = Math.round(((current - start) / (end - start)) * 100);
+                          label = `Term ${term.term} Progress`;
+                          const endDate = new Date(term.end);
+                          const endDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+                          const rawDays = Math.ceil((endDay.getTime() - today.getTime()) / 86400000);
+                          daysRemaining = Math.max(1, rawDays);
+                        }
+                      }
+                    } else if (isHolidayBadge && source === 'nsw') {
+                      const div = (localStorage.getItem('weekNswDivision') as 'eastern' | 'western') || 'eastern';
+                      const year = now.getFullYear();
+                      const termsNow = getCachedNswTerms(year);
+                      const termsNext = getCachedNswTerms(year + 1);
+                      if (termsNow) {
+                        const allTerms = [...termsNow[div], ...(termsNext ? termsNext[div] : [])];
+                        const sortedTerms = allTerms.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+                        let prevEnd: Date | null = null;
+                        let nextStart: Date | null = null;
+                        for (let i = 0; i < sortedTerms.length - 1; i++) {
+                          const termEnd = new Date(sortedTerms[i].end);
+                          const nextTermStart = new Date(sortedTerms[i + 1].start);
+                          if (now.getTime() > termEnd.getTime() && now.getTime() < nextTermStart.getTime()) {
+                            prevEnd = termEnd;
+                            nextStart = nextTermStart;
+                            break;
+                          }
+                        }
+                        if (prevEnd && nextStart) {
+                          const start = prevEnd.getTime();
+                          const end = nextStart.getTime();
+                          const current = now.getTime();
+                          percentage = Math.round(((current - start) / (end - start)) * 100);
+                          label = 'Holiday Progress';
+                          const nextStartDay = new Date(nextStart.getFullYear(), nextStart.getMonth(), nextStart.getDate());
+                          const rawDays = Math.ceil((nextStartDay.getTime() - today.getTime()) / 86400000);
+                          daysRemaining = Math.max(1, rawDays);
+                        }
+                      }
+                    }
+                    
+                    const radius = 40;
+                    const circumference = 2 * Math.PI * radius;
+                    const offset = circumference - (percentage / 100) * circumference;
+                    const bgCircleColor = effectiveMode === 'light' ? '#e5e7eb' : '#4b5563';
+                    
+                    return (
+                      <div className="flex flex-col items-center gap-3">
+                        <div className={`relative ${colors.accentText}`} style={{ width: 100, height: 100 }}>
+                          <svg width="100" height="100" className="transform -rotate-90">
+                            <circle cx="50" cy="50" r={radius} stroke={bgCircleColor} strokeWidth="8" fill="none" />
+                            <circle cx="50" cy="50" r={radius} stroke="currentColor" strokeWidth="8" fill="none" strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" style={{ transition: 'stroke-dashoffset 0.3s ease' }} />
+                          </svg>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className={`text-xl font-bold ${colors.containerText}`}>{percentage}%</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-center gap-1">
+                          <span className={`text-sm ${colors.containerText} opacity-80 text-center`}>{label}</span>
+                          <span className={`text-lg font-bold ${colors.containerText} opacity-90 text-center`}>{daysRemaining} {daysRemaining === 1 ? 'day' : 'days'} left</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -731,7 +820,7 @@ const SchoolPlanner = () => {
                   <Home className={`${colors.accentText}`} size={18} />
                   <div>
                     <p className={`font-medium ${colors.containerText}`}>You don't have school right now</p>
-                    <p className={`text-sm ${colors.containerText} opacity-80`}>If you had school right now, though, here's what you have</p>
+                    <p className={`text-sm ${colors.containerText} opacity-80`}>Here's what you have on your first day back</p>
                   </div>
                 </div>
               </div>
@@ -802,15 +891,13 @@ const SchoolPlanner = () => {
                               <span className="text-2xl md:text-3xl font-semibold" style={{ color: displayColor }}>
                                 {formatCountdownForTab(timeLeft || 0)}
                               </span>
-                              {!isHolidayBadge && (
-                                <button
-                                  onClick={openCountdownFullscreen}
-                                  className={`p-2 rounded-md hover:opacity-80 transition-colors ${effectiveMode === 'light' ? 'text-black' : 'text-white'} opacity-80`}
-                                  title="Fullscreen countdown"
-                                >
-                                  <Maximize size={18} />
-                                </button>
-                              )}
+                              <button
+                                onClick={openCountdownFullscreen}
+                                className={`p-2 rounded-md hover:opacity-80 transition-colors ${effectiveMode === 'light' ? 'text-black' : 'text-white'} opacity-80`}
+                                title="Fullscreen countdown"
+                              >
+                                <Maximize size={18} />
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -935,15 +1022,13 @@ const SchoolPlanner = () => {
                                   <span className="text-2xl md:text-3xl font-semibold" style={{ color: displayColor }}>
                                     {timelineCountdownInfo?.time ?? ''}
                                   </span>
-                                  {!isHolidayBadge && (
-                                    <button
-                                      onClick={openCountdownFullscreen}
-                                      className={`p-2 rounded-md hover:opacity-80 transition-colors ${effectiveMode === 'light' ? 'text-black' : 'text-white'} opacity-80`}
-                                      title="Fullscreen countdown"
-                                    >
-                                      <Maximize size={18} />
-                                    </button>
-                                  )}
+                                  <button
+                                    onClick={openCountdownFullscreen}
+                                    className={`p-2 rounded-md hover:opacity-80 transition-colors ${effectiveMode === 'light' ? 'text-black' : 'text-white'} opacity-80`}
+                                    title="Fullscreen countdown"
+                                  >
+                                    <Maximize size={18} />
+                                  </button>
                                 </div>
                               </div>
                             </div>
@@ -1047,22 +1132,27 @@ const SchoolPlanner = () => {
                   )}
                   <span className="text-base font-medium" style={{ color: daysTillSchool.color || (effectiveMode === 'light' ? '#000000' : '#ffffff') }}>{daysTillSchool.event}</span>
                 </div>
-                <div className={`text-sm ${effectiveMode === 'light' ? 'text-black opacity-80' : 'text-white opacity-80'}`}>
-                  {(() => {
-                    const now = new Date(nowTs);
-                    const daysDiff = Math.floor((new Date(daysTillSchool.target.getFullYear(), daysTillSchool.target.getMonth(), daysTillSchool.target.getDate()).getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()) / 86400000);
-                    const use24Hour = localStorage.getItem('use24HourFormat') === 'true';
-                    const timeStr = daysTillSchool.target.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: !use24Hour });
-                    if (daysDiff >= 1) {
-                      const fullDate = daysTillSchool.target.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
-                      return `On ${fullDate} at ${timeStr}`;
-                    }
-                    return `at ${timeStr}`;
-                  })()}
+                <div>
+                  <div className={`text-sm ${effectiveMode === 'light' ? 'text-black opacity-80' : 'text-white opacity-80'}`}>
+                    {(() => {
+                      const now = new Date(nowTs);
+                      const daysDiff = Math.floor((new Date(daysTillSchool.target.getFullYear(), daysTillSchool.target.getMonth(), daysTillSchool.target.getDate()).getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()) / 86400000);
+                      const use24Hour = localStorage.getItem('use24HourFormat') === 'true';
+                      const timeStr = daysTillSchool.target.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: !use24Hour });
+                      if (daysDiff >= 1) {
+                        const fullDate = daysTillSchool.target.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+                        return `On ${fullDate} at ${timeStr}`;
+                      }
+                      return `at ${timeStr}`;
+                    })()}
+                  </div>
+                  <div className={`text-xs ${effectiveMode === 'light' ? 'text-black opacity-60' : 'text-white opacity-60'} mt-1`}>
+                    Accounting for daylight saving
+                  </div>
                 </div>
               </div>
             )}
-            {!showCountdownInTimeline && !showNextDay && localStorage.getItem('showCountdownWidget') !== 'false' && !(isHolidayBadge && (localStorage.getItem('showHolidayCountdownWidget') !== 'false')) && (
+            {showCountdownInTimeline && !showNextDay && !isHolidayBadge && localStorage.getItem('showCountdownWidget') !== 'false' && (
               <CountdownBox
                 searching={countdownSearching}
                 nextEvent={nextEvent}
@@ -1352,15 +1442,52 @@ const SchoolPlanner = () => {
         events = [];
       }
     } else {
-      // Always show today's weekday schedule, but if it's weekend, show Monday's schedule
+      // Always show today's weekday schedule, but if it's weekend/holiday, show next school day's schedule
       const now = new Date();
       const todayDow = now.getDay(); // 0=Sun..6=Sat
       
       let targetDow = todayDow;
       let targetLabel = 'Today';
+      let targetDate: Date | null = null;
       
+      // Check if we're in a holiday period (NSW terms)
+      let isHoliday = false;
+      try {
+        const weekEnabled = localStorage.getItem('weekNumberingEnabled') === 'true';
+        const source = (localStorage.getItem('weekSource') as 'nsw' | 'custom') || 'nsw';
+        if (weekEnabled && source === 'nsw') {
+          const div = (localStorage.getItem('weekNswDivision') as 'eastern' | 'western') || 'eastern';
+          const year = now.getFullYear();
+          const termsNow = getCachedNswTerms(year);
+          if (termsNow) {
+            const label = getNswWeekLabelForDate(now, div, termsNow).text;
+            isHoliday = /holiday/i.test(label);
+          }
+        }
+      } catch {}
+      
+      // If in holiday, show first day back's schedule
+      if (isHoliday && !forceShowActualToday) {
+        const source = (localStorage.getItem('weekSource') as 'nsw' | 'custom') || 'nsw';
+        if (source === 'nsw') {
+          const div = (localStorage.getItem('weekNswDivision') as 'eastern' | 'western') || 'eastern';
+          const year = now.getFullYear();
+          const termsNow = getCachedNswTerms(year);
+          const termsNext = getCachedNswTerms(year + 1);
+          const starts: Date[] = [];
+          if (termsNow) termsNow[div].forEach(t => starts.push(new Date(t.start)));
+          if (termsNext) termsNext[div].forEach(t => starts.push(new Date(t.start)));
+          const nextStart = starts.filter(d => d.getTime() > now.getTime()).sort((a, b) => a.getTime() - b.getTime())[0];
+          if (nextStart) {
+            targetDate = nextStart;
+            targetDow = nextStart.getDay();
+            targetLabel = nextStart.toLocaleDateString(undefined, { weekday: 'long' });
+            selectedScheduleDate = targetDate;
+          }
+        }
+      }
       // If it's Saturday (6) or Sunday (0), show Monday's events (1)
-      if (todayDow === 0 || todayDow === 6) {
+      else if (todayDow === 0 || todayDow === 6) {
         targetDow = 1; // Monday
         const nextMonday = new Date(now);
         if (todayDow === 0) {
@@ -1451,12 +1578,11 @@ const SchoolPlanner = () => {
     // Extract countdown calculation into a function
     const updateCountdown = () => {
       const now = new Date();
-      // Holiday override: redirect global countdown to next NSW term start when enabled and in holiday
+      // Holiday override: redirect global countdown to next NSW term start when in holiday
       try {
-        const holidayToggle = localStorage.getItem('showHolidayCountdownWidget') !== 'false';
         const weekEnabled = localStorage.getItem('weekNumberingEnabled') === 'true';
         const source = (localStorage.getItem('weekSource') as 'nsw' | 'custom') || 'nsw';
-        if (holidayToggle && weekEnabled && source === 'nsw') {
+        if (weekEnabled && source === 'nsw') {
           const div = (localStorage.getItem('weekNswDivision') as 'eastern' | 'western') || 'eastern';
           const year = now.getFullYear();
           const termsNow = getCachedNswTerms(year);
@@ -1530,10 +1656,9 @@ const SchoolPlanner = () => {
     setCountdownSearching(true);
     updateCountdown();
     
-    // Then update every second
-    const interval = setInterval(updateCountdown, 1000);
-    return () => clearInterval(interval);
-  }, [weekData]);
+    // Update when nowTs changes (driven by the main interval below)
+    // No need for a separate interval here
+  }, [weekData, nowTs]);
 
 
 

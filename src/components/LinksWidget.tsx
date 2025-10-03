@@ -269,7 +269,8 @@ export default function LinksWidget({ effectiveMode, colors }: LinksWidgetProps)
         <div className="flex items-center gap-2">
           <button
             onClick={toggleEditMode}
-            className={`px-3 py-1 text-sm rounded ${effectiveMode === 'light' ? 'text-blue-600 hover:bg-blue-50' : 'text-blue-400 hover:bg-blue-900/20'} transition-colors`}
+            className={`${colors.accentText} text-sm font-medium hover:opacity-80 transition-opacity`}
+            style={{ background: 'transparent' }}
           >
             {editMode ? 'Done' : 'Edit'}
           </button>

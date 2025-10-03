@@ -202,19 +202,13 @@ const Settings: React.FC<SettingsProps> = ({
 
   // Holiday countdown settings (local to Settings)
   const [showHolidayCountdownWidget, setShowHolidayCountdownWidget] = React.useState<boolean>(() => localStorage.getItem('showHolidayCountdownWidget') !== 'false');
-  const [holidayFallbackTime, setHolidayFallbackTime] = React.useState<string>(() => localStorage.getItem('holidayFallbackTime') || '09:00');
   React.useEffect(() => {
     localStorage.setItem('showHolidayCountdownWidget', showHolidayCountdownWidget ? 'true' : 'false');
-  }, [showHolidayCountdownWidget]);
-  React.useEffect(() => {
-    const m = holidayFallbackTime.match(/^(\d{1,2}):(\d{2})$/);
-    if (m) {
-      const hh = Math.min(23, Math.max(0, parseInt(m[1], 10)));
-      const mm = Math.min(59, Math.max(0, parseInt(m[2], 10)));
-      const normalized = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
-      localStorage.setItem('holidayFallbackTime', normalized);
+    // Always ensure fallback time is set to 09:00
+    if (!localStorage.getItem('holidayFallbackTime')) {
+      localStorage.setItem('holidayFallbackTime', '09:00');
     }
-  }, [holidayFallbackTime]);
+  }, [showHolidayCountdownWidget]);
 
   const [showTerms, setShowTerms] = React.useState(false);
   const [showPrivacy, setShowPrivacy] = React.useState(false);
@@ -496,8 +490,8 @@ const Settings: React.FC<SettingsProps> = ({
           <h3 className={`text-lg font-medium ${colors.text}`}>Home Settings</h3>
         </div>
         <div className="space-y-3">
-          <div className={`${colors.container} ${colors.border} border rounded-2xl overflow-hidden`}>
-            <div className="p-4 flex items-center justify-between">
+          <div className="space-y-1">
+            <div className={`${colors.container} ${colors.border} border rounded-t-2xl rounded-b-lg p-4 flex items-center justify-between`}>
               <div className="flex items-center gap-3">
                 <Calendar className={`${colors.accentText}`} size={18} />
                 <div>
@@ -510,21 +504,19 @@ const Settings: React.FC<SettingsProps> = ({
                 <div className={`w-14 h-7 rounded-full relative transition-colors ${weekNumberingEnabled ? colors.buttonAccent : 'bg-gray-500'} peer-focus:outline-none peer-checked:after:translate-x-7 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-white/20 after:rounded-full after:h-6 after:w-6 after:transition-all`}></div>
               </label>
             </div>
-            {weekNumberingEnabled && (
-              <div className={`border-t ${colors.border} p-4 flex items-center justify-between`}>
-                <div className="flex items-center gap-3">
-                  <Calendar className={`${colors.accentText}`} size={18} />
-                  <div>
-                    <p className={`font-medium ${colors.containerText}`}>Week Source</p>
-                    <p className={`text-sm ${colors.containerText} opacity-80`}>{weekSource === 'nsw' ? 'NSW term dates (Eastern/Western division)' : 'Custom counter (increments each Sunday)'}</p>
-                  </div>
+            <div className={`${colors.container} ${colors.border} border rounded-b-2xl rounded-t-lg p-4 flex items-center justify-between`}>
+              <div className="flex items-center gap-3">
+                <Calendar className={`${colors.accentText}`} size={18} />
+                <div>
+                  <p className={`font-medium ${colors.containerText}`}>Week Source</p>
+                  <p className={`text-sm ${colors.containerText} opacity-80`}>{weekSource === 'nsw' ? 'NSW term dates (Eastern/Western division)' : 'Custom counter (increments each Sunday)'}</p>
                 </div>
-                <button onClick={() => setShowWeekSourceModal(true)} className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}>
-                  <Edit2 size={16} />
-                  Edit Source
-                </button>
               </div>
-            )}
+              <button onClick={() => setShowWeekSourceModal(true)} className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}>
+                <Edit2 size={16} />
+                Edit Source
+              </button>
+            </div>
           </div>
           <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
             <div className="flex items-center gap-3">
@@ -566,39 +558,6 @@ const Settings: React.FC<SettingsProps> = ({
                 <div className={`w-14 h-7 rounded-full relative transition-colors ${showCountdownInSidebar ? colors.buttonAccent : 'bg-gray-500'} peer-focus:outline-none peer-checked:after:translate-x-7 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-white/20 after:rounded-full after:h-6 after:w-6 after:transition-all`}></div>
               </label>
             </div>
-            <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
-              <div className="flex items-center gap-3">
-                <Timer className={`${colors.accentText}`} size={18} />
-                <div>
-                  <p className={`font-medium ${colors.containerText}`}>Holiday Countdown</p>
-                  <p className={`text-sm ${colors.containerText} opacity-80`}>Show a half-width countdown to the next term start during School Holidays</p>
-                </div>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" checked={showHolidayCountdownWidget} onChange={e => setShowHolidayCountdownWidget(e.target.checked)} className="sr-only peer" />
-                <div className={`w-14 h-7 rounded-full relative transition-colors ${showHolidayCountdownWidget ? colors.buttonAccent : 'bg-gray-500'} peer-focus:outline-none peer-checked:after:translate-x-7 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-white/20 after:rounded-full after:h-6 after:w-6 after:transition-all`}></div>
-              </label>
-            </div>
-            {showHolidayCountdownWidget && (
-              <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
-                <div className="flex items-center gap-3 w-full">
-                  <Timer className={`${colors.accentText}`} size={18} />
-                  <div className="flex-1">
-                    <p className={`font-medium ${colors.containerText}`}>Fallback Start Time</p>
-                    <p className={`text-sm ${colors.containerText} opacity-80`}>Used if your timetable has no classes on the term start day (HH:MM)</p>
-                  </div>
-                </div>
-                <input
-                  type="text"
-                  value={holidayFallbackTime}
-                  onChange={e => setHolidayFallbackTime(e.target.value)}
-                  className={`w-28 px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text} text-center`}
-                  placeholder="09:00"
-                  pattern="^\\d{1,2}:\\d{2}$"
-                  title="Enter time as HH:MM"
-                />
-              </div>
-            )}
           </div>
           {quoteWidgetEnabled && (
           <div className="space-y-1">
@@ -904,13 +863,13 @@ const Settings: React.FC<SettingsProps> = ({
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
           <div className={`${colors.container} rounded-lg p-6 shadow-xl border ${colors.border} w-full max-w-md`}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className={`text-xl font-semibold ${colors.buttonText}`}>Week Source</h3>
+              <h3 className={`text-xl font-semibold ${colors.buttonText}`}>Week Numbering & Holidays</h3>
               <button onClick={() => setShowWeekSourceModal(false)} className={`${colors.buttonText} opacity-70 hover:opacity-100`}><X size={20} /></button>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className={`block text-sm font-medium mb-1 ${colors.containerText}`}>Source</label>
+                <label className={`block text-sm font-medium mb-1 ${colors.containerText}`}>Week Source</label>
                 <select
                   value={weekSource}
                   onChange={(e) => { const v = e.target.value as 'nsw' | 'custom'; setWeekSource(v); localStorage.setItem('weekSource', v); }}
@@ -930,31 +889,9 @@ const Settings: React.FC<SettingsProps> = ({
                       <option value="western">Western</option>
                     </select>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={async () => {
-                        try {
-                          setNswLoading(true); setNswError(null);
-                          const year = new Date().getFullYear();
-                          const data = await fetchNswTerms(year);
-                          if (!data) { setNswError('Failed to fetch term dates.'); return; }
-                          cacheNswTerms(data);
-                          showSuccess('NSW Terms Saved', `Cached ${year} term dates.`, { effectiveMode, colors });
-                        } catch (err) {
-                          setNswError('Failed to fetch term dates.');
-                        } finally {
-                          setNswLoading(false);
-                        }
-                      }}
-                      className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
-                      disabled={nswLoading}
-                    >
-                      {nswLoading ? 'Fetching…' : 'Fetch from NSW & Cache'}
-                    </button>
-                    {nswError && (<span className="text-red-500 text-sm">{nswError}</span>)}
-                  </div>
+                  {nswError && (<div className="text-red-500 text-sm">{nswError}</div>)}
                   <div className={`text-sm ${colors.containerText} opacity-80`}>
-                    Tip: This scrapes the official NSW site and stores dates in your browser so it won’t fetch every time.
+                    Term dates will be automatically fetched and cached when you save.
                   </div>
                 </div>
               )}
@@ -974,27 +911,101 @@ const Settings: React.FC<SettingsProps> = ({
                   </div>
                 </div>
               )}
+
+              <div className="border-t pt-4 mt-4 space-y-4 ${colors.border}">
+                <h4 className={`text-base font-semibold ${colors.text} mb-2`}>Holiday Countdown</h4>
+                {/* Use the same checkbox CSS as Export modal */}
+                <style>{`
+                  .checkbox-wrapper-30 {
+                    --color-bg: ${effectiveMode === 'light' ? '#f3f4f6' : '#232323'};
+                    --color-bg-dark: ${effectiveMode === 'dark' ? '#232323' : '#f3f4f6'};
+                    --color-border: ${effectiveMode === 'light' ? '#d1d5db' : '#444'};
+                    /* Use theme accent via currentColor from wrapper class */
+                    --color-primary: currentColor;
+                    --color-primary-light: currentColor;
+                  }
+                  .checkbox-wrapper-30 .checkbox { --bg: var(--color-bg); --brdr: var(--color-border); --brdr-actv: var(--color-primary); --brdr-hovr: var(--color-primary-light); --dur: calc((var(--size, 2)/2) * 0.6s); display: inline-block; width: calc(var(--size, 1) * 22px); position: relative; }
+                  .checkbox-wrapper-30 .checkbox:after { content: ""; width: 100%; padding-top: 100%; display: block; }
+                  .checkbox-wrapper-30 .checkbox > * { position: absolute; }
+                  .checkbox-wrapper-30 .checkbox input { -webkit-appearance: none; -moz-appearance: none; -webkit-tap-highlight-color: transparent; cursor: pointer; background-color: var(--bg); border-radius: calc(var(--size, 1) * 4px); border: calc(var(--newBrdr, var(--size, 1)) * 1px) solid; color: var(--newBrdrClr, var(--brdr)); outline: none; margin: 0; padding: 0; transition: all calc(var(--dur) / 3) linear; }
+                  .checkbox-wrapper-30 .checkbox input:hover, .checkbox-wrapper-30 .checkbox input:checked { --newBrdr: calc(var(--size, 1) * 2); }
+                  .checkbox-wrapper-30 .checkbox input:hover { --newBrdrClr: var(--brdr-hovr); }
+                  .checkbox-wrapper-30 .checkbox input:checked { --newBrdrClr: var(--brdr-actv); transition-delay: calc(var(--dur) /1.3); }
+                  .checkbox-wrapper-30 .checkbox input:checked + svg { --dashArray: 16 93; --dashOffset: 109; stroke: var(--color-primary); }
+                  .checkbox-wrapper-30 .checkbox svg { fill: none; left: 0; pointer-events: none; stroke: var(--stroke, var(--border-active)); stroke-dasharray: var(--dashArray, 93); stroke-dashoffset: var(--dashOffset, 94); stroke-linecap: round; stroke-linejoin: round; stroke-width: 2px; top: 0; transition: stroke-dasharray var(--dur), stroke-dashoffset var(--dur); }
+                  .checkbox-wrapper-30 .checkbox svg, .checkbox-wrapper-30 .checkbox input { display: block; height: 100%; width: 100%; }
+                `}</style>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <div className={`checkbox-wrapper-30 ${colors.accentText}`}>
+                    <span className="checkbox">
+                      <input type="checkbox" checked={showHolidayCountdownWidget} onChange={e => setShowHolidayCountdownWidget(e.target.checked)} />
+                      <svg>
+                        <use xlinkHref="#checkbox-30"></use>
+                      </svg>
+                    </span>
+                    <svg xmlns="http://www.w3.org/2000/svg" style={{display:'none'}}>
+                      <symbol id="checkbox-30" viewBox="0 0 22 22">
+                        <path fill="none" stroke="currentColor" d="M5.5,11.3L9,14.8L20.2,3.3l0,0c-0.5-1-1.5-1.8-2.7-1.8h-13c-1.7,0-3,1.3-3,3v13c0,1.7,1.3,3,3,3h13 c1.7,0,3-1.3,3-3v-13c0-0.4-0.1-0.8-0.3-1.2"/>
+                      </symbol>
+                    </svg>
+                  </div>
+                  <div>
+                    <p className={`font-medium ${colors.containerText}`}>Show Holiday Countdown</p>
+                    <p className={`text-sm ${colors.containerText} opacity-80`}>Display countdown to next term start during holidays</p>
+                  </div>
+                </label>
+              </div>
             </div>
 
             <div className="flex justify-end gap-3 mt-6">
               <button onClick={() => setShowWeekSourceModal(false)} className={`${effectiveMode === 'light' ? 'bg-gray-200 hover:bg-gray-300 text-gray-800' : 'bg-gray-700 hover:bg-gray-600 text-gray-200'} px-4 py-2 rounded-lg font-medium transition-colors duration-200`}>Cancel</button>
               <button
-                onClick={() => {
+                onClick={async () => {
                   localStorage.setItem('weekSource', weekSource);
                   localStorage.setItem('weekNumberingEnabled', String(weekNumberingEnabled));
+                  
                   if (weekSource === 'nsw') {
                     localStorage.setItem('weekNswDivision', nswDivision);
+                    // Auto-fetch NSW terms when saving
+                    try {
+                      setNswLoading(true);
+                      setNswError(null);
+                      const year = new Date().getFullYear();
+                      const data = await fetchNswTerms(year);
+                      if (!data) {
+                        setNswError('Failed to fetch term dates.');
+                        showError('NSW Terms', 'Failed to fetch term dates.', { effectiveMode, colors });
+                        setNswLoading(false);
+                        return;
+                      }
+                      cacheNswTerms(data);
+                      setNswLoading(false);
+                    } catch (err) {
+                      setNswError('Failed to fetch term dates.');
+                      showError('NSW Terms', 'Failed to fetch term dates.', { effectiveMode, colors });
+                      setNswLoading(false);
+                      return;
+                    }
                   } else {
                     localStorage.setItem('weekCustomCurrentWeek', String(customWeekNow > 0 ? customWeekNow : 1));
                     localStorage.setItem('weekCustomReferenceDate', customWeekReferenceDate);
                   }
+                  
                   window.dispatchEvent(new CustomEvent('weekSettingsChanged'));
-                  showSuccess('Week Source Saved', 'Your week settings have been updated.', { effectiveMode, colors });
+                  showSuccess('Settings Saved', 'Week numbering and holiday settings have been updated.', { effectiveMode, colors });
                   setShowWeekSourceModal(false);
                 }}
-                className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
+                className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}
+                disabled={nswLoading}
               >
-                Save
+                {nswLoading ? (
+                  <>
+                    <LoaderCircle className="animate-spin" size={16} />
+                    Saving...
+                  </>
+                ) : (
+                  'Save'
+                )}
               </button>
             </div>
           </div>
@@ -1036,13 +1047,14 @@ const Settings: React.FC<SettingsProps> = ({
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
           <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
             <style>{`
-              /* Set theme variables for checkbox for better light mode visibility */
+              /* Set theme variables for checkbox and drive accent via currentColor */
               .checkbox-wrapper-30 {
                 --color-bg: ${effectiveMode === 'light' ? '#f3f4f6' : '#232323'};
                 --color-bg-dark: ${effectiveMode === 'dark' ? '#232323' : '#f3f4f6'};
                 --color-border: ${effectiveMode === 'light' ? '#d1d5db' : '#444'};
-                --color-primary: ${colors.accentText};
-                --color-primary-light: ${colors.buttonAccentHover};
+                --color-primary: currentColor;
+                --color-primary-light: currentColor;
+                --tick: currentColor;
               }
               /* Checkbox CSS by Saeed Alipoor */
               .checkbox-wrapper-30 .checkbox {
@@ -1050,7 +1062,6 @@ const Settings: React.FC<SettingsProps> = ({
                 --brdr: var(--color-border);
                 --brdr-actv: var(--color-primary);
                 --brdr-hovr: var(--color-primary-light);
-                --tick: ${effectiveMode === 'light' ? '#222' : '#fff'};
                 --dur: calc((var(--size, 2)/2) * 0.6s);
                 display: inline-block;
                 width: calc(var(--size, 1) * 22px);
@@ -1093,13 +1104,13 @@ const Settings: React.FC<SettingsProps> = ({
               .checkbox-wrapper-30 .checkbox input:checked + svg {
                 --dashArray: 16 93;
                 --dashOffset: 109;
-                stroke: var(--tick);
+                stroke: var(--color-primary);
               }
               .checkbox-wrapper-30 .checkbox svg {
                 fill: none;
                 left: 0;
                 pointer-events: none;
-                stroke: var(--tick, var(--border-active));
+                stroke: var(--tick, currentColor);
                 stroke-dasharray: var(--dashArray, 93);
                 stroke-dashoffset: var(--dashOffset, 94);
                 stroke-linecap: round;
@@ -1118,7 +1129,7 @@ const Settings: React.FC<SettingsProps> = ({
             <h3 className={`text-xl font-semibold ${colors.buttonText} mb-4`}>Export Data</h3>
             <div className="space-y-4 mb-6">
               <label className="flex items-center gap-3 cursor-pointer">
-                <div className="checkbox-wrapper-30">
+                <div className={`checkbox-wrapper-30 ${colors.accentText}`}>
                   <span className="checkbox">
                     <input type="checkbox" checked={exportModalState.options.subjects} onChange={e => setExportModalState(s => ({ ...s, options: { ...s.options, subjects: e.target.checked } }))} />
                     <svg>
@@ -1134,7 +1145,7 @@ const Settings: React.FC<SettingsProps> = ({
                 <span className={colors.containerText}>Subjects (with timing, original/edited names)</span>
               </label>
               <label className="flex items-center gap-3 cursor-pointer">
-                <div className="checkbox-wrapper-30">
+                <div className={`checkbox-wrapper-30 ${colors.accentText}`}>
                   <span className="checkbox">
                     <input type="checkbox" checked={exportModalState.options.subjectInfo} onChange={e => setExportModalState(s => ({ ...s, options: { ...s.options, subjectInfo: e.target.checked } }))} />
                     <svg>
@@ -1145,7 +1156,7 @@ const Settings: React.FC<SettingsProps> = ({
                 <span className={colors.containerText}>Subject Information</span>
               </label>
               <label className="flex items-center gap-3 cursor-pointer">
-                <div className="checkbox-wrapper-30">
+                <div className={`checkbox-wrapper-30 ${colors.accentText}`}>
                   <span className="checkbox">
                     <input type="checkbox" checked={exportModalState.options.subjectNotes} onChange={e => setExportModalState(s => ({ ...s, options: { ...s.options, subjectNotes: e.target.checked } }))} />
                     <svg>
@@ -1156,7 +1167,7 @@ const Settings: React.FC<SettingsProps> = ({
                 <span className={colors.containerText}>Subject Notes</span>
               </label>
               <label className="flex items-center gap-3 cursor-pointer">
-                <div className="checkbox-wrapper-30">
+                <div className={`checkbox-wrapper-30 ${colors.accentText}`}>
                   <span className="checkbox">
                     <input type="checkbox" checked={exportModalState.options.subjectColours} onChange={e => setExportModalState(s => ({ ...s, options: { ...s.options, subjectColours: e.target.checked } }))} />
                     <svg>
@@ -1167,7 +1178,7 @@ const Settings: React.FC<SettingsProps> = ({
                 <span className={colors.containerText}>Subject Colours</span>
               </label>
               <label className="flex items-center gap-3 cursor-pointer">
-                <div className="checkbox-wrapper-30">
+                <div className={`checkbox-wrapper-30 ${colors.accentText}`}>
                   <span className="checkbox">
                     <input type="checkbox" checked={exportModalState.options.subjectIcons} onChange={e => setExportModalState(s => ({ ...s, options: { ...s.options, subjectIcons: e.target.checked } }))} />
                     <svg>
@@ -1178,7 +1189,7 @@ const Settings: React.FC<SettingsProps> = ({
                 <span className={colors.containerText}>Subject Icons</span>
               </label>
               <label className="flex items-center gap-3 cursor-pointer">
-                <div className="checkbox-wrapper-30">
+                <div className={`checkbox-wrapper-30 ${colors.accentText}`}>
                   <span className="checkbox">
                     <input type="checkbox" checked={exportModalState.options.name} onChange={e => setExportModalState(s => ({ ...s, options: { ...s.options, name: e.target.checked } }))} />
                     <svg>
