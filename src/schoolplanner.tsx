@@ -1,16 +1,14 @@
-// NOTE: This file requires the following dependencies to be present in your package.json for deployment:
-//   react, react-dom, lucide-react, @types/react, @types/react-dom
-// Favicon and title are set in index.html, see instructions below.
+
 import * as React from 'react';
 import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import {
   Calendar,
   Settings as SettingsIcon, ChevronsUpDown,
-  Maximize, X
+  Maximize, X, Home
 } from 'lucide-react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { ThemeKey, getColors } from './utils/themeUtils';
-import { normalizeSubjectName } from './utils/subjectUtils.ts';
+import { normalizeSubjectName, getSubjectIcon } from './utils/subjectUtils.ts';
 import { CalendarEvent, WeekData, insertBreaksBetweenEvents, isBreakEvent } from './utils/calendarUtils.ts';
 import TodayScheduleTimeline from './components/TodayScheduleTimeline';
 import { ThemeModal } from './components/ThemeModal';
@@ -34,6 +32,7 @@ import WordOfTheDayWidget from './components/WordOfTheDayWidget';
 import CountdownBox from './components/CountdownBox';
 import FullscreenCountdown from './components/FullscreenCountdown';
 import { getGreeting, getDeterministicColour, formatCountdownForTab } from './utils/helperUtils';
+import { getCachedNswTerms, fetchNswTerms, cacheNswTerms, getNswWeekLabelForDate, getCustomWeekLabelForDate } from './utils/nswTermUtils';
 import { findNextRepeatingEvent, findEventsByDayToggle } from './utils/eventHelpers';
 import WeekViewPage from './components/WeekViewPage';
 import MarkbookPage from './components/MarkbookPage';
@@ -47,6 +46,8 @@ const SchoolPlanner = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  // Re-render bridge for settings that affect week label
+  const [weekSettingsVersion, setWeekSettingsVersion] = useState(0);
 
   // NEW: State for exam side panel
   const [selectedSubjectForExam, setSelectedSubjectForExam] = useState<Subject | null>(null);
@@ -74,8 +75,42 @@ const SchoolPlanner = () => {
       // Trigger re-render when widget visibility changes
     };
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    const onWeekSettingsChanged = () => setWeekSettingsVersion(v => v + 1);
+    window.addEventListener('weekSettingsChanged', onWeekSettingsChanged as EventListener);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('weekSettingsChanged', onWeekSettingsChanged as EventListener);
+    };
   }, []);
+
+  // Auto-fetch NSW term data if week numbering is enabled and the cache is missing
+  useEffect(() => {
+    const enabled = localStorage.getItem('weekNumberingEnabled') === 'true';
+    const source = (localStorage.getItem('weekSource') as 'nsw' | 'custom') || 'nsw';
+    if (!enabled || source !== 'nsw') return;
+    const now = new Date();
+    const year = now.getFullYear();
+    const cached = getCachedNswTerms(year);
+    const cachedNext = getCachedNswTerms(year + 1);
+    (async () => {
+      try {
+        if (!cached) {
+          const data = await fetchNswTerms(year);
+          if (data) {
+            cacheNswTerms(data);
+            setWeekSettingsVersion(v => v + 1);
+          }
+        }
+        if (!cachedNext) {
+          const dataNext = await fetchNswTerms(year + 1);
+          if (dataNext) {
+            cacheNswTerms(dataNext);
+            setWeekSettingsVersion(v => v + 1);
+          }
+        }
+      } catch {}
+    })();
+  }, [weekSettingsVersion]);
 
   const handleSubjectSelect = (subject: Subject) => {
     setSelectedSubjectForExam(subject);
@@ -135,7 +170,7 @@ const SchoolPlanner = () => {
   // Add state for offline caching
   const [offlineCachingEnabled, setOfflineCachingEnabled] = useState(() => {
     const saved = localStorage.getItem('offlineCachingEnabled');
-    return saved === null ? false : saved === 'true';
+    return saved === null ? true : saved === 'true';
   });
 
   const handleOfflineCachingToggle = async (enabled: boolean) => {
@@ -147,6 +182,14 @@ const SchoolPlanner = () => {
       await clearAllCaches();
     }
   };
+
+  // Ensure initial preference is applied and persisted
+  useEffect(() => {
+    localStorage.setItem('offlineCachingEnabled', String(offlineCachingEnabled));
+    if (offlineCachingEnabled) {
+      registerServiceWorker();
+    }
+  }, [offlineCachingEnabled]);
 
   // Known icon names we support in renderIcon
   const knownIcons = React.useMemo(() => new Set<string>([
@@ -170,7 +213,7 @@ const SchoolPlanner = () => {
 
   const getEventColour = (title: string): string => { // Changed to 'getEventColour'
     // Handle break events specially
-    if (title === 'Break') {
+    if (title === 'Break' || title === 'End of Day') {
       return effectiveMode === 'light' ? '#6b7280' : '#9ca3af'; // Gray color for breaks
     }
     const normalizedTitle = normalizeSubjectName(title, autoNamingEnabled);
@@ -473,6 +516,99 @@ const SchoolPlanner = () => {
   const renderHome = () => {
     const { dayLabel, selectedScheduleDate, eventsWithBreaks, autoSwitchedToNextDay } = dayEventsData;
 
+    // Compute week badge (Week N / Holiday) based on settings (no hooks here)
+    const getWeekBadgeText = () => {
+      const enabled = localStorage.getItem('weekNumberingEnabled') === 'true';
+      if (!enabled) return '';
+      const source = (localStorage.getItem('weekSource') as 'nsw' | 'custom') || 'nsw';
+      const now = new Date(nowTs);
+      if (source === 'nsw') {
+        const year = now.getFullYear();
+        const div = (localStorage.getItem('weekNswDivision') as 'eastern' | 'western') || 'eastern';
+        const terms = getCachedNswTerms(year);
+        if (!terms) return '';
+        return getNswWeekLabelForDate(now, div, terms).text;
+      } else {
+        const currentWeek = parseInt(localStorage.getItem('weekCustomCurrentWeek') || '1', 10);
+        const refISO = localStorage.getItem('weekCustomReferenceDate') || new Date().toISOString();
+        return getCustomWeekLabelForDate(now, isNaN(currentWeek) ? 1 : currentWeek, refISO).text;
+      }
+    };
+    const weekBadgeText = getWeekBadgeText();
+    const isHolidayBadge = /holiday/i.test(weekBadgeText);
+
+    // Prep "Days till school" based on NSW term start, not schedule-only next event
+    let daysTillSchool: { ms: number; event: string; location: string; when: string; color?: string; target: Date } | null = null;
+    if (isHolidayBadge) {
+      const source = (localStorage.getItem('weekSource') as 'nsw' | 'custom') || 'nsw';
+      const now = new Date(nowTs);
+      if (source === 'nsw') {
+        const div = (localStorage.getItem('weekNswDivision') as 'eastern' | 'western') || 'eastern';
+        const year = now.getFullYear();
+        const termsNow = getCachedNswTerms(year);
+        const termsNext = getCachedNswTerms(year + 1);
+        const termStarts: Date[] = [];
+        if (termsNow) {
+          termsNow[div].forEach(t => termStarts.push(new Date(t.start)));
+        }
+        if (termsNext) {
+          termsNext[div].forEach(t => termStarts.push(new Date(t.start)));
+        }
+        const nextStart = termStarts
+          .filter(d => d.getTime() > now.getTime())
+          .sort((a, b) => a.getTime() - b.getTime())[0];
+        if (nextStart) {
+          // Find earliest event on that weekday from the timetable
+          const dow = nextStart.getDay();
+          const todaysEvents = (weekData?.events || [])
+            .filter(e => e.dtstart.getDay() === dow)
+            .sort((a, b) => {
+              const at = a.dtstart.getHours() * 60 + a.dtstart.getMinutes();
+              const bt = b.dtstart.getHours() * 60 + b.dtstart.getMinutes();
+              return at - bt;
+            });
+          const first = todaysEvents[0];
+          // Use earliest class on that weekday or fallback time from settings (default 09:00)
+          const fb = (localStorage.getItem('holidayFallbackTime') || '09:00').match(/^(\d{1,2}):(\d{2})$/);
+          const fbH = fb ? Math.min(23, Math.max(0, parseInt(fb[1], 10))) : 9;
+          const fbM = fb ? Math.min(59, Math.max(0, parseInt(fb[2], 10))) : 0;
+          const target = new Date(nextStart.getFullYear(), nextStart.getMonth(), nextStart.getDate(),
+            first ? first.dtstart.getHours() : fbH,
+            first ? first.dtstart.getMinutes() : fbM,
+            0, 0);
+          const diff = Math.max(0, target.getTime() - now.getTime());
+          const summary = first ? normalizeSubjectName(first.summary, autoNamingEnabled) : 'school resumes';
+          const rawLoc = first?.location || '';
+          const cleanedLoc = rawLoc.replace(/^Room:\s*/i, '').trim();
+          const when = nextStart.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+          const color = first ? getEventColour(first.summary) : undefined;
+          daysTillSchool = {
+            ms: diff,
+            event: summary,
+            location: cleanedLoc,
+            when,
+            color,
+            target
+          };
+        }
+      } else if (nextEventDate && typeof timeLeft === 'number' && nextEvent) {
+        // Fallback for Custom source: use next scheduled event
+        const total = Math.max(0, timeLeft);
+        const summary = normalizeSubjectName(nextEvent.summary, autoNamingEnabled);
+        const rawLoc = nextEvent.location || '';
+        const cleanedLoc = rawLoc.replace(/^Room:\s*/i, '').trim();
+        const when = nextEventDate.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+        daysTillSchool = {
+          ms: total,
+          event: summary,
+          location: cleanedLoc,
+          when,
+          color: getEventColour(nextEvent.summary),
+          target: nextEventDate
+        };
+      }
+    }
+
     // Prepare the list of events to show in the compact timeline view so the gradient matches
     const timelineEvents = (() => {
       // Default to all events
@@ -517,6 +653,14 @@ const SchoolPlanner = () => {
       return list;
     })();
 
+    // Subject icon helper mirroring CountdownBox styling
+    const ColoredSubjectIcon = ({ summary, color }: { summary: string; color: string }) => {
+      const normalizedName = normalizeSubjectName(summary, autoNamingEnabled);
+      const subject = subjects.find(s => normalizeSubjectName(s.name, autoNamingEnabled) === normalizedName);
+      const icon = getSubjectIcon(subject || summary, 24, effectiveMode);
+      return React.cloneElement(icon, { style: { color } });
+    };
+
     // Determine whether the displayed schedule is today
     const nowLocal = new Date(nowTs);
     const todayLocal = new Date(nowLocal.getFullYear(), nowLocal.getMonth(), nowLocal.getDate());
@@ -546,12 +690,19 @@ const SchoolPlanner = () => {
             }
           }} />
         </div>
-        {/* Greeting */}
+        {/* Greeting + Week badge */
+        }
         <div className="mt-0 mb-4">
-          <h1 className={`font-bold leading-snug tracking-tight ${effectiveMode === 'light' ? 'text-black' : 'text-white'} text-2xl sm:text-3xl md:text-4xl whitespace-nowrap overflow-hidden text-ellipsis`}>
-            {`${getGreeting(userName)}.`}
-          </h1>
+          <div className="flex items-center justify-between gap-4">
+            <h1 className={`font-bold leading-snug tracking-tight ${effectiveMode === 'light' ? 'text-black' : 'text-white'} text-2xl sm:text-3xl md:text-4xl whitespace-nowrap overflow-hidden text-ellipsis`}>
+              {`${getGreeting(userName)}.`}
+            </h1>
+            {weekBadgeText && (
+              <span className={`inline-flex items-center px-4 py-1.5 rounded-xl border ${colors.border} ${colors.container} ${colors.containerText} text-base sm:text-lg font-semibold whitespace-nowrap`}>{weekBadgeText}</span>
+            )}
+          </div>
         </div>
+        {/* Days till school widget moved into right column (half width) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
           <div className={`${colors.container} rounded-lg ${colors.border} border p-6 col-span-1`}>
             <div className="flex items-center mb-4">
@@ -573,6 +724,18 @@ const SchoolPlanner = () => {
                 </button>
               </div>
             </div>
+            {/* Notice box when holiday inside the schedule panel */}
+            {isHolidayBadge && (
+              <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 mb-4`}>
+                <div className="flex items-center gap-3">
+                  <Home className={`${colors.accentText}`} size={18} />
+                  <div>
+                    <p className={`font-medium ${colors.containerText}`}>You don't have school right now</p>
+                    <p className={`text-sm ${colors.containerText} opacity-80`}>If you had school right now, though, here's what you have</p>
+                  </div>
+                </div>
+              </div>
+            )}
             {timelineEvents.length === 0 ? (
               <div className="text-center text-gray-500 py-8">
                 <Calendar size={32} className="mx-auto mb-2 opacity-50" />
@@ -639,13 +802,15 @@ const SchoolPlanner = () => {
                               <span className="text-2xl md:text-3xl font-semibold" style={{ color: displayColor }}>
                                 {formatCountdownForTab(timeLeft || 0)}
                               </span>
-                              <button
-                                onClick={openCountdownFullscreen}
-                                className={`p-2 rounded-md hover:opacity-80 transition-colors ${effectiveMode === 'light' ? 'text-black' : 'text-white'} opacity-80`}
-                                title="Fullscreen countdown"
-                              >
-                                <Maximize size={18} />
-                              </button>
+                              {!isHolidayBadge && (
+                                <button
+                                  onClick={openCountdownFullscreen}
+                                  className={`p-2 rounded-md hover:opacity-80 transition-colors ${effectiveMode === 'light' ? 'text-black' : 'text-white'} opacity-80`}
+                                  title="Fullscreen countdown"
+                                >
+                                  <Maximize size={18} />
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -770,13 +935,15 @@ const SchoolPlanner = () => {
                                   <span className="text-2xl md:text-3xl font-semibold" style={{ color: displayColor }}>
                                     {timelineCountdownInfo?.time ?? ''}
                                   </span>
-                                  <button
-                                    onClick={openCountdownFullscreen}
-                                    className={`p-2 rounded-md hover:opacity-80 transition-colors ${effectiveMode === 'light' ? 'text-black' : 'text-white'} opacity-80`}
-                                    title="Fullscreen countdown"
-                                  >
-                                    <Maximize size={18} />
-                                  </button>
+                                  {!isHolidayBadge && (
+                                    <button
+                                      onClick={openCountdownFullscreen}
+                                      className={`p-2 rounded-md hover:opacity-80 transition-colors ${effectiveMode === 'light' ? 'text-black' : 'text-white'} opacity-80`}
+                                      title="Fullscreen countdown"
+                                    >
+                                      <Maximize size={18} />
+                                    </button>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -848,7 +1015,54 @@ const SchoolPlanner = () => {
           </div>
           {/* Countdown box on the right */}
           <div className="flex flex-col gap-6">
-            {!showCountdownInTimeline && !showNextDay && localStorage.getItem('showCountdownWidget') !== 'false' && (
+            {isHolidayBadge && daysTillSchool && (
+              <div className={`${colors.container} rounded-lg ${colors.border} border p-6 flex flex-col items-center justify-center h-fit`}>
+                <div className="flex items-center justify-between w-full mb-2">
+                  <div className="flex items-center gap-2">
+                    <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
+                    <span className={`text-lg font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Days till school</span>
+                  </div>
+                  <button
+                    onClick={openCountdownFullscreen}
+                    className={`p-1 rounded hover:bg-opacity-20 hover:bg-gray-500 transition-colors ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}
+                    title="Fullscreen"
+                  >
+                    <Maximize size={18} />
+                  </button>
+                </div>
+                <div
+                  className={`text-4xl font-bold mb-2`}
+                  style={{
+                    color: daysTillSchool.color || (effectiveMode === 'light' ? '#000000' : '#ffffff'),
+                    ...(effectiveMode === 'light' ? {} : { textShadow: '0 1px 4px rgba(0,0,0,0.15)' })
+                  }}
+                >
+                  {formatCountdownForTab(daysTillSchool.ms)}
+                </div>
+                <div className="flex items-center gap-2 mb-1">
+                  {daysTillSchool.color ? (
+                    <ColoredSubjectIcon summary={daysTillSchool.event} color={daysTillSchool.color} />
+                  ) : (
+                    <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
+                  )}
+                  <span className="text-base font-medium" style={{ color: daysTillSchool.color || (effectiveMode === 'light' ? '#000000' : '#ffffff') }}>{daysTillSchool.event}</span>
+                </div>
+                <div className={`text-sm ${effectiveMode === 'light' ? 'text-black opacity-80' : 'text-white opacity-80'}`}>
+                  {(() => {
+                    const now = new Date(nowTs);
+                    const daysDiff = Math.floor((new Date(daysTillSchool.target.getFullYear(), daysTillSchool.target.getMonth(), daysTillSchool.target.getDate()).getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()) / 86400000);
+                    const use24Hour = localStorage.getItem('use24HourFormat') === 'true';
+                    const timeStr = daysTillSchool.target.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: !use24Hour });
+                    if (daysDiff >= 1) {
+                      const fullDate = daysTillSchool.target.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+                      return `On ${fullDate} at ${timeStr}`;
+                    }
+                    return `at ${timeStr}`;
+                  })()}
+                </div>
+              </div>
+            )}
+            {!showCountdownInTimeline && !showNextDay && localStorage.getItem('showCountdownWidget') !== 'false' && !(isHolidayBadge && (localStorage.getItem('showHolidayCountdownWidget') !== 'false')) && (
               <CountdownBox
                 searching={countdownSearching}
                 nextEvent={nextEvent}
@@ -1237,6 +1451,57 @@ const SchoolPlanner = () => {
     // Extract countdown calculation into a function
     const updateCountdown = () => {
       const now = new Date();
+      // Holiday override: redirect global countdown to next NSW term start when enabled and in holiday
+      try {
+        const holidayToggle = localStorage.getItem('showHolidayCountdownWidget') !== 'false';
+        const weekEnabled = localStorage.getItem('weekNumberingEnabled') === 'true';
+        const source = (localStorage.getItem('weekSource') as 'nsw' | 'custom') || 'nsw';
+        if (holidayToggle && weekEnabled && source === 'nsw') {
+          const div = (localStorage.getItem('weekNswDivision') as 'eastern' | 'western') || 'eastern';
+          const year = now.getFullYear();
+          const termsNow = getCachedNswTerms(year);
+          const isHoliday = (() => {
+            if (!termsNow) return false;
+            const label = getNswWeekLabelForDate(now, div, termsNow).text;
+            return /holiday/i.test(label);
+          })();
+          if (isHoliday) {
+            const termsNext = getCachedNswTerms(year + 1);
+            const starts: Date[] = [];
+            if (termsNow) termsNow[div].forEach(t => starts.push(new Date(t.start)));
+            if (termsNext) termsNext[div].forEach(t => starts.push(new Date(t.start)));
+            const nextStart = starts.filter(d => d.getTime() > now.getTime()).sort((a, b) => a.getTime() - b.getTime())[0];
+            if (nextStart) {
+              const dow = nextStart.getDay();
+              const dayEvents = (weekData?.events || [])
+                .filter(e => e.dtstart.getDay() === dow)
+                .sort((a, b) => (a.dtstart.getHours() * 60 + a.dtstart.getMinutes()) - (b.dtstart.getHours() * 60 + b.dtstart.getMinutes()));
+              const first = dayEvents[0];
+              const fb = (localStorage.getItem('holidayFallbackTime') || '09:00').match(/^(\d{1,2}):(\d{2})$/);
+              const fbH = fb ? Math.min(23, Math.max(0, parseInt(fb[1], 10))) : 9;
+              const fbM = fb ? Math.min(59, Math.max(0, parseInt(fb[2], 10))) : 0;
+              const target = new Date(nextStart.getFullYear(), nextStart.getMonth(), nextStart.getDate(), first ? first.dtstart.getHours() : fbH, first ? first.dtstart.getMinutes() : fbM, 0, 0);
+              const diff = Math.max(0, target.getTime() - now.getTime());
+              const synthetic: CalendarEvent = {
+                dtstart: target,
+                dtend: new Date(target.getTime() + 60 * 60 * 1000),
+                summary: first ? first.summary : 'School resumes',
+                location: first?.location || ''
+              };
+              setNextEvent(synthetic);
+              setNextEventDate(target);
+              setTimeLeft(diff);
+              setCountdownSearching(false);
+              setTabCountdown({
+                time: formatCountdownForTab(diff),
+                event: normalizeSubjectName(synthetic.summary, true),
+                location: synthetic.location || ''
+              });
+              return; // skip normal countdown while holiday override is active
+            }
+          }
+        }
+      } catch {}
       // Use findNextRepeatingEvent which includes breaks and End of Day
       const soonest = findNextRepeatingEvent(now, weekData.events);
       if (soonest) {
@@ -1870,7 +2135,11 @@ const SchoolPlanner = () => {
 
   // Main render logic
   if (isInitializing) {
-    return null; // Or a spinner if you want
+    return (
+      <div className={`min-h-screen ${colors.background} text-white flex items-center justify-center`}>
+        <div className={`${colors.container} ${colors.border} border rounded-xl px-4 py-3`}>Loading…</div>
+      </div>
+    );
   }
   if (welcomeStep !== 'completed') {
     return (

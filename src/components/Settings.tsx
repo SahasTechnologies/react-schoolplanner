@@ -1,12 +1,12 @@
 import React from 'react';
-import { 
-  Settings as SettingsIcon, 
-  Edit2, 
-  X, 
-  Palette, 
-  User, 
-  Trash2, 
-  Smartphone, 
+import {
+  Settings as SettingsIcon,
+  Edit2,
+  X,
+  Palette,
+  User,
+  Trash2,
+  Smartphone,
   Calendar,
   FileText,
   Wifi,
@@ -37,15 +37,16 @@ import {
   MessageSquare,
   Mail,
   BookOpen,
-  HandHeart,
-  Landmark,
-  Copy,
   Share2,
   Link as LinkIcon,
+  Landmark,
+  HandHeart,
+  Copy
 } from 'lucide-react';
 import { ThemeKey } from '../utils/themeUtils';
 import { isServiceWorkerSupported, forceCacheUpdate } from '../utils/cacheUtils';
 import { showSuccess, showError } from '../utils/notificationUtils';
+import { fetchNswTerms, cacheNswTerms } from '../utils/nswTermUtils';
 import bcrypt from 'bcryptjs';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -177,6 +178,16 @@ const Settings: React.FC<SettingsProps> = ({
   const [isUpdatingCache, setIsUpdatingCache] = React.useState(false);
   const [isToggleLoading, setIsToggleLoading] = React.useState(false);
 
+  // Week numbering settings
+  const [weekNumberingEnabled, setWeekNumberingEnabled] = React.useState<boolean>(() => localStorage.getItem('weekNumberingEnabled') === 'true');
+  const [showWeekSourceModal, setShowWeekSourceModal] = React.useState(false);
+  const [weekSource, setWeekSource] = React.useState<'nsw' | 'custom'>(() => (localStorage.getItem('weekSource') as any) || 'nsw');
+  const [nswDivision, setNswDivision] = React.useState<'eastern' | 'western'>(() => (localStorage.getItem('weekNswDivision') as any) || 'eastern');
+  const [nswLoading, setNswLoading] = React.useState(false);
+  const [nswError, setNswError] = React.useState<string | null>(null);
+  const [customWeekNow, setCustomWeekNow] = React.useState<number>(() => parseInt(localStorage.getItem('weekCustomCurrentWeek') || '1', 10));
+  const [customWeekReferenceDate, setCustomWeekReferenceDate] = React.useState<string>(() => localStorage.getItem('weekCustomReferenceDate') || new Date().toISOString());
+
   // Track whether widgets are enabled to conditionally show their settings
   const [quoteWidgetEnabled, setQuoteWidgetEnabled] = React.useState(() => localStorage.getItem('showQuoteWidget') !== 'false');
   const [wordWidgetEnabled, setWordWidgetEnabled] = React.useState(() => localStorage.getItem('showWordWidget') !== 'false');
@@ -188,6 +199,22 @@ const Settings: React.FC<SettingsProps> = ({
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
+
+  // Holiday countdown settings (local to Settings)
+  const [showHolidayCountdownWidget, setShowHolidayCountdownWidget] = React.useState<boolean>(() => localStorage.getItem('showHolidayCountdownWidget') !== 'false');
+  const [holidayFallbackTime, setHolidayFallbackTime] = React.useState<string>(() => localStorage.getItem('holidayFallbackTime') || '09:00');
+  React.useEffect(() => {
+    localStorage.setItem('showHolidayCountdownWidget', showHolidayCountdownWidget ? 'true' : 'false');
+  }, [showHolidayCountdownWidget]);
+  React.useEffect(() => {
+    const m = holidayFallbackTime.match(/^(\d{1,2}):(\d{2})$/);
+    if (m) {
+      const hh = Math.min(23, Math.max(0, parseInt(m[1], 10)));
+      const mm = Math.min(59, Math.max(0, parseInt(m[2], 10)));
+      const normalized = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+      localStorage.setItem('holidayFallbackTime', normalized);
+    }
+  }, [holidayFallbackTime]);
 
   const [showTerms, setShowTerms] = React.useState(false);
   const [showPrivacy, setShowPrivacy] = React.useState(false);
@@ -203,6 +230,12 @@ const Settings: React.FC<SettingsProps> = ({
   const [heartIdCounter, setHeartIdCounter] = useState(0);
   const [copied, setCopied] = useState(false);
   const [copyButtonPressed, setCopyButtonPressed] = useState(false);
+
+  // Obfuscation helpers (avoid putting sensitive strings in DOM/source as plain text)
+  const decodeChars = (arr: number[]) => String.fromCharCode(...arr);
+  const PAYID_EMAIL_CHARS = [116,104,97,110,107,121,111,117,64,115,97,104,97,115,46,100,112,100,110,115,46,111,114,103];
+  const CONTACT_EMAIL_CHARS = [115,99,104,111,111,108,64,115,97,104,97,115,46,100,112,100,110,115,46,111,114,103];
+  const PAYEE_NAME_CHARS = [83,65,72,65,83,32,83,72,73,77,80,73];
 
   useEffect(() => {
     if (showTerms && !termsContent) {
@@ -388,7 +421,14 @@ const Settings: React.FC<SettingsProps> = ({
             </div>
           </div>
           <div className="space-y-1">
-            <div className={`${colors.container} ${colors.border} border rounded-t-2xl rounded-b-lg p-4 flex items-center justify-between`}>
+            <div
+              className={`${colors.container} ${colors.border} border p-4 flex items-center justify-between transition-all duration-500`}
+              style={{
+                borderRadius: (offlineCachingEnabled && serviceWorkerSupported)
+                  ? '16px 16px 10px 10px'
+                  : '16px'
+              }}
+            >
               <div className="flex items-center gap-3">
                 {isToggleLoading ? <LoaderCircle className={`animate-spin ${colors.accentText}`} size={18} /> : offlineCachingEnabled ? <Wifi className={effectiveMode === 'light' ? 'text-green-600' : 'text-green-400'} size={18} /> : <WifiOff className={effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} size={18} />}
                 <div>
@@ -401,8 +441,18 @@ const Settings: React.FC<SettingsProps> = ({
                 <div className={`w-14 h-7 rounded-full relative transition-colors ${offlineCachingEnabled ? colors.buttonAccent : 'bg-gray-500'} peer-focus:outline-none peer-checked:after:translate-x-7 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-white/20 after:rounded-full after:h-6 after:w-6 after:transition-all`}></div>
               </label>
             </div>
-            {offlineCachingEnabled && serviceWorkerSupported && (
-              <div className={`${colors.container} ${colors.border} border rounded-b-2xl rounded-t-lg p-4 flex items-center justify-between`}>
+            <div
+              className="overflow-hidden transition-all duration-500 ease-in-out"
+              style={{
+                maxHeight: (offlineCachingEnabled && serviceWorkerSupported) ? '140px' : '0px',
+                opacity: (offlineCachingEnabled && serviceWorkerSupported) ? 1 : 0,
+                marginTop: (offlineCachingEnabled && serviceWorkerSupported) ? '4px' : '0px'
+              }}
+            >
+              <div
+                className={`${colors.container} ${colors.border} border p-4 flex items-center justify-between transition-all duration-500`}
+                style={{ borderRadius: '10px 10px 16px 16px' }}
+              >
                 <div className="flex items-center gap-3">
                   <RotateCw className={`${colors.accentText}`} size={18} />
                   <div>
@@ -432,7 +482,7 @@ const Settings: React.FC<SettingsProps> = ({
                   {isUpdatingCache ? 'Updating...' : 'Update Cache'}
                 </button>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </section>
@@ -446,6 +496,36 @@ const Settings: React.FC<SettingsProps> = ({
           <h3 className={`text-lg font-medium ${colors.text}`}>Home Settings</h3>
         </div>
         <div className="space-y-3">
+          <div className={`${colors.container} ${colors.border} border rounded-2xl overflow-hidden`}>
+            <div className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Calendar className={`${colors.accentText}`} size={18} />
+                <div>
+                  <p className={`font-medium ${colors.containerText}`}>Show Week Number</p>
+                  <p className={`text-sm ${colors.containerText} opacity-80`}>Display Week 1, 2, ... beside the greeting</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" checked={weekNumberingEnabled} onChange={(e) => { const v = e.target.checked; setWeekNumberingEnabled(v); localStorage.setItem('weekNumberingEnabled', String(v)); window.dispatchEvent(new CustomEvent('weekSettingsChanged')); }} className="sr-only peer" />
+                <div className={`w-14 h-7 rounded-full relative transition-colors ${weekNumberingEnabled ? colors.buttonAccent : 'bg-gray-500'} peer-focus:outline-none peer-checked:after:translate-x-7 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-white/20 after:rounded-full after:h-6 after:w-6 after:transition-all`}></div>
+              </label>
+            </div>
+            {weekNumberingEnabled && (
+              <div className={`border-t ${colors.border} p-4 flex items-center justify-between`}>
+                <div className="flex items-center gap-3">
+                  <Calendar className={`${colors.accentText}`} size={18} />
+                  <div>
+                    <p className={`font-medium ${colors.containerText}`}>Week Source</p>
+                    <p className={`text-sm ${colors.containerText} opacity-80`}>{weekSource === 'nsw' ? 'NSW term dates (Eastern/Western division)' : 'Custom counter (increments each Sunday)'}</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowWeekSourceModal(true)} className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}>
+                  <Edit2 size={16} />
+                  Edit Source
+                </button>
+              </div>
+            )}
+          </div>
           <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
             <div className="flex items-center gap-3">
               <Clock className={`${colors.accentText}`} size={18} />
@@ -486,10 +566,46 @@ const Settings: React.FC<SettingsProps> = ({
                 <div className={`w-14 h-7 rounded-full relative transition-colors ${showCountdownInSidebar ? colors.buttonAccent : 'bg-gray-500'} peer-focus:outline-none peer-checked:after:translate-x-7 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-white/20 after:rounded-full after:h-6 after:w-6 after:transition-all`}></div>
               </label>
             </div>
+            <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
+              <div className="flex items-center gap-3">
+                <Timer className={`${colors.accentText}`} size={18} />
+                <div>
+                  <p className={`font-medium ${colors.containerText}`}>Holiday Countdown</p>
+                  <p className={`text-sm ${colors.containerText} opacity-80`}>Show a half-width countdown to the next term start during School Holidays</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" checked={showHolidayCountdownWidget} onChange={e => setShowHolidayCountdownWidget(e.target.checked)} className="sr-only peer" />
+                <div className={`w-14 h-7 rounded-full relative transition-colors ${showHolidayCountdownWidget ? colors.buttonAccent : 'bg-gray-500'} peer-focus:outline-none peer-checked:after:translate-x-7 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-white/20 after:rounded-full after:h-6 after:w-6 after:transition-all`}></div>
+              </label>
+            </div>
+            {showHolidayCountdownWidget && (
+              <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
+                <div className="flex items-center gap-3 w-full">
+                  <Timer className={`${colors.accentText}`} size={18} />
+                  <div className="flex-1">
+                    <p className={`font-medium ${colors.containerText}`}>Fallback Start Time</p>
+                    <p className={`text-sm ${colors.containerText} opacity-80`}>Used if your timetable has no classes on the term start day (HH:MM)</p>
+                  </div>
+                </div>
+                <input
+                  type="text"
+                  value={holidayFallbackTime}
+                  onChange={e => setHolidayFallbackTime(e.target.value)}
+                  className={`w-28 px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text} text-center`}
+                  placeholder="09:00"
+                  pattern="^\\d{1,2}:\\d{2}$"
+                  title="Enter time as HH:MM"
+                />
+              </div>
+            )}
           </div>
           {quoteWidgetEnabled && (
           <div className="space-y-1">
-            <div className={`${colors.container} ${colors.border} border rounded-t-2xl rounded-b-lg p-4 flex items-center justify-between`}>
+            <div
+              className={`${colors.container} ${colors.border} border p-4 flex items-center justify-between transition-all duration-500`}
+              style={{ borderRadius: '16px 16px 10px 10px' }}
+            >
               <div className="flex items-center gap-3">
                 <Quote className={`${colors.accentText}`} size={18} />
                 <div>
@@ -524,40 +640,54 @@ const Settings: React.FC<SettingsProps> = ({
                 <option value="random-quotes-api">RandomQuotes API</option>
               </select>
             </div>
-            {quoteProvider === 'brainyquote' && (
-              <div className={`${colors.container} ${colors.border} border rounded-b-2xl rounded-t-lg p-4 flex items-center justify-between`}>
-              <div className="flex items-center gap-3">
-                <Quote className={`${colors.accentText}`} size={18} />
-                <div>
-                  <p className={`font-medium ${colors.containerText}`}>BrainyQuote Quote Type</p>
-                  <p className={`text-sm ${colors.containerText} opacity-80`}>Choose which type of quote to display from BrainyQuote</p>
+            <div
+              className="overflow-hidden transition-all duration-500 ease-in-out"
+              style={{
+                maxHeight: quoteProvider === 'brainyquote' ? '140px' : '0px',
+                opacity: quoteProvider === 'brainyquote' ? 1 : 0,
+                marginTop: quoteProvider === 'brainyquote' ? '4px' : '0px'
+              }}
+            >
+              <div className={`${colors.container} ${colors.border} border p-4 flex items-center justify-between transition-all duration-500`} style={{ borderRadius: '10px 10px 16px 16px' }}>
+                <div className="flex items-center gap-3">
+                  <Quote className={`${colors.accentText}`} size={18} />
+                  <div>
+                    <p className={`font-medium ${colors.containerText}`}>BrainyQuote Quote Type</p>
+                    <p className={`text-sm ${colors.containerText} opacity-80`}>Choose which type of quote to display from BrainyQuote</p>
+                  </div>
                 </div>
+                <select
+                  value={brainyQuoteType}
+                  onChange={(e) => {
+                    const type = e.target.value;
+                    setBrainyQuoteType(type);
+                    localStorage.setItem('quoteType', type);
+                    ['normal', 'love', 'art', 'nature', 'funny'].forEach(type => {
+                      localStorage.removeItem(`quoteOfTheDayCache_${type}`);
+                    });
+                    // Notify widgets to refresh automatically
+                    window.dispatchEvent(new CustomEvent('quoteTypeChanged'));
+                    showSuccess('Quote Type Updated', `Quote type changed to ${type}. The widget will refresh automatically!`, { effectiveMode, colors });
+                  }}
+                  className={`px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text}`}
+                >
+                  <option value="normal">BrainyQuote Quote of the Day</option>
+                  <option value="love">BrainyQuote Love Quote</option>
+                  <option value="art">BrainyQuote Art Quote</option>
+                  <option value="nature">BrainyQuote Nature Quote</option>
+                  <option value="funny">BrainyQuote Funny Quote</option>
+                </select>
               </div>
-              <select
-                value={brainyQuoteType}
-                onChange={(e) => {
-                  const type = e.target.value;
-                  setBrainyQuoteType(type);
-                  localStorage.setItem('quoteType', type);
-                  ['normal', 'love', 'art', 'nature', 'funny'].forEach(type => {
-                    localStorage.removeItem(`quoteOfTheDayCache_${type}`);
-                  });
-                  // Notify widgets to refresh automatically
-                  window.dispatchEvent(new CustomEvent('quoteTypeChanged'));
-                  showSuccess('Quote Type Updated', `Quote type changed to ${type}. The widget will refresh automatically!`, { effectiveMode, colors });
-                }}
-                className={`px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text}`}
-              >
-                <option value="normal">BrainyQuote Quote of the Day</option>
-                <option value="love">BrainyQuote Love Quote</option>
-                <option value="art">BrainyQuote Art Quote</option>
-                <option value="nature">BrainyQuote Nature Quote</option>
-                <option value="funny">BrainyQuote Funny Quote</option>
-              </select>
-              </div>
-            )}
-            {quoteProvider === 'random-quotes-api' && (
-              <div className={`${colors.container} ${colors.border} border rounded-b-2xl rounded-t-lg p-4 flex items-center justify-between`}>
+            </div>
+            <div
+              className="overflow-hidden transition-all duration-500 ease-in-out"
+              style={{
+                maxHeight: quoteProvider === 'random-quotes-api' ? '140px' : '0px',
+                opacity: quoteProvider === 'random-quotes-api' ? 1 : 0,
+                marginTop: quoteProvider === 'random-quotes-api' ? '4px' : '0px'
+              }}
+            >
+              <div className={`${colors.container} ${colors.border} border p-4 flex items-center justify-between transition-all duration-500`} style={{ borderRadius: '10px 10px 16px 16px' }}>
                 <div className="flex items-center gap-3">
                   <Quote className={`${colors.accentText}`} size={18} />
                   <div>
@@ -585,9 +715,16 @@ const Settings: React.FC<SettingsProps> = ({
                   <option value="reload">Every Page Reload</option>
                 </select>
               </div>
-            )}
-            {quoteProvider === 'baulko-bell-times' && (
-              <div className={`${colors.container} ${colors.border} border rounded-b-2xl rounded-t-lg p-4 flex items-center justify-between`}>
+            </div>
+            <div
+              className="overflow-hidden transition-all duration-500 ease-in-out"
+              style={{
+                maxHeight: quoteProvider === 'baulko-bell-times' ? '140px' : '0px',
+                opacity: quoteProvider === 'baulko-bell-times' ? 1 : 0,
+                marginTop: quoteProvider === 'baulko-bell-times' ? '4px' : '0px'
+              }}
+            >
+              <div className={`${colors.container} ${colors.border} border p-4 flex items-center justify-between transition-all duration-500`} style={{ borderRadius: '10px 10px 16px 16px' }}>
                 <div className="flex items-center gap-3">
                   <Quote className={`${colors.accentText}`} size={18} />
                   <div>
@@ -614,7 +751,7 @@ const Settings: React.FC<SettingsProps> = ({
                   <option value="reload">Every Page Reload</option>
                 </select>
               </div>
-            )}
+            </div>
           </div>
           )}
           
@@ -628,7 +765,7 @@ const Settings: React.FC<SettingsProps> = ({
                 </div>
               </div>
               <select
-                value={localStorage.getItem('wordOfTheDaySource') || 'vocabulary'}
+                value={localStorage.getItem('wordOfTheDaySource') || 'worddaily'}
                 onChange={(e) => {
                   localStorage.setItem('wordOfTheDaySource', e.target.value);
                   localStorage.removeItem('wordOfTheDayCache');
@@ -644,9 +781,9 @@ const Settings: React.FC<SettingsProps> = ({
                 }}
                 className={`px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text}`}
               >
+                <option value="worddaily">WordDaily.com</option>
                 <option value="vocabulary">Vocabulary.com</option>
                 <option value="dictionary">Dictionary.com</option>
-                <option value="worddaily">WordDaily.com</option>
                 <option value="britannica">Britannica Dictionary</option>
               </select>
             </div>
@@ -756,6 +893,108 @@ const Settings: React.FC<SettingsProps> = ({
                 className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Week Source Modal */}
+      {showWeekSourceModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className={`${colors.container} rounded-lg p-6 shadow-xl border ${colors.border} w-full max-w-md`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={`text-xl font-semibold ${colors.buttonText}`}>Week Source</h3>
+              <button onClick={() => setShowWeekSourceModal(false)} className={`${colors.buttonText} opacity-70 hover:opacity-100`}><X size={20} /></button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className={`block text-sm font-medium mb-1 ${colors.containerText}`}>Source</label>
+                <select
+                  value={weekSource}
+                  onChange={(e) => { const v = e.target.value as 'nsw' | 'custom'; setWeekSource(v); localStorage.setItem('weekSource', v); }}
+                  className={`w-full px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text}`}
+                >
+                  <option value="nsw">NSW Holidays</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
+
+              {weekSource === 'nsw' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${colors.containerText}`}>Division</label>
+                    <select value={nswDivision} onChange={(e) => { const v = e.target.value as 'eastern' | 'western'; setNswDivision(v); }} className={`w-full px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text}`}>
+                      <option value="eastern">Eastern</option>
+                      <option value="western">Western</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={async () => {
+                        try {
+                          setNswLoading(true); setNswError(null);
+                          const year = new Date().getFullYear();
+                          const data = await fetchNswTerms(year);
+                          if (!data) { setNswError('Failed to fetch term dates.'); return; }
+                          cacheNswTerms(data);
+                          showSuccess('NSW Terms Saved', `Cached ${year} term dates.`, { effectiveMode, colors });
+                        } catch (err) {
+                          setNswError('Failed to fetch term dates.');
+                        } finally {
+                          setNswLoading(false);
+                        }
+                      }}
+                      className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
+                      disabled={nswLoading}
+                    >
+                      {nswLoading ? 'Fetching…' : 'Fetch from NSW & Cache'}
+                    </button>
+                    {nswError && (<span className="text-red-500 text-sm">{nswError}</span>)}
+                  </div>
+                  <div className={`text-sm ${colors.containerText} opacity-80`}>
+                    Tip: This scrapes the official NSW site and stores dates in your browser so it won’t fetch every time.
+                  </div>
+                </div>
+              )}
+
+              {weekSource === 'custom' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${colors.containerText}`}>Current Week Number</label>
+                    <input type="number" min={1} value={customWeekNow} onChange={(e) => setCustomWeekNow(parseInt(e.target.value || '1', 10))} className={`w-full px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text}`} />
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${colors.containerText}`}>Reference Date (when the above number applies)</label>
+                    <input type="date" value={new Date(customWeekReferenceDate).toISOString().slice(0,10)} onChange={(e) => { const d = e.target.value; const [y,m,day] = d.split('-').map(Number); const iso = new Date(y, (m||1)-1, day||1, 0,0,0,0).toISOString(); setCustomWeekReferenceDate(iso); }} className={`w-full px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text}`} />
+                  </div>
+                  <div className={`text-sm ${colors.containerText} opacity-80`}>
+                    The week number will increment automatically every Sunday.
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button onClick={() => setShowWeekSourceModal(false)} className={`${effectiveMode === 'light' ? 'bg-gray-200 hover:bg-gray-300 text-gray-800' : 'bg-gray-700 hover:bg-gray-600 text-gray-200'} px-4 py-2 rounded-lg font-medium transition-colors duration-200`}>Cancel</button>
+              <button
+                onClick={() => {
+                  localStorage.setItem('weekSource', weekSource);
+                  localStorage.setItem('weekNumberingEnabled', String(weekNumberingEnabled));
+                  if (weekSource === 'nsw') {
+                    localStorage.setItem('weekNswDivision', nswDivision);
+                  } else {
+                    localStorage.setItem('weekCustomCurrentWeek', String(customWeekNow > 0 ? customWeekNow : 1));
+                    localStorage.setItem('weekCustomReferenceDate', customWeekReferenceDate);
+                  }
+                  window.dispatchEvent(new CustomEvent('weekSettingsChanged'));
+                  showSuccess('Week Source Saved', 'Your week settings have been updated.', { effectiveMode, colors });
+                  setShowWeekSourceModal(false);
+                }}
+                className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
+              >
+                Save
               </button>
             </div>
           </div>
@@ -1316,21 +1555,21 @@ const Settings: React.FC<SettingsProps> = ({
             <div className="flex gap-2">
               <button
                 onClick={() => setThemeMode('light')}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${themeMode === 'light' ? `${colors.buttonAccent} ${colors.buttonText}` : `${colors.button} ${colors.buttonHover} ${colors.buttonText}`}`}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${themeMode === 'light' ? `${colors.buttonAccent} ${colors.buttonText}` : (effectiveMode === 'light' ? 'bg-gray-100 hover:bg-gray-200 text-black border border-gray-300' : `${colors.button} ${colors.buttonHover} ${colors.buttonText}`)}`}
               >
                 <Sun size={18} />
                 Light
               </button>
               <button
                 onClick={() => setThemeMode('dark')}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${themeMode === 'dark' ? `${colors.buttonAccent} ${colors.buttonText}` : `${colors.button} ${colors.buttonHover} ${colors.buttonText}`}`}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${themeMode === 'dark' ? `${colors.buttonAccent} ${colors.buttonText}` : (effectiveMode === 'light' ? 'bg-gray-100 hover:bg-gray-200 text-black border border-gray-300' : `${colors.button} ${colors.buttonHover} ${colors.buttonText}`)}`}
               >
                 <Moon size={18} />
                 Dark
               </button>
               <button
                 onClick={() => setThemeMode('system')}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${themeMode === 'system' ? `${colors.buttonAccent} ${colors.buttonText}` : `${colors.button} ${colors.buttonHover} ${colors.buttonText}`}`}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${themeMode === 'system' ? `${colors.buttonAccent} ${colors.buttonText}` : (effectiveMode === 'light' ? 'bg-gray-100 hover:bg-gray-200 text-black border border-gray-300' : `${colors.button} ${colors.buttonHover} ${colors.buttonText}`)}`}
               >
                 <Monitor size={18} />
                 System
@@ -1468,10 +1707,17 @@ const Settings: React.FC<SettingsProps> = ({
                     <div>
                       <p className={`text-xs ${colors.containerText} opacity-60 mb-1`}>PayID</p>
                       <div className="flex items-center gap-2">
-                        <p className={`text-sm font-mono ${colors.containerText} font-semibold`}>thankyou@sahas.dpdns.org</p>
+                        <p
+                          className={`text-sm font-mono ${colors.containerText} font-semibold select-none`}
+                          onCopy={(e) => e.preventDefault()}
+                          draggable={false}
+                          style={{ userSelect: 'none' }}
+                        >
+                          {decodeChars(PAYID_EMAIL_CHARS)}
+                        </p>
                         <button
                           onClick={() => {
-                            navigator.clipboard.writeText('thankyou@sahas.dpdns.org');
+                            navigator.clipboard.writeText(decodeChars(PAYID_EMAIL_CHARS));
                             setCopied(true);
                             setCopyButtonPressed(true);
                             setTimeout(() => setCopyButtonPressed(false), 150);
@@ -1485,6 +1731,7 @@ const Settings: React.FC<SettingsProps> = ({
                             transform: copyButtonPressed ? 'scale(0.9)' : 'scale(1)',
                             animation: !copyButtonPressed && copied ? 'buttonBounce 0.2s ease-out' : 'none'
                           }}
+                          title="Copy PayID"
                         >
                           <Copy size={14} />
                         </button>
@@ -1495,7 +1742,14 @@ const Settings: React.FC<SettingsProps> = ({
                     </div>
                     <div>
                       <p className={`text-xs ${colors.containerText} opacity-60 mb-1`}>Verify the payee is</p>
-                      <p className={`text-sm ${colors.containerText} font-semibold`}>SAHAS SHIMPI</p>
+                      <p
+                        className={`text-sm ${colors.containerText} font-semibold select-none`}
+                        onCopy={(e) => e.preventDefault()}
+                        draggable={false}
+                        style={{ userSelect: 'none' }}
+                      >
+                        {decodeChars(PAYEE_NAME_CHARS)}
+                      </p>
                     </div>
                     <div className="mt-3 pt-3 border-t border-opacity-30" style={{ borderColor: colors.border }}>
                       <p className={`text-xs ${colors.containerText} opacity-70 leading-relaxed`}>
@@ -1544,10 +1798,17 @@ const Settings: React.FC<SettingsProps> = ({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <p className={`text-sm font-mono ${colors.containerText} font-semibold`}>school@sahas.dpdns.org</p>
+              <p
+                className={`text-sm font-mono ${colors.containerText} font-semibold select-none`}
+                onCopy={(e) => e.preventDefault()}
+                draggable={false}
+                style={{ userSelect: 'none' }}
+              >
+                {decodeChars(CONTACT_EMAIL_CHARS)}
+              </p>
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText('school@sahas.dpdns.org');
+                  navigator.clipboard.writeText(decodeChars(CONTACT_EMAIL_CHARS));
                   setCopied(true);
                   setCopyButtonPressed(true);
                   setTimeout(() => setCopyButtonPressed(false), 150);
@@ -1561,6 +1822,7 @@ const Settings: React.FC<SettingsProps> = ({
                   transform: copyButtonPressed ? 'scale(0.9)' : 'scale(1)',
                   animation: !copyButtonPressed && copied ? 'buttonBounce 0.2s ease-out' : 'none'
                 }}
+                title="Copy Email"
               >
                 <Copy size={14} />
               </button>

@@ -2,6 +2,10 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ThemeKey } from '../utils/themeUtils';
 import { Smile, HeartHandshake, BotOff, PartyPopper } from 'lucide-react';
 
+// Google Form submission endpoint and entry IDs
+const GOOGLE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSc9Cb3cU5ifmk7ymHTrMPhLpvHJ8a-_WXOQFPkpDhwQZWVlwQ/formResponse';
+const FORMSUBMIT_FALLBACK = 'https://formsubmit.co/ajax/3b648867dccdbbc25deec547a473850f';
+
 // Lightweight canvas confetti
 const ConfettiCanvas: React.FC<{ className?: string; durationMs?: number }> = ({ className = '', durationMs = 4000 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -111,8 +115,6 @@ const ConfettiCanvas: React.FC<{ className?: string; durationMs?: number }> = ({
   return <canvas ref={canvasRef} className={className} />;
 };
 
-const FORM_ENDPOINT = 'https://formsubmit.co/ajax/3b648867dccdbbc25deec547a473850f';
-
 interface FeedbackFormProps {
   theme: ThemeKey;
   themeType: 'normal' | 'extreme';
@@ -186,16 +188,19 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
   // Screenshot upload removed (FormSubmit doesn't support attachments reliably via AJAX)
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  // removed: wantsScreenshot & file upload UI
   const submittingRef = useRef(false);
   const hasSubmittedRef = useRef(false);
-  // welcome button pop effect
   const [goPop, setGoPop] = useState(false);
-  // Contact email states
   const [wantsContact, setWantsContact] = useState(false);
   const [contactEmail, setContactEmail] = useState('');
-  // Track completion for partial submissions
-  const completionRef = useRef<string[]>([]);
+  // Track which steps the user completed for Google Forms checkbox field
+  const completedSteps = useRef<Set<string>>(new Set(['WelcomeScreen']));
+  // Honeypot field for spam detection
+  const [companyWebsite, setCompanyWebsite] = useState('');
+  // Shake animation for validation errors
+  const [shakeButton, setShakeButton] = useState(false);
+  // Deduplicate autosends
+  const lastSentHashRef = useRef<string | null>(null);
 
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -209,10 +214,10 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
   const nextStepFrom = useCallback((s: number): number => {
     switch (s) {
       case 0: return 1;
-      case 1: return rating !== null && rating >= 9 ? 3 : 2;
+      case 1: return rating !== null && rating === 10 ? 3 : 2; // skip "how to 10" if rating is 10
       case 2: return 3;
-      case 3: return 4; // go to contact email step
-      case 4: return 5; // submit from step 4
+      case 3: return 4;
+      case 4: return 5;
       default: return 5;
     }
   }, [rating]);
@@ -228,36 +233,221 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
     }, GO_ANIM_MS);
   }, [displayStep]);
 
+  // Allowed checkbox option texts in Google Form (must match exactly)
+  const ALLOWED_COMPLETED = useRef<Set<string>>(new Set([
+    'WelcomeScreen',
+    'What do you rate SchoolPlanner out of 10?',
+    "Anything else you'd like to say?",
+    'Want us to contact you on your feedback?',
+  ]));
+
+  // Build URL-encoded params for Google Forms (more reliable than multipart in some cases)
+  const buildGoogleParams = (): URLSearchParams => {
+    const p = new URLSearchParams();
+    if (rating !== null) p.append('entry.1955256693', String(rating));
+    if (rating !== null && rating < 10) p.append('entry.928581443', howToTen);
+    p.append('entry.1873298085', anythingElse);
+    const willSendEmail = Boolean(contactEmail.trim());
+    if (willSendEmail) p.append('entry.814650867', contactEmail.trim());
+    completedSteps.current.forEach(stepName => {
+      if (ALLOWED_COMPLETED.current.has(stepName)) p.append('entry.895264206', stepName);
+    });
+    // Do NOT append a 'submit' param; it can shadow form.submit() when used via DOM
+    return p;
+  };
+
+  // Try to fetch hidden tokens (fbzx, fvv, pageHistory) from the viewform via CORS-friendly proxies
+  const fetchGoogleTokens = async (): Promise<{ fbzx: string; fvv: string; pageHistory: string } | null> => {
+    const viewUrl = GOOGLE_FORM_URL.replace('formResponse', 'viewform');
+    const candidates = [
+      (u: string) => `https://r.jina.ai/http://${u.replace(/^https?:\/\//, '')}`,
+      (u: string) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+    ];
+    for (const wrap of candidates) {
+      const url = wrap(viewUrl);
+      try {
+        const res = await fetch(url, { method: 'GET' });
+        if (!res.ok) continue;
+        const html = await res.text();
+        const fbzx = (html.match(/name="fbzx"\s+value="([^"]+)"/) || [])[1];
+        const fvv = (html.match(/name="fvv"\s+value="([^"]+)"/) || [])[1];
+        const pageHistory = (html.match(/name="pageHistory"\s+value="([^"]+)"/) || [])[1];
+        if (fbzx && fvv && pageHistory) {
+          return { fbzx, fvv, pageHistory };
+        }
+      } catch (e) { /* ignore */ }
+    }
+    return null;
+  };
+
+  // Submit to Google using DOM form; include tokens if we can fetch them
+  // Returns true if a DOM submit was attempted successfully
+  const submitGoogleDOMWithOptionalTokens = async (baseParams: URLSearchParams): Promise<boolean> => {
+    try {
+      const tokens = await fetchGoogleTokens();
+      if (tokens) {
+        const tokenParams = new URLSearchParams();
+        baseParams.forEach((v, k) => tokenParams.append(k, v));
+        tokenParams.append('fvv', tokens.fvv);
+        tokenParams.append('fbzx', tokens.fbzx);
+        tokenParams.append('pageHistory', tokens.pageHistory);
+        return await submitGoogleViaFormDOMWithParams(tokenParams);
+      }
+      return await submitGoogleViaFormDOMWithParams(baseParams);
+    } catch (e) {
+      return await submitGoogleViaFormDOMWithParams(baseParams);
+    }
+  };
+
+  // Submit to Google Forms using a hidden form + iframe (works even when fetch is blocked)
+  const submitGoogleViaFormDOM = async (): Promise<boolean> => {
+    try {
+      const params = buildGoogleParams();
+      return await submitGoogleDOMWithOptionalTokens(params);
+    } catch { return false; }
+  };
+
+  // Variant that accepts arbitrary params (for cached autosend on mount)
+  const submitGoogleViaFormDOMWithParams = (params: URLSearchParams): Promise<boolean> => {
+    return new Promise((resolve) => {
+      try {
+        let iframe = document.getElementById('feedback-google-iframe') as HTMLIFrameElement | null;
+        if (!iframe) {
+          iframe = document.createElement('iframe');
+          iframe.name = 'feedback-google-iframe';
+          iframe.id = 'feedback-google-iframe';
+          iframe.style.display = 'none';
+          document.body.appendChild(iframe);
+        }
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = GOOGLE_FORM_URL;
+        form.target = 'feedback-google-iframe';
+        form.acceptCharset = 'UTF-8';
+        params.forEach((value, key) => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = key;
+          input.value = value;
+          form.appendChild(input);
+        });
+        document.body.appendChild(form);
+        (HTMLFormElement.prototype.submit.call as any)(form);
+        let settled = false;
+        const cleanup = (ok: boolean) => {
+          try { if (form.isConnected) document.body.removeChild(form); } catch { /* ignore */ }
+          try { iframe?.removeEventListener('load', onLoad); } catch { /* ignore */ }
+          if (!settled) { settled = true; resolve(ok); }
+        };
+        const onLoad = () => cleanup(true);
+        try { iframe?.addEventListener('load', onLoad, { once: true }); } catch { /* ignore */ }
+        setTimeout(() => cleanup(true), 1500);
+      } catch { resolve(false); }
+    });
+  };
+
+  // (Removed fetch-based Google submit to avoid noisy 400s; we rely on DOM form submission.)
+
+  const submitToFormSubmit = async (isAutoSubmit: boolean): Promise<boolean> => {
+    try {
+      const fsfd = new FormData();
+      if (rating !== null) fsfd.append('rating', String(rating));
+      if (rating !== null && rating < 10) fsfd.append('how_to_get_to_10', howToTen);
+      fsfd.append('comments', anythingElse);
+      if (wantsContact && contactEmail.trim()) {
+        fsfd.append('email', contactEmail.trim());
+      }
+      fsfd.append('completion', Array.from(completedSteps.current).join(', '));
+      fsfd.append('_captcha', 'false');
+      fsfd.append('_subject', isAutoSubmit ? 'SchoolPlanner Feedback (Auto-saved)' : 'SchoolPlanner Feedback');
+      fsfd.append('_template', 'table');
+      fsfd.append('_honey', companyWebsite);
+      fsfd.append('timestamp', new Date().toISOString());
+
+      const res = await fetch(FORMSUBMIT_FALLBACK, {
+        method: 'POST',
+        headers: { 'Accept': 'application/json' },
+        body: fsfd,
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  };
+
+  const submitForm = async (isAutoSubmit: boolean = false) => {
+    // Check honeypot - if filled, it's spam
+    if (companyWebsite.trim()) return;
+
+    if (!isAutoSubmit && (hasSubmittedRef.current || submittingRef.current)) return;
+
+    try {
+      if (!isAutoSubmit) {
+        setError(null);
+        setSubmitting(true);
+        submittingRef.current = true;
+      }
+
+      // For manual submits: try Google first; only use FormSubmit if Google attempt failed
+      const googleOk = await submitGoogleViaFormDOM();
+      if (!googleOk) await submitToFormSubmit(isAutoSubmit);
+
+      if (!isAutoSubmit) {
+        hasSubmittedRef.current = true;
+        goTo(5);
+      }
+    } catch (e: any) {
+      if (!isAutoSubmit) setError('Submission failed. Please try again in a moment.');
+    } finally {
+      if (!isAutoSubmit) {
+        setSubmitting(false);
+        submittingRef.current = false;
+      }
+    }
+  };
+
   const next = useCallback(() => {
     setError(null);
+    setShakeButton(false);
+    
     if (step === 1 && rating === null) {
-      setError('Please choose a rating.');
+      setError('This question is required');
+      setShakeButton(true);
+      setTimeout(() => setShakeButton(false), 500);
       return;
     }
-    // Track completion when user proceeds from each step
-    if (step === 1 && !completionRef.current.includes('Rating')) {
-      completionRef.current.push('Rating');
-    } else if (step === 2 && !completionRef.current.includes('How to get to 10')) {
-      completionRef.current.push('How to get to 10');
-    } else if (step === 3 && !completionRef.current.includes('Comments')) {
-      completionRef.current.push('Comments');
+    // Track completion when user proceeds (values must match Google Form options exactly)
+    if (step === 1) {
+      completedSteps.current.add('What do you rate SchoolPlanner out of 10?');
+    } else if (step === 3) {
+      completedSteps.current.add('Anything else you\'d like to say?');
+    } else if (step === 4) {
+      completedSteps.current.add('Want us to contact you on your feedback?');
     }
-    // If we are on the contact email step (step 4), validate and submit
+
+    // Validate step 2 if rating < 10
+    if (step === 2 && rating !== null && rating < 10 && !howToTen.trim()) {
+      setError('This question is required');
+      setShakeButton(true);
+      setTimeout(() => setShakeButton(false), 500);
+      return;
+    }
+
+    // If on contact step, validate and submit
     if (step === 4) {
       if (wantsContact && !contactEmail.trim()) {
-        setError('Please enter your email address.');
+        setError('Email address is required');
+        setShakeButton(true);
+        setTimeout(() => setShakeButton(false), 500);
         return;
       }
-      if (!completionRef.current.includes('Contact Email')) {
-        completionRef.current.push('Contact Email');
-      }
-      const finalText = anythingElse;
-      submit(finalText);
+      submitForm(false);
       return;
     }
+
     const target = nextStepFrom(step);
     goTo(target);
-  }, [step, rating, anythingElse, wantsContact, contactEmail, nextStepFrom, goTo]);
+  }, [step, rating, howToTen, anythingElse, wantsContact, contactEmail, companyWebsite, nextStepFrom, goTo]);
 
   // Pop animation then advance
   const handleGo = useCallback(() => {
@@ -268,24 +458,18 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
 
   const handlePickRating = (n: number) => {
     setRating(n);
-    // Don't add to completion here - wait for next() call
-    // slight delay for micro-interaction before transitioning
+    // Mark rating question as completed when chosen
+    if (step === 1) {
+      completedSteps.current.add('What do you rate SchoolPlanner out of 10?');
+    }
     setTimeout(() => {
       if (step === 1) {
-        // use the clicked value to avoid any stale state
-        goTo(n >= 9 ? 3 : 2);
+        goTo(n === 10 ? 3 : 2);
       }
     }, 220);
   };
 
-  // Initialize completion tracking
-  useEffect(() => {
-    if (step === 0) {
-      completionRef.current = ['Welcome'];
-    }
-  }, [step]);
-
-  // Save form state to cache for autosave
+  // Save to cache helper
   const saveToCache = useCallback(() => {
     const formState = {
       rating,
@@ -293,45 +477,94 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
       anythingElse,
       wantsContact,
       contactEmail,
-      completion: completionRef.current,
+      completedSteps: Array.from(completedSteps.current),
       timestamp: Date.now()
     };
-    localStorage.setItem('feedbackFormCache', JSON.stringify(formState));
+    try {
+      localStorage.setItem('feedbackFormCache', JSON.stringify(formState));
+    } catch (e) { /* ignore */ }
   }, [rating, howToTen, anythingElse, wantsContact, contactEmail]);
 
-  // Load cached data on mount and send if exists
+  // Load cached data on mount and auto-send (guarded to once per load)
   useEffect(() => {
     const cached = localStorage.getItem('feedbackFormCache');
-    if (cached) {
-      try {
-        const formState = JSON.parse(cached);
-        // Send the cached partial submission
-        const fd = new FormData();
-        if (formState.rating !== null) fd.append('rating', String(formState.rating));
-        fd.append('how_to_get_to_10', formState.howToTen || '');
-        fd.append('comments', formState.anythingElse || '');
-        if (formState.wantsContact && formState.contactEmail) {
-          fd.append('contact_email', formState.contactEmail);
+    if (!cached || hasSubmittedRef.current) return;
+    // Prevent duplicate sends (e.g., StrictMode double-mount)
+    if (localStorage.getItem('feedbackFormCache_sending') === '1') return;
+    localStorage.setItem('feedbackFormCache_sending', '1');
+    try {
+      const formState = JSON.parse(cached);
+      // Build URL-encoded Google payload from cached snapshot
+      const params = new URLSearchParams();
+      if (formState.rating !== null) params.append('entry.1955256693', String(formState.rating));
+      if (formState.rating !== null && formState.rating < 10) params.append('entry.928581443', formState.howToTen || '');
+      params.append('entry.1873298085', formState.anythingElse || '');
+      if (formState.wantsContact && formState.contactEmail) params.append('entry.814650867', formState.contactEmail);
+      (formState.completedSteps || []).forEach((step: string) => {
+        if (ALLOWED_COMPLETED.current.has(step)) params.append('entry.895264206', step);
+      });
+      (async () => {
+        const googleOk = await submitGoogleDOMWithOptionalTokens(params);
+        if (!googleOk) {
+          const fsfd = new FormData();
+          if (formState.rating !== null) fsfd.append('rating', String(formState.rating));
+          if (formState.rating !== null && formState.rating < 10) fsfd.append('how_to_get_to_10', formState.howToTen || '');
+          fsfd.append('comments', formState.anythingElse || '');
+          if (formState.wantsContact && formState.contactEmail) fsfd.append('email', formState.contactEmail);
+          fsfd.append('completion', (formState.completedSteps || []).join(', '));
+          fsfd.append('_captcha', 'false');
+          fsfd.append('_subject', 'SchoolPlanner Feedback (Auto-saved)');
+          fsfd.append('_template', 'table');
+          fsfd.append('_honey', '');
+          fsfd.append('timestamp', new Date(formState.timestamp).toISOString());
+          await fetch(FORMSUBMIT_FALLBACK, { method: 'POST', headers: { 'Accept': 'application/json' }, body: fsfd });
         }
-        fd.append('completion', (formState.completion || []).join(', '));
-        fd.append('_captcha', 'false');
-        fd.append('_subject', 'SchoolPlanner Feedback (Auto-saved)');
-        fd.append('_template', 'table');
-        fd.append('_honey', '');
-        fd.append('timestamp', new Date(formState.timestamp).toISOString());
-        
-        fetch(FORM_ENDPOINT, {
-          method: 'POST',
-          headers: { 'Accept': 'application/json' },
-          body: fd,
-        }).then(() => {
-          localStorage.removeItem('feedbackFormCache');
-        }).catch(() => {});
-      } catch {}
+        localStorage.removeItem('feedbackFormCache');
+        localStorage.removeItem('feedbackFormCache_sending');
+      })();
+    } catch (e) {
+      localStorage.removeItem('feedbackFormCache_sending');
     }
   }, []);
 
-  // Save to cache before unload
+  // Immediate background autosend helper (used on SPA navigation)
+  const sendAutoNow = useCallback(() => {
+    try {
+      const snapshot = {
+        rating,
+        howToTen: rating !== null && rating < 10 ? howToTen : '',
+        anythingElse,
+        wantsContact,
+        contactEmail,
+        completedSteps: Array.from(completedSteps.current).sort(),
+      };
+      const hash = JSON.stringify(snapshot);
+      if (hash === lastSentHashRef.current) return; // no changes since last send
+      lastSentHashRef.current = hash;
+
+      // Send via DOM (primary), fallback to FormSubmit only on failure
+      const params = buildGoogleParams();
+      (async () => {
+        const googleOk = await submitGoogleDOMWithOptionalTokens(params);
+        if (!googleOk) {
+          const fsfd2 = new FormData();
+          if (rating !== null) fsfd2.append('rating', String(rating));
+          if (rating !== null && rating < 10) fsfd2.append('how_to_get_to_10', howToTen || '');
+          fsfd2.append('comments', anythingElse || '');
+          if (wantsContact && contactEmail.trim()) fsfd2.append('email', contactEmail.trim());
+          fsfd2.append('completion', Array.from(completedSteps.current).join(', '));
+          fsfd2.append('_captcha', 'false');
+          fsfd2.append('_subject', 'SchoolPlanner Feedback (Auto-saved)');
+          fsfd2.append('_template', 'table');
+          fsfd2.append('_honey', companyWebsite);
+          fsfd2.append('timestamp', new Date().toISOString());
+          await fetch(FORMSUBMIT_FALLBACK, { method: 'POST', headers: { 'Accept': 'application/json' }, body: fsfd2 });
+        }
+      })();
+    } catch {}
+  }, [rating, howToTen, anythingElse, wantsContact, contactEmail, companyWebsite]);
+
+  // Save to cache on beforeunload (tab close)
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (step > 0 && step < 5 && !hasSubmittedRef.current) {
@@ -342,19 +575,64 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [step, saveToCache]);
 
-  // Detect navigation within the app
+  // Save to cache and autosend on SPA navigations (pushState/replaceState) and back/forward (popstate)
   useEffect(() => {
-    const handlePopState = () => {
+    const onNav = () => {
       if (step > 0 && step < 5 && !hasSubmittedRef.current) {
+        // write cache for resilience, and send immediately in background
         saveToCache();
+        sendAutoNow();
       }
     };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [step, saveToCache]);
+    // Hook history to catch client-side navigations
+    const h: any = window.history as any;
+    const origPush = h.pushState;
+    const origReplace = h.replaceState;
+    h.pushState = function (...args: any[]) {
+      origPush.apply(this, args);
+      onNav();
+    };
+    h.replaceState = function (...args: any[]) {
+      origReplace.apply(this, args);
+      onNav();
+    };
+    window.addEventListener('popstate', onNav);
+    return () => {
+      // restore
+      h.pushState = origPush;
+      h.replaceState = origReplace;
+      window.removeEventListener('popstate', onNav);
+    };
+  }, [step, saveToCache, sendAutoNow]);
+
+  // Send immediately when clicking same-site <a> links (non-SPA navigations)
+  useEffect(() => {
+    const onDocClick = (ev: MouseEvent) => {
+      if (step <= 0 || step >= 5 || hasSubmittedRef.current) return;
+      const target = ev.target as HTMLElement | null;
+      let el: HTMLElement | null = target;
+      let anchor: HTMLAnchorElement | null = null;
+      while (el) {
+        if (el.tagName === 'A') { anchor = el as HTMLAnchorElement; break; }
+        el = el.parentElement;
+      }
+      if (!anchor) return;
+      // Ignore if explicit new tab or download
+      if (anchor.target === '_blank' || anchor.hasAttribute('download')) return;
+      try {
+        const url = new URL(anchor.href, window.location.href);
+        if (url.origin !== window.location.origin) return; // external link
+        // Same-site navigation: cache and send immediately
+        saveToCache();
+        sendAutoNow();
+      } catch {}
+    };
+    document.addEventListener('click', onDocClick, true);
+    return () => document.removeEventListener('click', onDocClick, true);
+  }, [step, saveToCache, sendAutoNow]);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (submittingRef.current) return; // ignore keyboard submits while submitting
+    if (submittingRef.current) return;
     if (displayStep === 0 && e.key === 'Enter') {
       e.preventDefault();
       goTo(1);
@@ -365,99 +643,26 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
     }
   };
 
-  // Simple retrying fetch with timeout for network resilience
-  const fetchWithRetry = async (url: string, init: RequestInit, retries = 2, timeoutMs = 12000): Promise<Response> => {
-    let lastErr: any = null;
-    for (let attempt = 0; attempt <= retries; attempt++) {
-      const controller = new AbortController();
-      const id = setTimeout(() => controller.abort(), timeoutMs);
-      try {
-        const res = await fetch(url, { ...init, signal: controller.signal });
-        clearTimeout(id);
-        if (res.ok) return res;
-        // Retry on 429 and 5xx
-        if (res.status === 429 || (res.status >= 500 && res.status < 600)) {
-          lastErr = new Error(`HTTP ${res.status}`);
-        } else {
-          return res; // don't retry on other statuses
-        }
-      } catch (e) {
-        lastErr = e;
-      } finally {
-        clearTimeout(id);
-      }
-      // backoff before next attempt
-      const delay = 500 * Math.pow(2, attempt);
-      await new Promise(r => setTimeout(r, delay));
-    }
-    throw lastErr ?? new Error('Network error');
-  };
-
-
-  const submit = async (finalAnything?: string, isPartial = false) => {
-    if (!isPartial && (hasSubmittedRef.current || submittingRef.current)) return; // guard against duplicates
-    try {
-      if (!isPartial) {
-        setError(null);
-        setSubmitting(true);
-        submittingRef.current = true;
-      }
-      const fd = new FormData();
-      if (rating !== null) fd.append('rating', String(rating));
-      // Always include how_to_get_to_10 so the field shows up in the email, even when rating >= 9
-      fd.append('how_to_get_to_10', (rating !== null && rating < 9) ? howToTen : '');
-      // Capture free text reliably: prefer state, fall back to current textarea value
-      const comments = finalAnything ?? ((anythingElse ?? '').length ? anythingElse : (textAreaRef.current?.value ?? ''));
-      // Send comments only (remove duplicated 'anything_else')
-      fd.append('comments', comments);
-      // Add contact email if provided
-      if (wantsContact && contactEmail.trim()) {
-        fd.append('contact_email', contactEmail.trim());
-      }
-      // Add completion status
-      fd.append('completion', completionRef.current.join(', '));
-      // Common formsubmit options
-      fd.append('_captcha', 'false');
-      fd.append('_subject', isPartial ? 'SchoolPlanner Feedback (Partial)' : 'SchoolPlanner Feedback');
-      fd.append('_template', 'table');
-      // Honeypot (bots fill this; we leave blank)
-      fd.append('_honey', '');
-      // Timestamp
-      fd.append('timestamp', new Date().toISOString());
-
-      const res = await fetchWithRetry(FORM_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Accept': 'application/json' },
-        body: fd,
-      }, 2, 12000);
-      if (!res.ok) throw new Error('Network response was not ok');
-      // Optional: check JSON status
-      // const data = await res.json();
-      if (!isPartial) {
-        hasSubmittedRef.current = true;
-        goTo(5);
-      }
-    } catch (e:any) {
-      if (!isPartial) {
-        setError('Submission failed. Please try again in a moment.');
-      }
-    } finally {
-      if (!isPartial) {
-        setSubmitting(false);
-        submittingRef.current = false;
-      }
-    }
-  };
-
   return (
     <div className="space-y-3" onKeyDown={onKeyDown}>
+      {/* Honeypot field - hidden, for spam detection */}
+      <input
+        type="text"
+        name="company_website"
+        value={companyWebsite}
+        onChange={(e) => setCompanyWebsite(e.target.value)}
+        style={{ display: 'none' }}
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+      />
       {displayStep === 0 && (
         <SlideContainer
           colors={colors}
           bottomLeft={(
             <div className={`flex items-center gap-2 ${colors.text} text-xs`}>
               <BotOff className="w-4 h-4" aria-hidden />
-              <span>This form is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.</span>
+              <span>Spam protection enabled</span>
             </div>
           )}
         >
@@ -487,8 +692,21 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
                 <RatingButton key={n} label={String(n)} active={rating === n} onClick={() => handlePickRating(n)} colors={colors} />
               ))}
             </div>
-            {error && <p className="text-red-200 text-sm">{error}</p>}
-            <PrimaryButton onClick={next} disabled={rating === null} colors={colors}>Next</PrimaryButton>
+            <div className="relative">
+              <PrimaryButton 
+                onClick={next} 
+                disabled={rating === null} 
+                colors={colors}
+                className={shakeButton ? 'animate-shake' : ''}
+              >
+                Next
+              </PrimaryButton>
+              {error && (
+                <div className="absolute -bottom-8 left-0 bg-red-500 text-white text-sm px-3 py-1 rounded shadow-lg animate-fadeIn">
+                  {error}
+                </div>
+              )}
+            </div>
           </div>
           </SlideContent>
         </SlideContainer>
@@ -498,7 +716,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
         <SlideContainer colors={colors}>
           <SlideContent exiting={isExiting}>
           <div className="space-y-4">
-            <h3 className="text-3xl sm:text-4xl font-bold flex items-center gap-2">How do we get to 10?</h3>
+            <h3 className="text-3xl sm:text-4xl font-bold flex items-center gap-2">How do we get to 10? <span className={colors.text}>*</span></h3>
             <textarea
               ref={textAreaRef}
               value={howToTen}
@@ -506,9 +724,20 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
               placeholder="Better UI, less laggy, etc"
               className={`w-full h-40 rounded-lg ${colors.input} ${colors.inputBorder} focus:outline-none focus:ring-2 focus:${colors.accent} p-4 ${colors.placeholder}`}
             />
-            <div className="flex items-center gap-3">
-              <PrimaryButton onClick={next} colors={colors}>Next</PrimaryButton>
+            <div className="flex items-center gap-3 relative">
+              <PrimaryButton 
+                onClick={next} 
+                colors={colors}
+                className={shakeButton ? 'animate-shake' : ''}
+              >
+                Next
+              </PrimaryButton>
               <span className={`${colors.textSecondary} text-sm`}>press Ctrl + Enter ↵</span>
+              {error && (
+                <div className="absolute -bottom-8 left-0 bg-red-500 text-white text-sm px-3 py-1 rounded shadow-lg animate-fadeIn whitespace-nowrap">
+                  {error}
+                </div>
+              )}
             </div>
           </div>
           </SlideContent>
@@ -540,7 +769,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
         <SlideContainer colors={colors}>
           <SlideContent exiting={isExiting}>
           <div className="space-y-4">
-            <h3 className="text-3xl sm:text-4xl font-bold">Want us to contact you about your feedback?</h3>
+            <h3 className="text-3xl sm:text-4xl font-bold">Want us to contact you on your feedback?</h3>
             <div className="space-y-3">
               <label className="flex items-center gap-3 cursor-pointer group">
                 <div className="relative">
@@ -574,10 +803,21 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
                 </div>
               )}
             </div>
-            {error && <p className="text-red-200 text-sm">{error}</p>}
-            <div className="flex items-center gap-3">
-              <PrimaryButton onClick={next} disabled={submitting} colors={colors}>{submitting ? 'Submitting…' : 'Submit'}</PrimaryButton>
+            <div className="flex items-center gap-3 relative">
+              <PrimaryButton 
+                onClick={next} 
+                disabled={submitting} 
+                colors={colors}
+                className={shakeButton ? 'animate-shake' : ''}
+              >
+                {submitting ? 'Submitting…' : 'Submit'}
+              </PrimaryButton>
               <span className={`${colors.textSecondary} text-sm`}>press Ctrl + Enter ↵</span>
+              {error && (
+                <div className="absolute -bottom-8 left-0 bg-red-500 text-white text-sm px-3 py-1 rounded shadow-lg animate-fadeIn whitespace-nowrap">
+                  {error}
+                </div>
+              )}
             </div>
           </div>
           </SlideContent>
@@ -593,7 +833,6 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
             <p className={`${colors.textSecondary} text-lg`}>We appreciate your feedback.</p>
           </div>
           </SlideContent>
-          {/* Confetti spans the entire form container */}
           <ConfettiCanvas className="absolute inset-0 pointer-events-none" />
         </SlideContainer>
       )}

@@ -1,6 +1,6 @@
 # Terms and Conditions
 
-_Last Updated: 19 March 2025_
+_Last Updated: 3 October 2025_
 
 1. **Acceptance of Terms**
 By downloading, installing, accessing, or using this software (hereinafter referred to as the "Software"), you agree to be bound by these Terms and Conditions ("Terms"), including any additional terms and policies referenced herein or available by hyperlink. If you do not agree to all these Terms, then you may not access or use the Software.
@@ -22,32 +22,37 @@ You agree not to, and you will not permit others to:
 All content included in the Software, such as text, graphics, logos, icons, images, audio clips, digital downloads, data compilations, and software, is the property of the original creators and is protected by international copyright laws. The compilation of all content in the Software is our exclusive property, with all rights reserved.
 
 5. **Open Source Components and Credits**
-The Software includes open-source components, which are licensed under their own respective licenses:
-- Google Material Design 3: 2025 Google Inc. Licensed under the Apache License, Version 2.0. You may not use this file except in compliance with the License. You may obtain a copy at http://www.apache.org/licenses/LICENSE-2.0. Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND.
-- Lucide: Licensed under the SIL Open Font License, Version 1.1. This license is available at https://scripts.sil.org/OFL. The icons may be used, studied, modified, and redistributed freely as long as they are not sold by themselves.
-- BrainyQuote Quote of the Day: Quotes sourced from BrainyQuote.com. Widget implementation adapted from [Normal-Tangerine8609/Scriptable-Widgets](https://github.com/Normal-Tangerine8609/Scriptable-Widgets).
-- Merriam-Webster Word of the Day: Word definitions sourced from Merriam-Webster.com. Widget implementation adapted from [Normal-Tangerine8609/Scriptable-Widgets](https://github.com/Normal-Tangerine8609/Scriptable-Widgets).
+The Software includes open‑source components, licensed under their respective licenses. Significant dependencies include:
 
-**Additional Credits (Dependencies Used):**
-- [React](https://react.dev/) & [ReactDOM](https://react.dev/) (MIT License)
-- [TypeScript](https://www.typescriptlang.org/) (Apache 2.0 License)
-- [Vite](https://vitejs.dev/) (MIT License)
-- [lucide-react](https://lucide.dev/) (SIL Open Font License)
-- [react-router-dom](https://reactrouter.com/) (MIT License)
-- [Tailwind CSS](https://tailwindcss.com/) (MIT License)
-- [markdown-to-jsx](https://github.com/probablyup/markdown-to-jsx) (MIT License)
-- [file-saver](https://github.com/eligrey/FileSaver.js/) (MIT License)
-- [@types/file-saver](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/file-saver) (MIT License)
-- [@types/react](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react) (MIT License)
-- [@types/react-dom](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react-dom) (MIT License)
-- [@types/react-router-dom](https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react-router-dom) (MIT License)
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react) (MIT License)
-- [autoprefixer](https://github.com/postcss/autoprefixer) (MIT License)
-- [eslint](https://eslint.org/) (MIT License)
-- [eslint-plugin-react-hooks](https://www.npmjs.com/package/eslint-plugin-react-hooks) (MIT License)
-- [eslint-plugin-react-refresh](https://www.npmjs.com/package/eslint-plugin-react-refresh) (MIT License)
-- [typescript-eslint](https://typescript-eslint.io/) (MIT License)
-- [vite-plugin-pwa](https://vite-pwa-org.netlify.app/) (MIT License)
+**Runtime/Framework**
+- [React](https://react.dev/) & [ReactDOM](https://react.dev/) (MIT)
+- [TypeScript](https://www.typescriptlang.org/) (Apache 2.0)
+- [Vite](https://vitejs.dev/) (MIT)
+
+**UI/Icons/Styling**
+- [lucide-react](https://lucide.dev/) (SIL Open Font License 1.1)
+- [Tailwind CSS](https://tailwindcss.com/) (MIT)
+
+**Routing/Markdown/PWA**
+- [react-router-dom](https://reactrouter.com/) (MIT)
+- [react-markdown](https://github.com/remarkjs/react-markdown) (MIT)
+- [remark-gfm](https://github.com/remarkjs/remark-gfm) (MIT)
+- [vite-plugin-pwa](https://vite-pwa-org.netlify.app/) (MIT)
+
+**Data/Utilities/UX**
+- [file-saver](https://github.com/eligrey/FileSaver.js/) (MIT)
+- [bcryptjs](https://github.com/dcodeIO/bcrypt.js) (MIT)
+- [react-grid-layout](https://github.com/react-grid-layout/react-grid-layout) (MIT)
+- [recharts](https://recharts.org/) (MIT)
+
+**Types/Build Tools**
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react) (MIT)
+- [@types/*] packages for React, ReactDOM, React Router, FileSaver, React Grid Layout (MIT)
+- [autoprefixer](https://github.com/postcss/autoprefixer) (MIT)
+- [eslint](https://eslint.org/) (MIT)
+- [eslint-plugin-react-hooks](https://www.npmjs.com/package/eslint-plugin-react-hooks) (MIT)
+- [eslint-plugin-react-refresh](https://www.npmjs.com/package/eslint-plugin-react-refresh) (MIT)
+- [typescript-eslint](https://typescript-eslint.io/) (MIT)
 
 6. **Restrictions on Sale and Modification**
 Under no circumstances may this Software be sold, whether as a standalone product or as part of any package or offering. You may not rename or rebrand the Software under any other name. Any modifications or derivative works must clearly acknowledge the original creators and must not imply ownership or authorship. Redistribution of this Software, in whole or in part, must retain this license paragraph unaltered, ensuring that the terms of free use, restriction against sale, and preservation of original authorship are maintained in any and all copies, modifications, or distributions.
@@ -63,7 +68,11 @@ The Software does not use cookies or any tracking technologies. We do not collec
 You are responsible for maintaining the security of your device and the confidentiality of your data. This includes but is not limited to using secure passwords, enabling device encryption where available, and safeguarding your device against unauthorized access.
 
 8. **Third-Party Services**
-The Software incorporates icons provided by Lucide, as well as the BrainyQuote Quote of the Day and Merriam-Webster Word of the Day features. We have no control over, and assume no responsibility for, the content, privacy policies, or practices of any third-party services.
+The Software integrates or retrieves content from third parties. We do not control and are not responsible for third‑party content, policies, or availability. Notable services/sources include:
+- Icons from Lucide.
+- Quote providers: BrainyQuote, Random Quotes FreeAPI (random-quotes-freeapi.vercel.app), Baulko Bell Times (public timetable page).
+- Word providers: Vocabulary.com, Dictionary.com, WordDaily.com, Britannica Dictionary, Merriam‑Webster.
+- Optional feedback submission endpoints: Google Forms and FormSubmit (formsubmit.co). Submitting feedback may transmit your responses to those services; refer to their policies for details.
 
 9. **Disclaimer of Warranties**
 9.1 **"AS IS" and "AS AVAILABLE"**

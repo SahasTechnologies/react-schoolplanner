@@ -181,8 +181,8 @@ export default function QuoteOfTheDayWidget({
   return (
     <div className={`${colors.container} rounded-lg ${colors.border} border p-4 flex flex-col items-center`}>
       <div className="flex items-center gap-2 mb-3 w-full">
-        <Quote size={20} style={{ color: colors.text }} />
-        <div className="font-semibold text-lg" style={{ color: colors.text }}>Quote of the Day</div>
+        <Quote size={20} className={colors.text} />
+        <div className={`font-semibold text-lg ${colors.text}`}>Quote of the Day</div>
       </div>
       <div className="relative w-full min-h-[140px] flex items-center justify-center">
         {loading && (
@@ -191,7 +191,7 @@ export default function QuoteOfTheDayWidget({
           </div>
         )}
         {error && !loading && (
-          <div className="text-center space-y-3" style={{ color: colors.text }}>
+          <div className={`text-center space-y-3 ${colors.text}`}>
             <div className="text-base">Could not load quote.</div>
           </div>
         )}
@@ -214,8 +214,7 @@ export default function QuoteOfTheDayWidget({
           href={quoteData.link}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs mt-2 opacity-60 hover:opacity-100 transition-opacity"
-          style={{ color: colors.text }}
+          className={`text-xs mt-2 opacity-60 hover:opacity-100 transition-opacity ${colors.text}`}
         >
           {quoteData.source === 'random-quotes-api'
             ? 'View on RandomQuotes API →'

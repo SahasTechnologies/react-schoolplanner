@@ -80,7 +80,11 @@ export default function WordOfTheDayWidget({
       console.error('[WordWidget] Failed to fetch word');
       if (!silent) setError(true);
     }
-    if (!silent) stopSpinner();
+    if (silent) {
+      setLoading(false);
+    } else {
+      stopSpinner();
+    }
   }, []);
 
   // Fetch word data on mount (silent check if cache exists)
@@ -103,8 +107,8 @@ export default function WordOfTheDayWidget({
   return (
     <div className={`${colors.container} rounded-lg ${colors.border} border p-4 flex flex-col items-center`}>
       <div className="flex items-center gap-2 mb-3 w-full">
-        <BookOpen size={20} style={{ color: colors.text }} />
-        <div className="font-semibold text-lg" style={{ color: colors.text }}>Word of the Day</div>
+        <BookOpen size={20} className={colors.text} />
+        <div className={`font-semibold text-lg ${colors.text}`}>Word of the Day</div>
       </div>
       <div className="relative w-full min-h-[140px] flex items-center justify-center">
         {loading && (
@@ -113,7 +117,7 @@ export default function WordOfTheDayWidget({
           </div>
         )}
         {error && !loading && (
-          <div className="text-center space-y-3" style={{ color: colors.text }}>
+          <div className={`text-center space-y-3 ${colors.text}`}>
             <div className="text-base">Could not load word of the day.</div>
           </div>
         )}
@@ -161,8 +165,7 @@ export default function WordOfTheDayWidget({
             href={source.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs mt-2 opacity-60 hover:opacity-100 transition-opacity"
-            style={{ color: colors.text }}
+            className={`text-xs mt-2 opacity-60 hover:opacity-100 transition-opacity ${colors.text}`}
           >
             View on {source.name} →
           </a>

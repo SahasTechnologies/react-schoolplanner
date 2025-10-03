@@ -413,8 +413,8 @@ async function fetchFromDictionaryCom(): Promise<WordOfTheDay | null> {
 export async function fetchWordOfTheDay(): Promise<WordOfTheDay | null> {
   console.log('[WordOfTheDay] Starting fetch...');
   
-  // Get user preference from localStorage (default to 'vocabulary')
-  const preferredSource = localStorage.getItem('wordOfTheDaySource') || 'vocabulary';
+  // Get user preference from localStorage (default to 'worddaily')
+  const preferredSource = localStorage.getItem('wordOfTheDaySource') || 'worddaily';
   console.log('[WordOfTheDay] Preferred source:', preferredSource);
   
   // Try preferred source first
@@ -470,7 +470,7 @@ export function getCachedWord(): WordOfTheDay | null {
     const cached = localStorage.getItem(CACHE_KEY);
     if (cached) {
       const parsed = JSON.parse(cached) as WordOfTheDay;
-      const preferredSource = localStorage.getItem('wordOfTheDaySource') || 'vocabulary';
+      const preferredSource = localStorage.getItem('wordOfTheDaySource') || 'worddaily';
       if (parsed?.source === preferredSource) {
         console.log('[WordOfTheDay] Using cached word for source:', preferredSource, '(no expiration)');
         return parsed;
