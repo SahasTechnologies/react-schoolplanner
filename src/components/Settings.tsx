@@ -197,7 +197,17 @@ const Settings: React.FC<SettingsProps> = ({
       setWordWidgetEnabled(localStorage.getItem('showWordWidget') !== 'false');
     };
     window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
+    const onWeekSettingsChanged = () => {
+      // Sync local state from localStorage when settings change elsewhere
+      setWeekNumberingEnabled(localStorage.getItem('weekNumberingEnabled') === 'true');
+      setWeekSource(((localStorage.getItem('weekSource') as any) || 'nsw'));
+      setNswDivision(((localStorage.getItem('weekNswDivision') as any) || 'eastern'));
+    };
+    window.addEventListener('weekSettingsChanged', onWeekSettingsChanged as EventListener);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('weekSettingsChanged', onWeekSettingsChanged as EventListener);
+    };
   }, []);
 
   // Holiday countdown settings (local to Settings)
@@ -504,19 +514,21 @@ const Settings: React.FC<SettingsProps> = ({
                 <div className={`w-14 h-7 rounded-full relative transition-colors ${weekNumberingEnabled ? colors.buttonAccent : 'bg-gray-500'} peer-focus:outline-none peer-checked:after:translate-x-7 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-white/20 after:rounded-full after:h-6 after:w-6 after:transition-all`}></div>
               </label>
             </div>
-            <div className={`${colors.container} ${colors.border} border rounded-b-2xl rounded-t-lg p-4 flex items-center justify-between`}>
-              <div className="flex items-center gap-3">
-                <Calendar className={`${colors.accentText}`} size={18} />
-                <div>
-                  <p className={`font-medium ${colors.containerText}`}>Week Source</p>
-                  <p className={`text-sm ${colors.containerText} opacity-80`}>{weekSource === 'nsw' ? 'NSW term dates (Eastern/Western division)' : 'Custom counter (increments each Sunday)'}</p>
+            {weekNumberingEnabled && (
+              <div className={`${colors.container} ${colors.border} border rounded-b-2xl rounded-t-lg p-4 flex items-center justify-between`}>
+                <div className="flex items-center gap-3">
+                  <Calendar className={`${colors.accentText}`} size={18} />
+                  <div>
+                    <p className={`font-medium ${colors.containerText}`}>Week Source</p>
+                    <p className={`text-sm ${colors.containerText} opacity-80`}>{weekSource === 'nsw' ? 'NSW term dates (Eastern/Western division)' : 'Custom counter (increments each Sunday)'}</p>
+                  </div>
                 </div>
+                <button onClick={() => setShowWeekSourceModal(true)} className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}>
+                  <Edit2 size={16} />
+                  Edit Source
+                </button>
               </div>
-              <button onClick={() => setShowWeekSourceModal(true)} className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2`}>
-                <Edit2 size={16} />
-                Edit Source
-              </button>
-            </div>
+            )}
           </div>
           <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
             <div className="flex items-center gap-3">
@@ -859,7 +871,7 @@ const Settings: React.FC<SettingsProps> = ({
       )}
 
       {/* Week Source Modal */}
-      {showWeekSourceModal && (
+      {weekNumberingEnabled && showWeekSourceModal && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
           <div className={`${colors.container} rounded-lg p-6 shadow-xl border ${colors.border} w-full max-w-md`}>
             <div className="flex items-center justify-between mb-4">

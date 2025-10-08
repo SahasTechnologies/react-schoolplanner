@@ -83,6 +83,21 @@ const SchoolPlanner = () => {
     };
   }, []);
 
+  // One-time migration: auto-enable Week Number for NSW Eastern for all users
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('weekNumberingMigrationV2') !== 'true') {
+        localStorage.setItem('weekNumberingEnabled', 'true');
+        localStorage.setItem('weekSource', 'nsw');
+        localStorage.setItem('weekNswDivision', 'eastern');
+        localStorage.setItem('weekNumberingMigrationV2', 'true');
+        // Notify any listeners and refresh derived UI
+        window.dispatchEvent(new CustomEvent('weekSettingsChanged'));
+        setWeekSettingsVersion(v => v + 1);
+      }
+    } catch {}
+  }, []);
+
   // Auto-fetch NSW term data if week numbering is enabled and the cache is missing
   useEffect(() => {
     const enabled = localStorage.getItem('weekNumberingEnabled') === 'true';
@@ -1512,8 +1527,12 @@ const SchoolPlanner = () => {
         });
       
       // Check if all events have ended for today (only on weekdays)
-      // Unless user is forcing to see actual today
-      if (!forceShowActualToday && todayDow >= 1 && todayDow <= 5 && events.length > 0) {
+      // Only auto-switch when we're actually showing today's date (not a holiday/weekend override)
+      const isSelectedDateToday = selectedScheduleDate
+        ? new Date(selectedScheduleDate.getFullYear(), selectedScheduleDate.getMonth(), selectedScheduleDate.getDate()).getTime() ===
+          new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+        : true;
+      if (!forceShowActualToday && isSelectedDateToday && todayDow >= 1 && todayDow <= 5 && events.length > 0) {
         const lastEvent = events[events.length - 1];
         if (lastEvent.dtend) {
           const lastEventEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate());

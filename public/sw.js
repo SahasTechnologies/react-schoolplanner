@@ -1,105 +1,133 @@
 // Service Worker for School Planner
-const CACHE_NAME = 'school-planner-v2';
+const CACHE_NAME = 'school-planner-v3';
+const OFFLINE_FALLBACK_PAGE = '/index.html';
+
+// Pre-cache the application shell (keep this minimal; Vite assets are cached at runtime)
 const urlsToCache = [
   '/',
   '/index.html',
-  '/src/main.tsx',
-  '/src/schoolplanner.tsx',
-  '/src/App.css',
-  '/src/index.css',
   '/school.svg',
   '/terms.md',
   '/privacy.md',
   '/license.md',
-  // Add other assets as needed
 ];
 
-// Install event - cache resources
+// Install: cache shell and activate immediately
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
-      })
+    (async () => {
+      try {
+        const cache = await caches.open(CACHE_NAME);
+        await cache.addAll(urlsToCache);
+      } catch (_) {}
+      await self.skipWaiting();
+    })()
   );
 });
 
-// Fetch event - serve from cache when offline, update cache when online
+// Activate: cleanup old caches and take control
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    (async () => {
+      try {
+        const names = await caches.keys();
+        await Promise.all(
+          names.map((name) => {
+            if (name !== CACHE_NAME) {
+              return caches.delete(name);
+            }
+          })
+        );
+      } catch (_) {}
+      await self.clients.claim();
+    })()
+  );
+});
+
+// Fetch: network-first for same-origin GET requests with cache fallback; cache-first for fonts; offline fallback for navigations
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
 
-  // Cache-First strategy for font files
-  const isFontRequest =
-    req.destination === 'font' || /\.(?:woff2?|ttf|otf|eot)$/i.test(url.pathname);
+  // Only handle GET requests
+  if (req.method !== 'GET') return;
 
-  if (isFontRequest) {
+  // Navigation requests: try network, fallback to offline page
+  if (req.mode === 'navigate') {
     event.respondWith(
-      caches.open(CACHE_NAME).then((cache) =>
-        cache.match(req).then((cached) => {
-          if (cached) return cached;
-          return fetch(req)
-            .then((resp) => {
-              if (resp && resp.status === 200) {
-                cache.put(req, resp.clone());
-                console.log('Cached font:', req.url);
-              }
-              return resp;
-            })
-            .catch(() => cached || Response.error());
-        })
-      )
+      (async () => {
+        try {
+          const fresh = await fetch(req);
+          // Optionally cache the HTML for offline navigations
+          const cache = await caches.open(CACHE_NAME);
+          cache.put(OFFLINE_FALLBACK_PAGE, fresh.clone());
+          return fresh;
+        } catch (_) {
+          const cached = await caches.match(OFFLINE_FALLBACK_PAGE);
+          return cached || new Response('Offline', { status: 503, statusText: 'Offline' });
+        }
+      })()
     );
-    return; // Do not fall through to generic handler
+    return;
   }
 
-  // Generic: Stale-While-Revalidate for other requests backed by cache if present
-  event.respondWith(
-    caches.match(req).then((response) => {
-      if (response) {
-        // Update in background
-        fetch(req)
-          .then((fetchResponse) => {
-            if (fetchResponse.status === 200) {
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(req, fetchResponse.clone());
-                console.log('Updated cache for:', req.url);
-              });
-            }
-          })
-          .catch(() => {
-            console.log('Failed to update cache for:', req.url);
-          });
-        return response;
-      }
-      return fetch(req);
-    })
-  );
-});
-
-// Activate event - clean up old caches
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
+  // Cache-First for fonts
+  const isFontRequest = req.destination === 'font' || /\.(?:woff2?|ttf|otf|eot)$/i.test(url.pathname);
+  if (isFontRequest) {
+    event.respondWith(
+      (async () => {
+        const cache = await caches.open(CACHE_NAME);
+        const cached = await cache.match(req);
+        if (cached) return cached;
+        try {
+          const resp = await fetch(req);
+          if (resp && resp.status === 200) {
+            cache.put(req, resp.clone());
           }
-        })
-      );
-    })
-  );
+          return resp;
+        } catch (_) {
+          return cached || Response.error();
+        }
+      })()
+    );
+    return;
+  }
+
+  // Same-origin GET: Network-first, cache fallback, and cache the successful response
+  if (url.origin === self.location.origin) {
+    event.respondWith(
+      (async () => {
+        try {
+          const fresh = await fetch(req);
+          if (fresh && fresh.status === 200) {
+            const cache = await caches.open(CACHE_NAME);
+            cache.put(req, fresh.clone());
+          }
+          return fresh;
+        } catch (_) {
+          const cached = await caches.match(req);
+          if (cached) return cached;
+          // As a last resort, return offline page for HTML requests
+          if (req.headers.get('accept')?.includes('text/html')) {
+            const offline = await caches.match(OFFLINE_FALLBACK_PAGE);
+            if (offline) return offline;
+          }
+          return Response.error();
+        }
+      })()
+    );
+    return;
+  }
+
+  // Cross-origin: just try the network
+  event.respondWith(fetch(req));
 });
 
-// Check for updates when the service worker starts
+// Messages from the client (e.g., force update)
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
-  
   if (event.data && event.data.type === 'UPDATE_CACHE') {
     event.waitUntil(updateCache());
   }
@@ -116,19 +144,13 @@ self.addEventListener('sync', (event) => {
 async function updateCache() {
   try {
     const cache = await caches.open(CACHE_NAME);
-    
     for (const url of urlsToCache) {
       try {
         const response = await fetch(url);
         if (response.status === 200) {
-          await cache.put(url, response);
-          console.log('Updated cache for:', url);
+          await cache.put(url, response.clone());
         }
-      } catch (error) {
-        console.log('Failed to update cache for:', url, error);
-      }
+      } catch (_) {}
     }
-  } catch (error) {
-    console.log('Cache update failed:', error);
-  }
-} 
+  } catch (_) {}
+}
