@@ -234,6 +234,8 @@ const Settings: React.FC<SettingsProps> = ({
   const [heartIdCounter, setHeartIdCounter] = useState(0);
   const [copied, setCopied] = useState(false);
   const [copyButtonPressed, setCopyButtonPressed] = useState(false);
+  const [cacheVersion, setCacheVersion] = useState<string | null>(null);
+  const [latestVersion, setLatestVersion] = useState<string>('v3');
 
   // Obfuscation helpers (avoid putting sensitive strings in DOM/source as plain text)
   const decodeChars = (arr: number[]) => String.fromCharCode(...arr);
@@ -267,6 +269,41 @@ const Settings: React.FC<SettingsProps> = ({
         .finally(() => setLoadingMarkdown(null));
     }
   }, [showTerms, showPrivacy, showLicensing]);
+
+  // Check cache version and deployed version
+  useEffect(() => {
+    const checkVersion = async () => {
+      try {
+        // Check deployed service worker version
+        const swResponse = await fetch('/sw.js');
+        const swText = await swResponse.text();
+        const versionMatch = swText.match(/CACHE_NAME\s*=\s*['"]school-planner-(v\d+)['"]/);
+        const deployedVersion = versionMatch ? versionMatch[1] : null;
+        
+        if (deployedVersion) {
+          setLatestVersion(deployedVersion);
+        }
+
+        // Check cache version
+        if ('caches' in window) {
+          const cacheNames = await caches.keys();
+          const schoolPlannerCache = cacheNames.find(name => name.includes('school-planner'));
+          if (schoolPlannerCache) {
+            setCacheVersion(schoolPlannerCache);
+          } else {
+            // No cache but check if we're running the latest version
+            setCacheVersion(deployedVersion ? `school-planner-${deployedVersion}` : null);
+          }
+        } else {
+          // No cache API but we're running the latest version
+          setCacheVersion(deployedVersion ? `school-planner-${deployedVersion}` : null);
+        }
+      } catch {
+        setCacheVersion(null);
+      }
+    };
+    checkVersion();
+  }, [offlineCachingEnabled, isUpdatingCache]);
 
   /* --------------------------------- Local state -------------------------------- */
   const [oldPasswordInput, setOldPasswordInput] = useState('');
@@ -1908,24 +1945,41 @@ const Settings: React.FC<SettingsProps> = ({
         </div>
       </section>
 
-      {/* Footer with GitHub link and Made by */}
-      <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
-        <div className="flex flex-col items-center gap-4">
-          <a
-            href="https://github.com/SahasTechnologies/react-schoolplanner"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`flex items-center gap-2 ${colors.containerText} hover:${colors.text} transition-colors duration-200`}
-            title="View on GitHub"
-          >
-            <Github size={24} />
-            <span className="font-medium">View Source on GitHub</span>
-          </a>
-          <div className={`flex items-center gap-2 ${colors.containerText}`}>
-            <span>Made with</span>
-            <Heart size={18} className="text-red-500" fill="currentColor" />
-            <span>by Sahas</span>
+      {/* Footer with GitHub link */}
+      <div className="space-y-4">
+        <div className={`${colors.container} rounded-2xl ${colors.border} border p-6`}>
+          <div className="flex flex-col items-center gap-4">
+            <a
+              href="https://github.com/SahasTechnologies/react-schoolplanner"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`flex items-center justify-center gap-2 ${colors.containerText} hover:${colors.text} transition-colors duration-200`}
+              title="View on GitHub"
+            >
+              <Github size={24} />
+              <span className="font-medium">View Source on GitHub</span>
+            </a>
+            <div className="flex items-center justify-center gap-2">
+              <span className={`text-sm font-medium ${colors.containerText}`}>Latest Version</span>
+              <div 
+                className={`w-3 h-3 rounded-full ${
+                  cacheVersion && cacheVersion.includes(latestVersion) 
+                    ? 'bg-green-500' 
+                    : 'bg-red-500'
+                }`}
+                title={
+                  cacheVersion && cacheVersion.includes(latestVersion)
+                    ? 'Running latest version'
+                    : 'Update available or cache needs updating'
+                }
+              />
+            </div>
           </div>
+        </div>
+        <div className={`flex items-center justify-center gap-2 ${colors.containerText}`}>
+          <span>Made with</span>
+          <Heart size={18} className="text-red-500" fill="currentColor" />
+          <span>by Sahas</span>
         </div>
       </div>
 

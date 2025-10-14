@@ -142,7 +142,7 @@ export default function WidgetsModal({
           {/* Info message for countdown */}
           {isCountdownDisabled && (
             <div className={`text-xs ${colors.containerText} opacity-70 px-4 py-2 rounded-lg`} style={{ backgroundColor: effectiveMode === 'light' ? '#f3f4f6' : '#374151' }}>
-              The countdown widget is automatically disabled when countdown is enabled in today's schedule.
+              The countdown widget is automatically disabled when countdown is enabled in today's schedule and you have classes today.
             </div>
           )}
         </div>

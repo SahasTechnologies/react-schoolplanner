@@ -95,7 +95,7 @@ const SchoolPlanner = () => {
         window.dispatchEvent(new CustomEvent('weekSettingsChanged'));
         setWeekSettingsVersion(v => v + 1);
       }
-    } catch {}
+    } catch { }
   }, []);
 
   // Auto-fetch NSW term data if week numbering is enabled and the cache is missing
@@ -123,7 +123,7 @@ const SchoolPlanner = () => {
             setWeekSettingsVersion(v => v + 1);
           }
         }
-      } catch {}
+      } catch { }
     })();
   }, [weekSettingsVersion]);
 
@@ -208,8 +208,8 @@ const SchoolPlanner = () => {
 
   // Known icon names we support in renderIcon
   const knownIcons = React.useMemo(() => new Set<string>([
-    'BookOpen','Clock','FileText','User','Printer','Calendar','Folder','CreditCard','Newspaper',
-    'Globe','Link','Home','School','Laptop','Smartphone','ExternalLink'
+    'BookOpen', 'Clock', 'FileText', 'User', 'Printer', 'Calendar', 'Folder', 'CreditCard', 'Newspaper',
+    'Globe', 'Link', 'Home', 'School', 'Laptop', 'Smartphone', 'ExternalLink'
   ]), []);
 
   const isIconKnown = (name?: string) => (name ? knownIcons.has(name) : false);
@@ -638,10 +638,10 @@ const SchoolPlanner = () => {
       if (showCountdownInTimeline && !timelineExpanded) {
         const now = new Date(nowTs);
         // Use selectedScheduleDate if available (handles showing next day after events end)
-        const baseDate = selectedScheduleDate 
+        const baseDate = selectedScheduleDate
           ? new Date(selectedScheduleDate)
           : new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        
+
         // Find the first event whose end time hasn't passed yet (current or next),
         // then show that event and everything after it for the rest of the day.
         let startIdx = -1;
@@ -723,7 +723,7 @@ const SchoolPlanner = () => {
                     let percentage = 0;
                     let label = '';
                     let daysRemaining = 0;
-                    
+
                     if (source === 'nsw' && !isHolidayBadge) {
                       const div = (localStorage.getItem('weekNswDivision') as 'eastern' | 'western') || 'eastern';
                       const year = now.getFullYear();
@@ -777,12 +777,12 @@ const SchoolPlanner = () => {
                         }
                       }
                     }
-                    
+
                     const radius = 40;
                     const circumference = 2 * Math.PI * radius;
                     const offset = circumference - (percentage / 100) * circumference;
                     const bgCircleColor = effectiveMode === 'light' ? '#e5e7eb' : '#4b5563';
-                    
+
                     return (
                       <div className="flex flex-col items-center gap-3">
                         <div className={`relative ${colors.accentText}`} style={{ width: 100, height: 100 }}>
@@ -846,7 +846,7 @@ const SchoolPlanner = () => {
                 <p>No events</p>
               </div>
             ) : null}
-            
+
             {timelineEvents.length > 0 && (
               <div
                 ref={listRef}
@@ -880,12 +880,12 @@ const SchoolPlanner = () => {
                       selectedScheduleDate.getDate()
                     ).getTime() > today.getTime()
                   );
-                  
+
                   // Only show countdown if: viewing future day, countdown is enabled, and there are events
                   if (isViewingFutureDay && showCountdownInTimeline && timelineEvents.length > 0 && nextEvent && nextEventDate) {
                     const displayColor = getEventColour(nextEvent.summary);
                     const cleanedLoc = (nextEvent.location || '').replace(/^Room:\s*/i, '').trim();
-                    
+
                     return (
                       <div className="mb-4 relative z-10 w-full">
                         <div className={`mb-2 text-base font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'} pl-0`}>
@@ -1167,7 +1167,7 @@ const SchoolPlanner = () => {
                 </div>
               </div>
             )}
-            {showCountdownInTimeline && !showNextDay && !isHolidayBadge && localStorage.getItem('showCountdownWidget') !== 'false' && (
+            {localStorage.getItem('showCountdownWidget') !== 'false' && !(showCountdownInTimeline && !isHolidayBadge && eventsWithBreaks.length > 0) && (
               <CountdownBox
                 searching={countdownSearching}
                 nextEvent={nextEvent}
@@ -1399,7 +1399,7 @@ const SchoolPlanner = () => {
   // Toggle handler with weekend logic
   const handleDayToggle = () => {
     const { autoSwitchedToNextDay } = dayEventsData;
-    
+
     if (autoSwitchedToNextDay && !forceShowActualToday && !showNextDay) {
       // Currently auto-showing next day, toggle to force show today
       setForceShowActualToday(true);
@@ -1460,11 +1460,11 @@ const SchoolPlanner = () => {
       // Always show today's weekday schedule, but if it's weekend/holiday, show next school day's schedule
       const now = new Date();
       const todayDow = now.getDay(); // 0=Sun..6=Sat
-      
+
       let targetDow = todayDow;
       let targetLabel = 'Today';
       let targetDate: Date | null = null;
-      
+
       // Check if we're in a holiday period (NSW terms)
       let isHoliday = false;
       try {
@@ -1479,8 +1479,8 @@ const SchoolPlanner = () => {
             isHoliday = /holiday/i.test(label);
           }
         }
-      } catch {}
-      
+      } catch { }
+
       // If in holiday, show first day back's schedule
       if (isHoliday && !forceShowActualToday) {
         const source = (localStorage.getItem('weekSource') as 'nsw' | 'custom') || 'nsw';
@@ -1517,7 +1517,7 @@ const SchoolPlanner = () => {
       } else {
         selectedScheduleDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       }
-      
+
       // Get today's events
       events = (weekData?.events.filter(event => event.dtstart.getDay() === targetDow) || [])
         .sort((a, b) => {
@@ -1525,19 +1525,19 @@ const SchoolPlanner = () => {
           const bTime = b.dtstart.getHours() * 60 + b.dtstart.getMinutes();
           return aTime - bTime;
         });
-      
+
       // Check if all events have ended for today (only on weekdays)
       // Only auto-switch when we're actually showing today's date (not a holiday/weekend override)
       const isSelectedDateToday = selectedScheduleDate
         ? new Date(selectedScheduleDate.getFullYear(), selectedScheduleDate.getMonth(), selectedScheduleDate.getDate()).getTime() ===
-          new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+        new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
         : true;
       if (!forceShowActualToday && isSelectedDateToday && todayDow >= 1 && todayDow <= 5 && events.length > 0) {
         const lastEvent = events[events.length - 1];
         if (lastEvent.dtend) {
           const lastEventEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate());
           lastEventEnd.setHours(lastEvent.dtend.getHours(), lastEvent.dtend.getMinutes(), lastEvent.dtend.getSeconds());
-          
+
           // If all events have ended, show next day's schedule
           if (now.getTime() >= lastEventEnd.getTime()) {
             autoSwitchedToNextDay = true;
@@ -1550,7 +1550,7 @@ const SchoolPlanner = () => {
               // Mon-Thu -> next day
               targetDate.setDate(now.getDate() + 1);
             }
-            
+
             dayLabel = targetDate.toLocaleDateString(undefined, { weekday: 'long' });
             const nextDayOfWeek = targetDate.getDay();
             events = (weekData?.events.filter(event => event.dtstart.getDay() === nextDayOfWeek) || [])
@@ -1574,13 +1574,13 @@ const SchoolPlanner = () => {
     }
     // Insert breaks between events for home screen too
     const eventsWithBreaks = insertBreaksBetweenEvents(events);
-    
+
     return { dayLabel, events, selectedScheduleDate, eventsWithBreaks, autoSwitchedToNextDay };
   }, [showNextDay, weekData, nowTs, forceShowActualToday]); // Add nowTs and forceShowActualToday to recalculate when they change
 
 
 
-  
+
 
 
   // --- Unified countdown effect ---
@@ -1593,7 +1593,7 @@ const SchoolPlanner = () => {
       setTabCountdown(null);
       return;
     }
-    
+
     // Extract countdown calculation into a function
     const updateCountdown = () => {
       const now = new Date();
@@ -1646,11 +1646,11 @@ const SchoolPlanner = () => {
             }
           }
         }
-      } catch {}
-      // Use findNextRepeatingEvent which includes breaks and End of Day
+      } catch { }
+      // Use findNextRepeatingEvent but filter out breaks and End of Day
       const soonest = findNextRepeatingEvent(now, weekData.events);
-      if (soonest) {
-        // Show the countdown to whatever event is next (including breaks and End of Day)
+      if (soonest && !isBreakEvent(soonest.event)) {
+        // Show the countdown to the next actual event (not breaks or End of Day)
         setNextEvent(soonest.event);
         setNextEventDate(soonest.date);
         const diff = soonest.date.getTime() - now.getTime();
@@ -1662,6 +1662,36 @@ const SchoolPlanner = () => {
           location: soonest.event.location || '',
         };
         setTabCountdown(info);
+      } else if (soonest && isBreakEvent(soonest.event)) {
+        // If next event is a break, find the next non-break event
+        const allFutureEvents = weekData.events
+          .map(e => {
+            const nextOccurrence = findNextRepeatingEvent(now, [e]);
+            return nextOccurrence;
+          })
+          .filter(e => e !== null && !isBreakEvent(e.event))
+          .sort((a, b) => a!.date.getTime() - b!.date.getTime());
+
+        if (allFutureEvents.length > 0 && allFutureEvents[0]) {
+          const nextNonBreak = allFutureEvents[0];
+          setNextEvent(nextNonBreak.event);
+          setNextEventDate(nextNonBreak.date);
+          const diff = nextNonBreak.date.getTime() - now.getTime();
+          setTimeLeft(diff > 0 ? diff : 0);
+          setCountdownSearching(false);
+          const info = {
+            time: formatCountdownForTab(diff > 0 ? diff : 0),
+            event: normalizeSubjectName(nextNonBreak.event.summary, true),
+            location: nextNonBreak.event.location || '',
+          };
+          setTabCountdown(info);
+        } else {
+          setNextEvent(null);
+          setNextEventDate(null);
+          setTimeLeft(null);
+          setCountdownSearching(false);
+          setTabCountdown(null);
+        }
       } else {
         setNextEvent(null);
         setNextEventDate(null);
@@ -1670,11 +1700,11 @@ const SchoolPlanner = () => {
         setTabCountdown(null);
       }
     };
-    
+
     // Run immediately on mount/update
     setCountdownSearching(true);
     updateCountdown();
-    
+
     // Update when nowTs changes (driven by the main interval below)
     // No need for a separate interval here
   }, [weekData, nowTs]);
@@ -2093,12 +2123,12 @@ const SchoolPlanner = () => {
         setNowTs(Date.now());
       }
     }, interval);
-    
+
     // Set initial time immediately if on home page
     if (location.pathname === '/home') {
       setNowTs(Date.now());
     }
-    
+
     return () => clearInterval(id);
   }, [showCountdownInTimeline, location.pathname]);
 
@@ -2306,7 +2336,7 @@ const SchoolPlanner = () => {
           onCountdownClick={openCountdownFullscreen}
         />
       </div>
-      
+
       {/* Main content with proper left margin for sidebar */}
       <div className="flex-1 lg:ml-16 pt-0 px-6 pb-6">
         {mainContent}
