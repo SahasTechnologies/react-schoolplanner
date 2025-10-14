@@ -53,34 +53,34 @@ async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs =
 export async function fetchQuoteOfTheDay(type: QuoteType = 'normal'): Promise<QuoteOfTheDay | null> {
   console.log('[QuoteOfTheDay] Starting fetch with type:', type);
   
-  // Try multiple CORS proxies in order (proxy 3 is most reliable, so try it first)
-  const proxies = [
-    'https://corsproxy.io/?',
-    'https://api.codetabs.com/v1/proxy?quest=',
-    'https://api.allorigins.win/get?url=',
-    'https://cors-anywhere.herokuapp.com/',
-    'https://thingproxy.freeboard.io/fetch/',
-    'https://yacdn.org/proxy/',
-    'https://cors.eu.org/',
-    'https://cors.bridged.cc/',
-    'https://api.codetabs.com/v1/proxy/?quest=',
-    'https://crossorigin.me/',
-    'https://cors-proxy.htmldriven.com/?url=',
-    'https://proxy.cors.sh/',
-    'https://cors.zimjs.com/',
-    'https://api.allorigins.win/raw?url=',
-    'https://cors-proxy.fringe.zone/',
-    'https://cors.proxy.consumet.org/',
-    'https://proxy.techzbots1.workers.dev/?u=',
-    'https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all&url=',
+  // Try multiple CORS proxies in order (most reliable first). Support both param- and path-style proxies.
+  const proxies: { prefix: string; mode: 'param' | 'path' | 'json' }[] = [
+    // Param-style (prefer raw passthroughs first)
+    { prefix: 'https://corsproxy.io/?', mode: 'param' },
+    { prefix: 'https://api.codetabs.com/v1/proxy?quest=', mode: 'param' },
+    { prefix: 'https://api.allorigins.win/raw?url=', mode: 'param' },
+    { prefix: 'https://api.allorigins.win/get?url=', mode: 'json' },
+    { prefix: 'https://api.allorigins.workers.dev/raw?url=', mode: 'param' },
+    { prefix: 'https://api.allorigins.workers.dev/get?url=', mode: 'json' },
+    { prefix: 'https://allorigins.deno.dev/raw?url=', mode: 'param' },
+    { prefix: 'https://allorigins.deno.dev/get?url=', mode: 'json' },
+    { prefix: 'https://bird.ioliu.cn/v1?url=', mode: 'param' },
+    { prefix: 'https://proxy.techzbots1.workers.dev/?u=', mode: 'param' },
+
+    // Path-style
+    { prefix: 'https://cors.isomorphic-git.org/', mode: 'path' },
+    { prefix: 'https://cors-anywhere.herokuapp.com/', mode: 'path' },
+    { prefix: 'https://cors.eu.org/', mode: 'path' },
+    { prefix: 'https://thingproxy.freeboard.io/fetch/', mode: 'path' },
   ];
   
   for (let i = 0; i < proxies.length; i++) {
     try {
-      const proxyUrl = proxies[i];
-      const targetUrl = encodeURIComponent('https://www.brainyquote.com/quote_of_the_day');
-      const fetchUrl = proxyUrl + targetUrl;
-      console.log(`[QuoteOfTheDay] Attempt ${i + 1}/${proxies.length} - Fetching from proxy:`, proxyUrl);
+      const { prefix, mode } = proxies[i];
+      const targetUrlRaw = 'https://www.brainyquote.com/quote_of_the_day';
+      const targetUrlEnc = encodeURIComponent(targetUrlRaw);
+      const fetchUrl = mode === 'path' ? (prefix + targetUrlRaw) : (prefix + targetUrlEnc);
+      console.log(`[QuoteOfTheDay] Attempt ${i + 1}/${proxies.length} - Fetching from proxy:`, prefix, '(' + mode + ')');
 
       const response = await fetchWithTimeout(fetchUrl);
       console.log('[QuoteOfTheDay] Response status:', response.status);
@@ -91,11 +91,15 @@ export async function fetchQuoteOfTheDay(type: QuoteType = 'normal'): Promise<Qu
       
       // Different proxies return different formats
       let html: string;
-      if (proxyUrl.includes('allorigins')) {
-        const data = await response.json();
-        html = data.contents;
-      } else if (proxyUrl.includes('codetabs')) {
-        html = await response.text();
+      if (mode === 'json') {
+        // AllOrigins GET returns a JSON object with a `contents` field
+        try {
+          const data = await response.json();
+          html = (data && data.contents) ? String(data.contents) : '';
+        } catch (_e) {
+          // Fallback to text if JSON parse fails
+          html = await response.text();
+        }
       } else {
         html = await response.text();
       }

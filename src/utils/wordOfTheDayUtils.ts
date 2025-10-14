@@ -10,28 +10,27 @@ export interface WordOfTheDay {
   source: 'vocabulary' | 'dictionary' | 'worddaily' | 'merriam-webster' | 'britannica';
 }
 
-// Multi-proxy HTML fetch with timeout to improve reliability and speed (proxy 3 is most reliable, so try it first)
+// Multi-proxy HTML fetch with timeout to improve reliability and speed
 const WORD_FETCH_TIMEOUT_MS = 8000;
-const WORD_PROXIES = [
-  'https://corsproxy.io/?',
-  'https://api.codetabs.com/v1/proxy?quest=',
-  'https://api.allorigins.win/get?url=',
-  'https://cors-anywhere.herokuapp.com/',
-  'https://thingproxy.freeboard.io/fetch/',
-  'https://yacdn.org/proxy/',
-  'https://cors.eu.org/',
-  'https://cors.bridged.cc/',
-  'https://api.codetabs.com/v1/proxy/?quest=',
-  'https://crossorigin.me/',
-  'https://cors-proxy.htmldriven.com/?url=',
-  'https://proxy.cors.sh/',
-  'https://cors.zimjs.com/',
-  'https://api.allorigins.win/raw?url=',
-  'https://cors-proxy.fringe.zone/',
-  'https://cors.proxy.consumet.org/',
-  'https://proxy.techzbots1.workers.dev/?u=',
-  'https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all&url=',
+const WORD_PROXIES: { prefix: string; mode: 'param' | 'path' | 'json' }[] = [
+  // Param-style (most reliable first)
+  { prefix: 'https://corsproxy.io/?', mode: 'param' },
+  { prefix: 'https://api.codetabs.com/v1/proxy?quest=', mode: 'param' },
+  { prefix: 'https://api.allorigins.win/raw?url=', mode: 'param' },
+  { prefix: 'https://api.allorigins.win/get?url=', mode: 'json' },
+  { prefix: 'https://api.allorigins.workers.dev/raw?url=', mode: 'param' },
+  { prefix: 'https://api.allorigins.workers.dev/get?url=', mode: 'json' },
+  { prefix: 'https://allorigins.deno.dev/raw?url=', mode: 'param' },
+  { prefix: 'https://allorigins.deno.dev/get?url=', mode: 'json' },
+  { prefix: 'https://bird.ioliu.cn/v1?url=', mode: 'param' },
+  { prefix: 'https://proxy.techzbots1.workers.dev/?u=', mode: 'param' },
+  { prefix: 'https://cors.isomorphic-git.org/', mode: 'path' },
+  { prefix: 'https://cors-anywhere.herokuapp.com/', mode: 'path' },
+  { prefix: 'https://cors.eu.org/', mode: 'path' },
+  { prefix: 'https://thingproxy.freeboard.io/fetch/', mode: 'path' },
+  { prefix: 'https://cors.zimjs.com/', mode: 'path' },
 ];
+
 
 async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = WORD_FETCH_TIMEOUT_MS): Promise<Response> {
   const controller = new AbortController();
@@ -45,31 +44,42 @@ async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs =
 
 async function fetchHtmlWithProxies(targetUrl: string): Promise<string> {
   for (let i = 0; i < WORD_PROXIES.length; i++) {
-    const proxy = WORD_PROXIES[i];
-    const proxied = proxy + encodeURIComponent(targetUrl);
+    const { prefix, mode } = WORD_PROXIES[i];
+    const proxied = mode === 'path' ? (prefix + targetUrl) : (prefix + encodeURIComponent(targetUrl));
     try {
-      console.log(`[WordOfTheDay] Proxy attempt ${i + 1}/${WORD_PROXIES.length}:`, proxy);
+      console.log(`[WordOfTheDay] Proxy attempt ${i + 1}/${WORD_PROXIES.length}:`, prefix, '(' + mode + ')');
       const resp = await fetchWithTimeout(proxied);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      if (proxy.includes('allorigins')) {
-        const data = await resp.json();
-        return data.contents as string;
+      if (mode === 'json') {
+        try {
+          const data = await resp.json() as any;
+          const html = (data && (data.contents ?? data.body ?? data.result)) ? String(data.contents ?? data.body ?? data.result) : '';
+          if (!html) throw new Error('Empty JSON contents');
+          if (html.includes('Just a moment') || html.includes('cf-browser-verification')) {
+            throw new Error('Cloudflare challenge detected');
+          }
+          return html;
+        } catch (_e) {
+          const text = await resp.text();
+          if (text.includes('Just a moment') || text.includes('cf-browser-verification')) {
+            throw new Error('Cloudflare challenge detected');
+          }
+          return text;
+        }
       }
       const text = await resp.text();
-      // Detect Cloudflare challenge quickly and move on
       if (text.includes('Just a moment') || text.includes('cf-browser-verification')) {
         throw new Error('Cloudflare challenge detected');
       }
       return text;
     } catch (e) {
-      console.warn('[WordOfTheDay] Proxy failed:', proxy, e);
+      console.warn('[WordOfTheDay] Proxy failed:', prefix, e);
       if (i === WORD_PROXIES.length - 1) throw e;
     }
   }
   throw new Error('All proxies failed');
 }
 
-// Parse HTML entities
 function parseHtmlEntities(str: string): string {
   return str
     .replace(/&#([0-9]{1,4});/g, (_match, numStr) => {
