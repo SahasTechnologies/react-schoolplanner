@@ -58,6 +58,21 @@ export async function fetchQuoteOfTheDay(type: QuoteType = 'normal'): Promise<Qu
     'https://corsproxy.io/?',
     'https://api.codetabs.com/v1/proxy?quest=',
     'https://api.allorigins.win/get?url=',
+    'https://cors-anywhere.herokuapp.com/',
+    'https://thingproxy.freeboard.io/fetch/',
+    'https://yacdn.org/proxy/',
+    'https://cors.eu.org/',
+    'https://cors.bridged.cc/',
+    'https://api.codetabs.com/v1/proxy/?quest=',
+    'https://crossorigin.me/',
+    'https://cors-proxy.htmldriven.com/?url=',
+    'https://proxy.cors.sh/',
+    'https://cors.zimjs.com/',
+    'https://api.allorigins.win/raw?url=',
+    'https://cors-proxy.fringe.zone/',
+    'https://cors.proxy.consumet.org/',
+    'https://proxy.techzbots1.workers.dev/?u=',
+    'https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all&url=',
   ];
   
   for (let i = 0; i < proxies.length; i++) {
