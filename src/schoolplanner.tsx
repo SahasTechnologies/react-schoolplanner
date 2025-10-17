@@ -20,7 +20,7 @@ import { Subject } from './types';
 import Sidebar from './components/Sidebar';
 import EventDetailsOverlay from './components/EventDetailsOverlay';
 import { createOfflineIndicatorElement } from './utils/offlineIndicatorUtils';
-import { processFile, exportData, defaultColours } from './utils/fileUtils';
+import { processFile, exportData, exportAllData, defaultColours } from './utils/fileUtils';
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported } from './utils/cacheUtils';
 import { showSuccess, showError, showInfo, removeNotification } from './utils/notificationUtils';
 import NotFound from './components/NotFound';
@@ -2215,11 +2215,21 @@ const SchoolPlanner = () => {
       subjectColours: true,
       subjectIcons: true,
       name: false,
+      preferences: false,
     },
   });
 
   const handleExport = () => {
-    const fileName = exportData(subjects, userName, exportModalState.options);
+    let fileName: string;
+    
+    // If preferences is selected, use comprehensive export that includes everything
+    if (exportModalState.options.preferences) {
+      fileName = exportAllData(subjects, userName, true);
+    } else {
+      // Otherwise use regular export with selected options
+      fileName = exportData(subjects, userName, exportModalState.options);
+    }
+    
     setExportModalState(s => ({ ...s, show: false }));
     showSuccess('Export Successful', `Data exported to ${fileName}`, { effectiveMode, colors });
   };

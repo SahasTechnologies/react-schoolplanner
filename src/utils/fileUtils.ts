@@ -292,3 +292,120 @@ export const exportData = (
   
   return fileName;
 }; 
+
+// Comprehensive export function that exports EVERYTHING in one file
+export const exportAllData = (
+  subjects: Subject[],
+  userName: string,
+  includePreferences: boolean = true
+) => {
+  const data: any = {
+    version: '1.0',
+    exportDate: new Date().toISOString(),
+  };
+  
+  // Export all subject data
+  data.subjects = subjects.map(subject => ({
+    ...subject,
+    colour: subject.colour || generateRandomColour(),
+  }));
+  
+  data.subjectInfo = subjects.map(subject => ({
+    id: subject.id,
+    name: subject.name,
+    originalName: subject.originalName,
+  }));
+  
+  data.subjectNotes = {};
+  subjects.forEach(subject => {
+    const key = `subject_note_${normalizeSubjectName(subject.name, true)}`;
+    const note = localStorage.getItem(key);
+    if (note) data.subjectNotes[subject.name] = note;
+  });
+  
+  data.subjectColours = subjects.map(subject => ({
+    name: subject.name,
+    colour: subject.colour,
+  }));
+  
+  data.subjectIcons = subjects.map(subject => ({
+    name: subject.name,
+    icon: normalizeSubjectName(subject.name, true),
+  }));
+  
+  data.name = userName;
+  
+  // Export exams and markbook data
+  const examsData = localStorage.getItem('examsBySubject');
+  if (examsData) {
+    try {
+      data.examsBySubject = JSON.parse(examsData);
+    } catch {
+      data.examsBySubject = examsData;
+    }
+  }
+  
+  const markbookPassword = localStorage.getItem('markbookPassword');
+  if (markbookPassword) data.markbookPassword = markbookPassword;
+  
+  const markbookPasswordEnabled = localStorage.getItem('markbookPasswordEnabled');
+  if (markbookPasswordEnabled) {
+    try {
+      data.markbookPasswordEnabled = JSON.parse(markbookPasswordEnabled);
+    } catch {
+      data.markbookPasswordEnabled = markbookPasswordEnabled;
+    }
+  }
+  
+  // Export links
+  const linksData = localStorage.getItem('links');
+  if (linksData) {
+    try {
+      data.links = JSON.parse(linksData);
+    } catch {
+      data.links = linksData;
+    }
+  }
+  
+  // Export all preferences if requested
+  if (includePreferences) {
+    data.preferences = {};
+    
+    const preferenceKeys = [
+      'autoNamingEnabled',
+      'theme',
+      'themeType',
+      'themeMode',
+      'offlineCachingEnabled',
+      'countdownInTitle',
+      'showCountdownInTimeline',
+      'showCountdownInSidebar',
+      'showFirstInfoBeside',
+      'infoOrder',
+      'infoShown',
+      'weekNumberingEnabled',
+      'use24HourFormat',
+      'quoteProvider',
+      'brainyquoteQuoteType',
+      'notionQuoteRefreshMode',
+      'wordSource',
+      'linksView'
+    ];
+    
+    preferenceKeys.forEach(key => {
+      const value = localStorage.getItem(key);
+      if (value !== null) {
+        try {
+          data.preferences[key] = JSON.parse(value);
+        } catch {
+          data.preferences[key] = value;
+        }
+      }
+    });
+  }
+  
+  const fileName = `${userName || 'schoolplanner'}-complete-backup.school`;
+  exportSchoolData(data, fileName);
+  
+  return fileName;
+};

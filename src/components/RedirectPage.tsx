@@ -1,24 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { School, TrendingUp, Download } from 'lucide-react';
-import ExportModal from './ExportModal';
-import { exportData } from '../utils/fileUtils';
+import { exportAllData } from '../utils/fileUtils';
 import { ThemeKey, getColors } from '../utils/themeUtils';
 import type { Subject } from '../types';
 
-interface ExportOptions {
-  subjects: boolean;
-  subjectInfo: boolean;
-  subjectNotes: boolean;
-  subjectColours: boolean;
-  subjectIcons: boolean;
-  name: boolean;
-  examsBySubject: boolean;
-  links: boolean;
-  preferences: boolean;
-}
-
 const RedirectPage: React.FC = () => {
-  const [showExportModal, setShowExportModal] = useState(false);
   
   // Get saved theme from localStorage, or fallback to blue theme with system mode
   const savedTheme = (localStorage.getItem('theme') as ThemeKey) || 'blue';
@@ -34,95 +20,28 @@ const RedirectPage: React.FC = () => {
   // Get colors using the same utility as the main app
   const colors = getColors(savedTheme, savedThemeType, effectiveMode);
 
-  const handleExportData = (options: ExportOptions) => {
+  const handleExportAllData = () => {
     try {
-      // Debug: Log what's in localStorage
-      console.log('LocalStorage keys:', Object.keys(localStorage));
-      console.log('Raw subjects data:', localStorage.getItem('subjects'));
-      
       // Get subjects and userName from localStorage
       const subjectsData = localStorage.getItem('subjects');
       const subjects: Subject[] = subjectsData ? JSON.parse(subjectsData) : [];
       const userName = localStorage.getItem('userName') || '';
 
-      console.log('Parsed subjects:', subjects);
-      console.log('User name:', userName);
-
       // Check if we have any data
       if (subjects.length === 0) {
         alert('No data found to export. Make sure you have imported your calendar data before exporting.');
-        setShowExportModal(false);
         return;
       }
 
-      // Use the proper export function for main data
-      if (options.subjects || options.subjectInfo || options.subjectNotes || options.subjectColours || options.subjectIcons || options.name) {
-        exportData(subjects, userName, {
-          subjects: options.subjects,
-          subjectInfo: options.subjectInfo,
-          subjectNotes: options.subjectNotes,
-          subjectColours: options.subjectColours,
-          subjectIcons: options.subjectIcons,
-          name: options.name,
-        });
-      }
+      // Export EVERYTHING in a single comprehensive file
+      // Includes: subjects (with timings, original/edited names), subject info, notes, colors, icons,
+      // name, exams, markbook, links, and all preferences
+      const fileName = exportAllData(subjects, userName, true);
 
-      // Also export additional data if requested (exams, links, preferences)
-      if (options.examsBySubject || options.links || options.preferences) {
-        const additionalData: Record<string, any> = {
-          version: '1.0',
-          exportDate: new Date().toISOString(),
-          data: {}
-        };
-
-        const keysToExport: string[] = [];
-        
-        if (options.examsBySubject) keysToExport.push('examsBySubject', 'markbookPassword', 'markbookPasswordEnabled');
-        if (options.links) keysToExport.push('links');
-        if (options.preferences) {
-          keysToExport.push(
-            'autoNamingEnabled',
-            'theme',
-            'themeType',
-            'themeMode',
-            'offlineCachingEnabled',
-            'countdownInTitle',
-            'showCountdownInTimeline',
-            'showCountdownInSidebar',
-            'showFirstInfoBeside',
-            'infoOrder',
-            'infoShown'
-          );
-        }
-
-        // Export each key
-        keysToExport.forEach(key => {
-          const value = localStorage.getItem(key);
-          if (value !== null) {
-            try {
-              additionalData.data[key] = JSON.parse(value);
-            } catch {
-              additionalData.data[key] = value;
-            }
-          }
-        });
-
-        // Create blob and download for additional data
-        const blob = new Blob([JSON.stringify(additionalData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `school-planner-additional-${new Date().toISOString().split('T')[0]}.school`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }
-
-      setShowExportModal(false);
+      alert(`✅ Export successful! File "${fileName}" has been downloaded with all your data.`);
     } catch (error) {
       console.error('Failed to export data:', error);
-      alert('Failed to export data. Please try again.');
+      alert('❌ Failed to export data. Please try again.');
     }
   };
 
@@ -263,7 +182,7 @@ const RedirectPage: React.FC = () => {
               Before you go, export your data to import it on the new site:
             </p>
             <button
-              onClick={() => setShowExportModal(true)}
+              onClick={handleExportAllData}
               style={{
                 width: '100%',
                 backgroundColor: colors.buttonAccent,
@@ -310,13 +229,6 @@ const RedirectPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Export Modal */}
-      <ExportModal
-        show={showExportModal}
-        onClose={() => setShowExportModal(false)}
-        onExport={handleExportData}
-        theme={effectiveMode}
-      />
     </>
   );
 };

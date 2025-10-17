@@ -64,6 +64,7 @@ interface ExportModalState {
     subjectColours: boolean;
     subjectIcons: boolean;
     name: boolean;
+    preferences: boolean;
   };
 }
 
@@ -1257,6 +1258,17 @@ const Settings: React.FC<SettingsProps> = ({
                   </span>
                 </div>
                 <span className={colors.containerText}>Name</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <div className={`checkbox-wrapper-30 ${colors.accentText}`}>
+                  <span className="checkbox">
+                    <input type="checkbox" checked={exportModalState.options.preferences} onChange={e => setExportModalState(s => ({ ...s, options: { ...s.options, preferences: e.target.checked } }))} />
+                    <svg>
+                      <use xlinkHref="#checkbox-30"></use>
+                    </svg>
+                  </span>
+                </div>
+                <span className={colors.containerText}>All Preferences (theme, countdown, widgets, etc.)</span>
               </label>
             </div>
             <div className="flex justify-end gap-3">
