@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { School, TrendingUp, Download } from 'lucide-react';
 import ExportModal from './ExportModal';
 import { exportData } from '../utils/fileUtils';
+import { ThemeKey, getColors } from '../utils/themeUtils';
 import type { Subject } from '../types';
 
 interface ExportOptions {
@@ -17,29 +18,21 @@ interface ExportOptions {
 }
 
 const RedirectPage: React.FC = () => {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [showExportModal, setShowExportModal] = useState(false);
-
-  useEffect(() => {
-    // Detect system theme preference
-    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    setTheme(isDark ? 'dark' : 'light');
-
-    // Listen for theme changes
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (e: MediaQueryListEvent) => {
-      setTheme(e.matches ? 'dark' : 'light');
-    };
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
-
-  const backgroundColor = theme === 'dark' ? '#0f172a' : '#f1f5f9';
-  const cardBackground = theme === 'dark' ? '#1e293b' : '#ffffff';
-  const textColor = theme === 'dark' ? '#f1f5f9' : '#0f172a';
-  const accentColor = '#3b82f6'; // Blue accent
-  const mutedText = theme === 'dark' ? '#94a3b8' : '#64748b';
-  const borderColor = theme === 'dark' ? '#334155' : '#e2e8f0';
+  
+  // Get saved theme from localStorage, or fallback to blue theme with system mode
+  const savedTheme = (localStorage.getItem('theme') as ThemeKey) || 'blue';
+  const savedThemeType = (localStorage.getItem('themeType') as 'normal' | 'extreme') || 'normal';
+  const savedThemeMode = (localStorage.getItem('themeMode') as 'light' | 'dark' | 'system') || 'system';
+  
+  // Determine effective mode
+  const getSystemMode = (): 'light' | 'dark' => {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  };
+  const effectiveMode: 'light' | 'dark' = savedThemeMode === 'system' ? getSystemMode() : savedThemeMode;
+  
+  // Get colors using the same utility as the main app
+  const colors = getColors(savedTheme, savedThemeType, effectiveMode);
 
   const handleExportData = (options: ExportOptions) => {
     try {
@@ -138,7 +131,7 @@ const RedirectPage: React.FC = () => {
       <div
         style={{
           minHeight: '100vh',
-          backgroundColor,
+          backgroundColor: colors.background,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -151,10 +144,11 @@ const RedirectPage: React.FC = () => {
           style={{
             maxWidth: '600px',
             width: '100%',
-            backgroundColor: cardBackground,
+            backgroundColor: colors.container,
+            borderColor: colors.border,
             borderRadius: '16px',
             padding: '48px 32px',
-            border: `1px solid ${borderColor}`,
+            border: `1px solid ${colors.border}`,
             transition: 'all 0.3s ease'
           }}
         >
@@ -162,7 +156,7 @@ const RedirectPage: React.FC = () => {
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
             <School
               size={80}
-              color={accentColor}
+              color={colors.accent}
               style={{ margin: '0 auto' }}
             />
           </div>
@@ -173,21 +167,21 @@ const RedirectPage: React.FC = () => {
               style={{
                 fontSize: '32px',
                 fontWeight: '700',
-                color: textColor,
+                color: colors.text,
                 textAlign: 'center',
                 lineHeight: '1.2'
               }}
             >
               We've Moved
             </h1>
-            <TrendingUp size={32} color={accentColor} />
+            <TrendingUp size={32} color={colors.accent} />
           </div>
 
           {/* Description */}
           <p
             style={{
               fontSize: '16px',
-              color: mutedText,
+              color: colors.textSecondary,
               textAlign: 'center',
               marginBottom: '32px',
               lineHeight: '1.6'
@@ -201,8 +195,8 @@ const RedirectPage: React.FC = () => {
             href="https://school.sahas.dpdns.org"
             style={{
               display: 'block',
-              backgroundColor: theme === 'dark' ? '#0f172a' : '#f8fafc',
-              border: `2px solid ${accentColor}`,
+              backgroundColor: colors.container,
+              border: `2px solid ${colors.accent}`,
               borderRadius: '12px',
               padding: '24px',
               marginBottom: '8px',
@@ -221,7 +215,7 @@ const RedirectPage: React.FC = () => {
             <p
               style={{
                 fontSize: '14px',
-                color: mutedText,
+                color: colors.textSecondary,
                 marginBottom: '8px',
                 fontWeight: '600',
                 textTransform: 'uppercase',
@@ -234,7 +228,7 @@ const RedirectPage: React.FC = () => {
               style={{
                 fontSize: '24px',
                 fontWeight: '700',
-                color: accentColor,
+                color: colors.accent,
                 wordBreak: 'break-all'
               }}
             >
@@ -246,7 +240,7 @@ const RedirectPage: React.FC = () => {
           <p
             style={{
               fontSize: '11px',
-              color: mutedText,
+              color: colors.textSecondary,
               textAlign: 'center',
               marginBottom: '32px',
               fontFamily: 'monospace',
@@ -261,7 +255,7 @@ const RedirectPage: React.FC = () => {
             <p
               style={{
                 fontSize: '14px',
-                color: mutedText,
+                color: colors.textSecondary,
                 marginBottom: '12px',
                 textAlign: 'center'
               }}
@@ -272,8 +266,8 @@ const RedirectPage: React.FC = () => {
               onClick={() => setShowExportModal(true)}
               style={{
                 width: '100%',
-                backgroundColor: accentColor,
-                color: '#ffffff',
+                backgroundColor: colors.buttonAccent,
+                color: colors.buttonText,
                 border: 'none',
                 borderRadius: '8px',
                 padding: '14px 24px',
@@ -292,7 +286,7 @@ const RedirectPage: React.FC = () => {
                 e.currentTarget.style.transform = 'translateY(-2px)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = accentColor;
+                e.currentTarget.style.backgroundColor = colors.buttonAccent;
                 e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
@@ -305,7 +299,7 @@ const RedirectPage: React.FC = () => {
           <p
             style={{
               fontSize: '12px',
-              color: mutedText,
+              color: colors.textSecondary,
               textAlign: 'center',
               marginTop: '24px',
               lineHeight: '1.5'
@@ -321,7 +315,7 @@ const RedirectPage: React.FC = () => {
         show={showExportModal}
         onClose={() => setShowExportModal(false)}
         onExport={handleExportData}
-        theme={theme}
+        theme={effectiveMode}
       />
     </>
   );
