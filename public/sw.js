@@ -52,17 +52,20 @@ self.addEventListener('fetch', (event) => {
   // Only handle GET requests
   if (req.method !== 'GET') return;
 
-  // Navigation requests: try network, fallback to offline page
+  // Navigation requests: always serve index.html for React Router to handle
+  // This ensures /settings, /calendar, etc. all work properly
   if (req.mode === 'navigate') {
     event.respondWith(
       (async () => {
         try {
-          const fresh = await fetch(req);
-          // Optionally cache the HTML for offline navigations
+          // Always fetch index.html for navigation requests
+          const fresh = await fetch('/');
+          // Cache the HTML for offline navigations
           const cache = await caches.open(CACHE_NAME);
           cache.put(OFFLINE_FALLBACK_PAGE, fresh.clone());
           return fresh;
         } catch (_) {
+          // Offline: serve cached index.html
           const cached = await caches.match(OFFLINE_FALLBACK_PAGE);
           return cached || new Response('Offline', { status: 503, statusText: 'Offline' });
         }

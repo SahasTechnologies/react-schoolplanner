@@ -239,8 +239,6 @@ const Settings: React.FC<SettingsProps> = ({
   const [heartIdCounter, setHeartIdCounter] = useState(0);
   const [copied, setCopied] = useState(false);
   const [copyButtonPressed, setCopyButtonPressed] = useState(false);
-  const [cacheVersion, setCacheVersion] = useState<string | null>(null);
-  const [latestVersion, setLatestVersion] = useState<string>('v3');
 
   // Obfuscation helpers (avoid putting sensitive strings in DOM/source as plain text)
   const decodeChars = (arr: number[]) => String.fromCharCode(...arr);
@@ -275,46 +273,6 @@ const Settings: React.FC<SettingsProps> = ({
     }
   }, [showTerms, showPrivacy, showLicensing]);
 
-  // Check cache version and deployed version
-  useEffect(() => {
-    const checkVersion = async () => {
-      try {
-        // Check deployed service worker version
-        const swResponse = await fetch('/sw.js', { cache: 'no-cache' });
-        const swText = await swResponse.text();
-        const versionMatch = swText.match(/CACHE_NAME\s*=\s*['"]school-planner-(v\d+)['"]/);
-        const deployedVersion = versionMatch ? versionMatch[1] : null;
-        
-        if (deployedVersion) {
-          setLatestVersion(deployedVersion);
-        }
-
-        // Check cache version
-        if ('caches' in window) {
-          const cacheNames = await caches.keys();
-          const schoolPlannerCache = cacheNames.find(name => name.includes('school-planner'));
-          if (schoolPlannerCache) {
-            setCacheVersion(schoolPlannerCache);
-          } else if (deployedVersion) {
-            // No cache but we're running the latest version (just loaded fresh)
-            setCacheVersion(`school-planner-${deployedVersion}`);
-          } else {
-            setCacheVersion(null);
-          }
-        } else if (deployedVersion) {
-          // No cache API but we have the deployed version
-          setCacheVersion(`school-planner-${deployedVersion}`);
-        } else {
-          setCacheVersion(null);
-        }
-      } catch (error) {
-        // If service worker check fails, assume we're on latest (fresh load)
-        setCacheVersion('school-planner-latest');
-        setLatestVersion('latest');
-      }
-    };
-    checkVersion();
-  }, [offlineCachingEnabled, isUpdatingCache]);
 
   /* --------------------------------- Local state -------------------------------- */
   const [oldPasswordInput, setOldPasswordInput] = useState('');
@@ -2006,25 +1964,6 @@ const Settings: React.FC<SettingsProps> = ({
               <Github size={24} />
               <span className="font-medium">View Source on GitHub</span>
             </a>
-            <div className="flex items-center justify-center gap-2">
-              <span className={`text-sm font-medium ${colors.containerText}`}>Latest Version</span>
-              <div 
-                className={`w-3 h-3 rounded-full transition-colors duration-300 ${
-                  cacheVersion && latestVersion && cacheVersion.includes(latestVersion)
-                    ? 'bg-green-500' 
-                    : cacheVersion === null
-                    ? 'bg-gray-400'
-                    : 'bg-yellow-500'
-                }`}
-                title={
-                  cacheVersion && latestVersion && cacheVersion.includes(latestVersion)
-                    ? 'Running latest version'
-                    : cacheVersion === null
-                    ? 'Checking version...'
-                    : 'Cache may need updating'
-                }
-              />
-            </div>
           </div>
         </div>
         <div className={`flex items-center justify-center gap-2 ${colors.containerText}`}>
