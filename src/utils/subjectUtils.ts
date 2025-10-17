@@ -111,6 +111,9 @@ export const normalizeSubjectName = (summary: string, autoNamingEnabled: boolean
   let lowerSummary = summary.toLowerCase();
 
   if (autoNamingEnabled) { // Apply auto-naming only if enabled
+    if (lowerSummary.includes('science') && lowerSummary.includes('social')) {
+      return 'Social Science';
+    }
     // Apply specific renames based on keywords first
     for (const [key, value] of renameMap.entries()) {
       if (lowerSummary.includes(key)) {

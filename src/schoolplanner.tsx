@@ -1,15 +1,15 @@
-
 import * as React from 'react';
 import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import {
   Calendar,
   Settings as SettingsIcon, ChevronsUpDown,
-  Maximize, X, Home
+  Maximize, X, Home, BarChart3, Clock
 } from 'lucide-react';
+
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { ThemeKey, getColors } from './utils/themeUtils';
-import { normalizeSubjectName, getSubjectIcon } from './utils/subjectUtils.ts';
-import { CalendarEvent, WeekData, insertBreaksBetweenEvents, isBreakEvent } from './utils/calendarUtils.ts';
+import { normalizeSubjectName, getSubjectIcon } from './utils/subjectUtils';
+import { CalendarEvent, WeekData, insertBreaksBetweenEvents, isBreakEvent } from './utils/calendarUtils';
 import TodayScheduleTimeline from './components/TodayScheduleTimeline';
 import { ThemeModal } from './components/ThemeModal';
 import WelcomeScreen from './components/WelcomeScreen';
@@ -20,8 +20,8 @@ import { Subject } from './types';
 import Sidebar from './components/Sidebar';
 import EventDetailsOverlay from './components/EventDetailsOverlay';
 import { createOfflineIndicatorElement } from './utils/offlineIndicatorUtils';
-import { processFile, exportData, defaultColours } from './utils/fileUtils.ts';
-import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported } from './utils/cacheUtils.ts';
+import { processFile, exportData, defaultColours } from './utils/fileUtils';
+import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported } from './utils/cacheUtils';
 import { showSuccess, showError, showInfo, removeNotification } from './utils/notificationUtils';
 import NotFound from './components/NotFound';
 import { Exam } from './types';
@@ -206,14 +206,6 @@ const SchoolPlanner = () => {
     }
   }, [offlineCachingEnabled]);
 
-  // Known icon names we support in renderIcon
-  const knownIcons = React.useMemo(() => new Set<string>([
-    'BookOpen', 'Clock', 'FileText', 'User', 'Printer', 'Calendar', 'Folder', 'CreditCard', 'Newspaper',
-    'Globe', 'Link', 'Home', 'School', 'Laptop', 'Smartphone', 'ExternalLink'
-  ]), []);
-
-  const isIconKnown = (name?: string) => (name ? knownIcons.has(name) : false);
-
   // Remove enhanced biweekly schedule and pattern logic
 
   // Remove old .ics and .school handlers, use one for both
@@ -231,9 +223,17 @@ const SchoolPlanner = () => {
     if (title === 'Break' || title === 'End of Day') {
       return effectiveMode === 'light' ? '#6b7280' : '#9ca3af'; // Gray color for breaks
     }
-    const normalizedTitle = normalizeSubjectName(title, autoNamingEnabled);
-    const subject = subjects.find((s: Subject) => normalizeSubjectName(s.name, autoNamingEnabled) === normalizedTitle);
-    return subject ? subject.colour : getDeterministicColour(normalizedTitle, defaultColours); // Use deterministic fallback
+    // Match subjects independent of auto-naming toggle to keep colors stable
+    const normOn = normalizeSubjectName(title, true);
+    const normOff = normalizeSubjectName(title, false);
+    const trimmed = title.trim();
+    const subject = subjects.find((s: Subject) =>
+      normalizeSubjectName(s.name, true) === normOn ||
+      normalizeSubjectName(s.name, false) === normOff ||
+      s.name.trim() === trimmed
+    );
+    // Fallback: use a stable key (normalized with auto-naming ON)
+    return subject ? subject.colour : getDeterministicColour(normOn, defaultColours);
   };
 
 
@@ -397,7 +397,7 @@ const SchoolPlanner = () => {
         setSubjects((prevSubjects: Subject[]) =>
           prevSubjects.map((subject: Subject) =>
             subject.id === selectedSubjectForEdit.id
-              ? { ...subject, name: editName, colour: editColour, icon: isIconKnown(editIcon) ? editIcon : undefined }
+              ? { ...subject, name: editName, colour: editColour, icon: editIcon ? editIcon : undefined }
               : subject
           )
         );
@@ -1161,9 +1161,11 @@ const SchoolPlanner = () => {
                       return `at ${timeStr}`;
                     })()}
                   </div>
-                  <div className={`text-xs ${effectiveMode === 'light' ? 'text-black opacity-60' : 'text-white opacity-60'} mt-1`}>
-                    Accounting for daylight saving
-                  </div>
+                  {new Date().getTimezoneOffset() !== daysTillSchool.target.getTimezoneOffset() && (
+                    <div className={`text-xs ${effectiveMode === 'light' ? 'text-black opacity-60' : 'text-white opacity-60'} mt-1`}>
+                      Accounting for daylight saving
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1304,8 +1306,6 @@ const SchoolPlanner = () => {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
-
-
 
   // Simple ResizeObserver that only measures on window resize, not during hover animations
   useEffect(() => {
@@ -1647,10 +1647,9 @@ const SchoolPlanner = () => {
           }
         }
       } catch { }
-      // Use findNextRepeatingEvent but filter out breaks and End of Day
+      // Use findNextRepeatingEvent directly (includes breaks and End of Day)
       const soonest = findNextRepeatingEvent(now, weekData.events);
-      if (soonest && !isBreakEvent(soonest.event)) {
-        // Show the countdown to the next actual event (not breaks or End of Day)
+      if (soonest) {
         setNextEvent(soonest.event);
         setNextEventDate(soonest.date);
         const diff = soonest.date.getTime() - now.getTime();
@@ -1662,36 +1661,6 @@ const SchoolPlanner = () => {
           location: soonest.event.location || '',
         };
         setTabCountdown(info);
-      } else if (soonest && isBreakEvent(soonest.event)) {
-        // If next event is a break, find the next non-break event
-        const allFutureEvents = weekData.events
-          .map(e => {
-            const nextOccurrence = findNextRepeatingEvent(now, [e]);
-            return nextOccurrence;
-          })
-          .filter(e => e !== null && !isBreakEvent(e.event))
-          .sort((a, b) => a!.date.getTime() - b!.date.getTime());
-
-        if (allFutureEvents.length > 0 && allFutureEvents[0]) {
-          const nextNonBreak = allFutureEvents[0];
-          setNextEvent(nextNonBreak.event);
-          setNextEventDate(nextNonBreak.date);
-          const diff = nextNonBreak.date.getTime() - now.getTime();
-          setTimeLeft(diff > 0 ? diff : 0);
-          setCountdownSearching(false);
-          const info = {
-            time: formatCountdownForTab(diff > 0 ? diff : 0),
-            event: normalizeSubjectName(nextNonBreak.event.summary, true),
-            location: nextNonBreak.event.location || '',
-          };
-          setTabCountdown(info);
-        } else {
-          setNextEvent(null);
-          setNextEventDate(null);
-          setTimeLeft(null);
-          setCountdownSearching(false);
-          setTabCountdown(null);
-        }
       } else {
         setNextEvent(null);
         setNextEventDate(null);
@@ -1824,6 +1793,20 @@ const SchoolPlanner = () => {
     document.body.style.backgroundColor = bg;
     document.documentElement.style.backgroundColor = bg;
   }, [colors.background]);
+
+  // Detect theme-changing extensions (e.g., Dark Reader) and show fullscreen modal once
+  useEffect(() => {
+    try {
+      const key = 'themeExtensionNoticeShown';
+      if (localStorage.getItem(key) === 'true') return;
+      const html = document.documentElement;
+      const hasDarkReaderAttr = html.hasAttribute('data-darkreader-mode') || html.hasAttribute('data-darkreader-scheme');
+      const hasDarkReaderTags = !!document.querySelector('meta[name="darkreader"], style[media*="darkreader"], link[rel="stylesheet"][class*="darkreader"]');
+      if (hasDarkReaderAttr || hasDarkReaderTags) {
+        setShowThemeInterferenceModal(true);
+      }
+    } catch {}
+  }, [effectiveMode, colors]);
 
   // When setting theme, also set themeType
   function handleThemeChange(key: string, type: 'normal' | 'extreme') {
@@ -2013,6 +1996,9 @@ const SchoolPlanner = () => {
   // Add state for tab countdown info (for tab title)
   const [tabCountdown, setTabCountdown] = useState<{ time: string; event: string; location?: string } | null>(null);
 
+  // Fullscreen theme interference modal
+  const [showThemeInterferenceModal, setShowThemeInterferenceModal] = useState(false);
+
   // Save infoOrder and infoShown to localStorage
   useEffect(() => {
     localStorage.setItem('eventInfoOrder', JSON.stringify(infoOrder));
@@ -2144,18 +2130,31 @@ const SchoolPlanner = () => {
     localStorage.setItem('offlineCachingEnabled', offlineCachingEnabled ? 'true' : 'false');
   }, [offlineCachingEnabled]);
 
-  // Update document.title for countdown in tab title
+  // Update document.title for countdown in tab title (reset only when disabled)
   useEffect(() => {
-    if (countdownInTitle && tabCountdown && tabCountdown.time && tabCountdown.event) {
-      const rawLoc = tabCountdown.location || '';
-      const cleanedLoc = rawLoc.replace(/^Room:\s*/i, '').trim();
-      const loc = cleanedLoc ? ` in ${cleanedLoc}` : '';
-      const newTitle = `${tabCountdown.time} until ${tabCountdown.event}${loc}`;
-      document.title = newTitle;
-    } else {
+    if (!countdownInTitle) {
       document.title = 'School Planner';
     }
-  }, [countdownInTitle, tabCountdown]);
+  }, [countdownInTitle]);
+
+  // Real-time tab title ticker (best-effort when background tab may throttle)
+  useEffect(() => {
+    if (!countdownInTitle || !nextEventDate || !nextEvent) return;
+    const updateTitle = () => {
+      const diff = Math.max(0, nextEventDate.getTime() - Date.now());
+      const timeStr = formatCountdownForTab(diff);
+      const rawLoc = nextEvent.location || '';
+      const cleanedLoc = rawLoc.replace(/^Room:\s*/i, '').trim();
+      const loc = cleanedLoc ? ` in ${cleanedLoc}` : '';
+      const eventName = normalizeSubjectName(nextEvent.summary, true);
+      document.title = `${timeStr} until ${eventName}${loc}`;
+    };
+    updateTitle();
+    const id = setInterval(updateTitle, 1000);
+    const onVis = () => updateTitle();
+    document.addEventListener('visibilitychange', onVis);
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', onVis); };
+  }, [countdownInTitle, nextEventDate, nextEvent]);
 
   // Save tabCountdown to localStorage when it changes
   useEffect(() => {
@@ -2338,7 +2337,7 @@ const SchoolPlanner = () => {
       </div>
 
       {/* Main content with proper left margin for sidebar */}
-      <div className="flex-1 lg:ml-16 pt-0 px-6 pb-6">
+      <div className="flex-1 lg:ml-16 pt-0 px-6 pb-20 lg:pb-6">
         {mainContent}
 
         {/* Fullscreen countdown modal */}
@@ -2378,6 +2377,35 @@ const SchoolPlanner = () => {
             effectiveMode={effectiveMode}
             subjects={subjects}
           />
+        )}
+
+        {/* Theme interference fullscreen modal */}
+        {showThemeInterferenceModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+            <div className={`${colors.container} ${colors.border} border rounded-2xl p-6 w-full max-w-lg shadow-lg`}>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className={`text-lg font-semibold ${colors.buttonText}`}>Theme Extension Detected</h3>
+                <button
+                  onClick={() => { setShowThemeInterferenceModal(false); localStorage.setItem('themeExtensionNoticeShown', 'true'); }}
+                  className={`${colors.text} opacity-70 hover:opacity-100 transition`}
+                  title="Close"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <p className={`${colors.containerText} mb-4`}>
+                A browser extension appears to be modifying the site colors (for example, Dark Reader). This is okay, but if you prefer the app's default theme, please disable the extension for this site.
+              </p>
+              <div className="flex justify-end">
+                <button
+                  onClick={() => { setShowThemeInterferenceModal(false); localStorage.setItem('themeExtensionNoticeShown', 'true'); }}
+                  className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
+                >
+                  Okay
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Disable password confirmation modal */}
@@ -2440,10 +2468,33 @@ const SchoolPlanner = () => {
           </div>
         )}
       </div>
+      <div className={`lg:hidden fixed bottom-0 left-0 right-0 ${colors.container} ${colors.border} border-t z-40`}>
+        <div className="flex justify-around items-center h-14">
+          <button onClick={() => navigate('/home')} className="flex flex-col items-center text-xs" title="Home">
+            <Home size={20} className={location.pathname === '/home' ? 'text-blue-500' : (effectiveMode === 'light' ? 'text-black' : 'text-white')} />
+            <span className={`${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Home</span>
+          </button>
+          <button onClick={() => navigate('/calendar')} className="flex flex-col items-center text-xs" title="Calendar">
+            <Calendar size={20} className={location.pathname === '/calendar' ? 'text-blue-500' : (effectiveMode === 'light' ? 'text-black' : 'text-white')} />
+            <span className={`${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Calendar</span>
+          </button>
+          <button onClick={() => navigate('/markbook')} className="flex flex-col items-center text-xs" title="Markbook">
+            <BarChart3 size={20} className={location.pathname === '/markbook' ? 'text-blue-500' : (effectiveMode === 'light' ? 'text-black' : 'text-white')} />
+            <span className={`${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Markbook</span>
+          </button>
+          <button onClick={() => navigate('/settings')} className="flex flex-col items-center text-xs" title="Settings">
+            <SettingsIcon size={20} className={location.pathname === '/settings' ? 'text-blue-500' : (effectiveMode === 'light' ? 'text-black' : 'text-white')} />
+            <span className={`${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Settings</span>
+          </button>
+          {showCountdownInSidebar && (
+            <button onClick={openCountdownFullscreen} className="flex flex-col items-center text-xs" title="Countdown">
+              <Clock size={20} className={effectiveMode === 'light' ? 'text-black' : 'text-white'} />
+              <span className={`${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Countdown</span>
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
-
-
-
 export default SchoolPlanner;

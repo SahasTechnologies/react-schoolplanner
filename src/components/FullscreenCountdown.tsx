@@ -60,6 +60,7 @@ export default function FullscreenCountdown({
   const eventColor = nextEvent ? getEventColour(nextEvent.summary) : '#94a3b8';
   const isBreak = nextEvent && isBreakEvent(nextEvent);
   const displayColor = isBreak ? '#94a3b8' : eventColor;
+  const showDstNotice = nextEventDate ? (new Date().getTimezoneOffset() !== nextEventDate.getTimezoneOffset()) : false;
 
   return (
     <div
@@ -173,16 +174,18 @@ export default function FullscreenCountdown({
                 })()}
               </div>
               {/* DST notice */}
-              <div
-                className={`text-sm ${colors.text}`}
-                style={{
-                  opacity: 0.6,
-                  fontWeight: '400',
-                  fontFamily: "'Red Hat Text', sans-serif"
-                }}
-              >
-                Accounting for daylight saving
-              </div>
+              {showDstNotice && (
+                <div
+                  className={`text-sm ${colors.text}`}
+                  style={{
+                    opacity: 0.6,
+                    fontWeight: '400',
+                    fontFamily: "'Red Hat Text', sans-serif"
+                  }}
+                >
+                  Accounting for daylight saving
+                </div>
+              )}
             </div>
           </>
         ) : (

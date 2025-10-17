@@ -41,7 +41,8 @@ import {
   Link as LinkIcon,
   Landmark,
   HandHeart,
-  Copy
+  Copy,
+  AlertTriangle
 } from 'lucide-react';
 import { ThemeKey } from '../utils/themeUtils';
 import { isServiceWorkerSupported, forceCacheUpdate } from '../utils/cacheUtils';
@@ -910,7 +911,7 @@ const Settings: React.FC<SettingsProps> = ({
       {/* Week Source Modal */}
       {weekNumberingEnabled && showWeekSourceModal && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className={`${colors.container} rounded-lg p-6 shadow-xl border ${colors.border} w-full max-w-md`}>
+          <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className={`text-xl font-semibold ${colors.buttonText}`}>Week Numbering & Holidays</h3>
               <button onClick={() => setShowWeekSourceModal(false)} className={`${colors.buttonText} opacity-70 hover:opacity-100`}><X size={20} /></button>
@@ -1101,9 +1102,9 @@ const Settings: React.FC<SettingsProps> = ({
                 --color-bg: ${effectiveMode === 'light' ? '#f3f4f6' : '#232323'};
                 --color-bg-dark: ${effectiveMode === 'dark' ? '#232323' : '#f3f4f6'};
                 --color-border: ${effectiveMode === 'light' ? '#d1d5db' : '#444'};
+                /* Use theme accent via currentColor from wrapper class */
                 --color-primary: currentColor;
                 --color-primary-light: currentColor;
-                --tick: currentColor;
               }
               /* Checkbox CSS by Saeed Alipoor */
               .checkbox-wrapper-30 .checkbox {
@@ -1159,7 +1160,7 @@ const Settings: React.FC<SettingsProps> = ({
                 fill: none;
                 left: 0;
                 pointer-events: none;
-                stroke: var(--tick, currentColor);
+                stroke: var(--stroke, var(--border-active));
                 stroke-dasharray: var(--dashArray, 93);
                 stroke-dashoffset: var(--dashOffset, 94);
                 stroke-linecap: round;
@@ -1652,6 +1653,17 @@ const Settings: React.FC<SettingsProps> = ({
               Change Theme
             </button>
           </div>
+          <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-start gap-3 mt-3`}>
+            <div className={`p-2 rounded-lg ${colors.containerOverlay}`}>
+              <AlertTriangle size={18} className={colors.accentText} />
+            </div>
+            <div>
+              <p className={`font-medium ${colors.containerText}`}>Theme may be changed by extensions</p>
+              <p className={`text-sm ${colors.containerText} opacity-80`}>
+                If you are using a browser extension like Dark Reader, it may modify the colours of the app. This is okay, but if you prefer the default theme, please disable the extension for this site.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1659,6 +1671,18 @@ const Settings: React.FC<SettingsProps> = ({
       <section className="mb-8">
         <style>{`
           @keyframes heartPulse {
+            0% {
+              transform: translateY(0) scale(1);
+              opacity: 1;
+            }
+            50% {
+              transform: translateY(-30px) scale(1.2);
+              opacity: 0.8;
+            }
+            100% {
+              transform: translateY(-60px) scale(0.8);
+              opacity: 0;
+            }
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.15); }
           }
