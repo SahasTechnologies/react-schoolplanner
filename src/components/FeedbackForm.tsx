@@ -394,15 +394,15 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
     // Check honeypot - if filled, it's spam
     if (companyWebsite.trim()) return;
 
-    if (!isAutoSubmit && (hasSubmittedRef.current || submittingRef.current)) return;
+    if (!isAutoSubmit) {
+      // Immediately check and set refs to prevent duplicate submissions
+      if (hasSubmittedRef.current || submittingRef.current) return;
+      submittingRef.current = true;
+      setError(null);
+      setSubmitting(true);
+    }
 
     try {
-      if (!isAutoSubmit) {
-        setError(null);
-        setSubmitting(true);
-        submittingRef.current = true;
-      }
-
       // For manual submits: try Google first; only use FormSubmit if Google attempt failed
       const googleOk = await submitGoogleViaFormDOM();
       if (!googleOk) await submitToFormSubmit(isAutoSubmit);

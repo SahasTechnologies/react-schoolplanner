@@ -521,6 +521,7 @@ const SchoolPlanner = () => {
         setShowCountdownInSidebar={setShowCountdownInSidebar}
         use24HourFormat={use24HourFormat}
         setUse24HourFormat={setUse24HourFormat}
+        customCssDetected={customCssDetected}
       />
     </div>
   );
@@ -1797,12 +1798,14 @@ const SchoolPlanner = () => {
   // Detect theme-changing extensions (e.g., Dark Reader) and show fullscreen modal once
   useEffect(() => {
     try {
-      const key = 'themeExtensionNoticeShown';
-      if (localStorage.getItem(key) === 'true') return;
       const html = document.documentElement;
       const hasDarkReaderAttr = html.hasAttribute('data-darkreader-mode') || html.hasAttribute('data-darkreader-scheme');
       const hasDarkReaderTags = !!document.querySelector('meta[name="darkreader"], style[media*="darkreader"], link[rel="stylesheet"][class*="darkreader"]');
-      if (hasDarkReaderAttr || hasDarkReaderTags) {
+      const isDetected = hasDarkReaderAttr || hasDarkReaderTags;
+      setCustomCssDetected(isDetected);
+      
+      const key = 'themeExtensionNoticeShown';
+      if (isDetected && localStorage.getItem(key) !== 'true') {
         setShowThemeInterferenceModal(true);
       }
     } catch {}
@@ -1998,6 +2001,7 @@ const SchoolPlanner = () => {
 
   // Fullscreen theme interference modal
   const [showThemeInterferenceModal, setShowThemeInterferenceModal] = useState(false);
+  const [customCssDetected, setCustomCssDetected] = useState(false);
 
   // Save infoOrder and infoShown to localStorage
   useEffect(() => {
@@ -2137,11 +2141,20 @@ const SchoolPlanner = () => {
     }
   }, [countdownInTitle]);
 
-  // Real-time tab title ticker (best-effort when background tab may throttle)
+  // Real-time tab title ticker with aggressive updates to work around browser throttling in background tabs
   useEffect(() => {
     if (!countdownInTitle || !nextEventDate || !nextEvent) return;
+    
+    let animFrameId: number | null = null;
+    let lastUpdate = 0;
+    
     const updateTitle = () => {
-      const diff = Math.max(0, nextEventDate.getTime() - Date.now());
+      const now = Date.now();
+      // Only update if at least 950ms has passed to avoid excessive updates
+      if (now - lastUpdate < 950) return;
+      lastUpdate = now;
+      
+      const diff = Math.max(0, nextEventDate.getTime() - now);
       const timeStr = formatCountdownForTab(diff);
       const rawLoc = nextEvent.location || '';
       const cleanedLoc = rawLoc.replace(/^Room:\s*/i, '').trim();
@@ -2149,11 +2162,28 @@ const SchoolPlanner = () => {
       const eventName = normalizeSubjectName(nextEvent.summary, true);
       document.title = `${timeStr} until ${eventName}${loc}`;
     };
+    
+    // Use both requestAnimationFrame (for when tab is active) and setInterval (backup for inactive tabs)
+    const tick = () => {
+      updateTitle();
+      animFrameId = requestAnimationFrame(tick);
+    };
+    
     updateTitle();
-    const id = setInterval(updateTitle, 1000);
-    const onVis = () => updateTitle();
+    const id = setInterval(updateTitle, 1000); // Backup timer
+    animFrameId = requestAnimationFrame(tick); // Aggressive frame-by-frame check
+    
+    const onVis = () => {
+      lastUpdate = 0; // Force immediate update on visibility change
+      updateTitle();
+    };
     document.addEventListener('visibilitychange', onVis);
-    return () => { clearInterval(id); document.removeEventListener('visibilitychange', onVis); };
+    
+    return () => {
+      clearInterval(id);
+      if (animFrameId !== null) cancelAnimationFrame(animFrameId);
+      document.removeEventListener('visibilitychange', onVis);
+    };
   }, [countdownInTitle, nextEventDate, nextEvent]);
 
   // Save tabCountdown to localStorage when it changes
@@ -2381,29 +2411,27 @@ const SchoolPlanner = () => {
 
         {/* Theme interference fullscreen modal */}
         {showThemeInterferenceModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
-            <div className={`${colors.container} ${colors.border} border rounded-2xl p-6 w-full max-w-lg shadow-lg`}>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className={`text-lg font-semibold ${colors.buttonText}`}>Theme Extension Detected</h3>
+          <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center p-6 ${colors.background}`}>
+            <div className="w-full max-w-2xl text-center">
+              <div className="flex justify-end mb-6">
                 <button
                   onClick={() => { setShowThemeInterferenceModal(false); localStorage.setItem('themeExtensionNoticeShown', 'true'); }}
                   className={`${colors.text} opacity-70 hover:opacity-100 transition`}
                   title="Close"
                 >
-                  <X size={20} />
+                  <X size={24} />
                 </button>
               </div>
-              <p className={`${colors.containerText} mb-4`}>
+              <h3 className={`text-4xl font-bold ${colors.buttonText} mb-6`}>Theme Extension Detected</h3>
+              <p className={`${colors.text} text-lg mb-8 leading-relaxed`}>
                 A browser extension appears to be modifying the site colors (for example, Dark Reader). This is okay, but if you prefer the app's default theme, please disable the extension for this site.
               </p>
-              <div className="flex justify-end">
-                <button
-                  onClick={() => { setShowThemeInterferenceModal(false); localStorage.setItem('themeExtensionNoticeShown', 'true'); }}
-                  className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
-                >
-                  Okay
-                </button>
-              </div>
+              <button
+                onClick={() => { setShowThemeInterferenceModal(false); localStorage.setItem('themeExtensionNoticeShown', 'true'); }}
+                className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-8 py-4 rounded-xl font-semibold text-lg transition-colors duration-200`}
+              >
+                Got It
+              </button>
             </div>
           </div>
         )}

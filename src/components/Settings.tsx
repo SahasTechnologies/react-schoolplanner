@@ -120,6 +120,8 @@ interface SettingsProps {
   // 24-hour time format
   use24HourFormat: boolean;
   setUse24HourFormat: (enabled: boolean) => void;
+  // Custom CSS detection
+  customCssDetected: boolean;
 }
 
 const Settings: React.FC<SettingsProps> = ({
@@ -168,6 +170,7 @@ const Settings: React.FC<SettingsProps> = ({
   isMarkbookLocked: _isMarkbookLocked,
   use24HourFormat,
   setUse24HourFormat,
+  customCssDetected,
 }) => {
 
   const [showNameEditModal, setShowNameEditModal] = React.useState(false);
@@ -1653,17 +1656,19 @@ const Settings: React.FC<SettingsProps> = ({
               Change Theme
             </button>
           </div>
-          <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-start gap-3 mt-3`}>
-            <div className={`p-2 rounded-lg ${colors.containerOverlay}`}>
-              <AlertTriangle size={18} className={colors.accentText} />
+          {customCssDetected && (
+            <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-start gap-3 mt-3`}>
+              <div className={`p-2 rounded-lg ${colors.containerOverlay}`}>
+                <AlertTriangle size={18} className={colors.accentText} />
+              </div>
+              <div>
+                <p className={`font-medium ${colors.containerText}`}>Custom CSS is being applied</p>
+                <p className={`text-sm ${colors.containerText} opacity-80`}>
+                  Custom CSS is being applied and there's nothing we can do about it. For these settings to work, please disable any browser extensions like Dark Reader for this site.
+                </p>
+              </div>
             </div>
-            <div>
-              <p className={`font-medium ${colors.containerText}`}>Theme may be changed by extensions</p>
-              <p className={`text-sm ${colors.containerText} opacity-80`}>
-                If you are using a browser extension like Dark Reader, it may modify the colours of the app. This is okay, but if you prefer the default theme, please disable the extension for this site.
-              </p>
-            </div>
-          </div>
+          )}
         </div>
       </section>
 

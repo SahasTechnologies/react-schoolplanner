@@ -313,20 +313,8 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countdownInfo]);
 
-  // Compute a stable clip-path so the overlay fills from top downward.
-  // Add a small fudge on top when progress > 0 and at 100% on both edges to remove any visible caps.
-  const clipBottomPct = Math.max(0, 100 - progressPctVis);
-  let clipPathStr: string;
-  if (progressPctVis >= 99.9) {
-    // Slightly overfill both top and bottom
-    clipPathStr = 'inset(-1px 0 -1px 0)';
-  } else if (progressPctVis <= 0.0001) {
-    // Fully hidden
-    clipPathStr = 'inset(0 0 100% 0)';
-  } else {
-    // Slightly overfill the top edge while clipping the bottom by percentage
-    clipPathStr = `inset(-1px 0 ${clipBottomPct}% 0)`;
-  }
+  // Calculate height percentage for progress overlay to preserve rounded corners
+  const progressHeightPct = Math.min(100, Math.max(0, progressPctVis));
 
   return (
     <>
@@ -344,15 +332,15 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
             background: gradientCSS === 'none' ? 'linear-gradient(to bottom, #3b82f6, #ef4444, #10b981)' : gradientCSS
           }}
         />
-        {/* Progress overlay: full-opacity gradient clipped by day progress */}
+        {/* Progress overlay: full-opacity gradient with height-based progress to preserve rounded top */}
         <div
-          className="absolute inset-0 z-[1] rounded-full"
+          className="absolute top-0 left-0 right-0 z-[1] rounded-full"
           style={{
+            height: `${progressHeightPct}%`,
             opacity: 1,
             background: gradientCSS === 'none' ? 'linear-gradient(to bottom, #3b82f6, #ef4444, #10b981)' : gradientCSS,
-            clipPath: clipPathStr,
-            transition: 'clip-path 220ms ease-out',
-            willChange: 'clip-path',
+            transition: 'height 220ms ease-out',
+            willChange: 'height',
           }}
         />
         {/* Curved end cap for the progress line */}
