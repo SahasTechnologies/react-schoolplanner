@@ -244,6 +244,118 @@ export const colorVars = {
   },
 };
 
+// Helper function to get actual color hex values for inline styles
+export const getColorValues = (theme: ThemeKey, themeType: 'normal' | 'extreme', effectiveMode: 'light' | 'dark') => {
+  // Map of actual color values
+  const colorValues = {
+    red: {
+      dark: {
+        normal: { background: '#1a1313', container: '#231616', border: '#3a2323' },
+        extreme: { background: '#450a0a', container: '#7f1d1d', border: '#991b1b' },
+      },
+      light: {
+        normal: { background: '#fff5f5', container: '#ffeaea', border: '#ffd6d6' },
+        extreme: { background: '#fee2e2', container: '#fecaca', border: '#fca5a5' },
+      },
+    },
+    orange: {
+      dark: {
+        normal: { background: '#1e1812', container: '#2a1f13', border: '#3a291a' },
+        extreme: { background: '#431407', container: '#7c2d12', border: '#9a3412' },
+      },
+      light: {
+        normal: { background: '#fff8f0', container: '#fff0d9', border: '#ffe0b3' },
+        extreme: { background: '#ffedd5', container: '#fed7aa', border: '#fdba74' },
+      },
+    },
+    yellow: {
+      dark: {
+        normal: { background: '#1a1a13', container: '#232312', border: '#39391a' },
+        extreme: { background: '#422006', container: '#713f12', border: '#854d0e' },
+      },
+      light: {
+        normal: { background: '#fffae5', container: '#fffbe6', border: '#fff3b3' },
+        extreme: { background: '#fef9c3', container: '#fef08a', border: '#fde047' },
+      },
+    },
+    green: {
+      dark: {
+        normal: { background: '#142017', container: '#1b2b15', border: '#233a23' },
+        extreme: { background: '#052e16', container: '#14532d', border: '#166534' },
+      },
+      light: {
+        normal: { background: '#f5fff5', container: '#eaffea', border: '#d6ffd6' },
+        extreme: { background: '#dcfce7', container: '#bbf7d0', border: '#86efac' },
+      },
+    },
+    blue: {
+      dark: {
+        normal: { background: '#151a20', container: '#18202b', border: '#1a233a' },
+        extreme: { background: '#172554', container: '#1e3a8a', border: '#1e40af' },
+      },
+      light: {
+        normal: { background: '#f5f8ff', container: '#eaf0ff', border: '#d6e0ff' },
+        extreme: { background: '#dbeafe', container: '#bfdbfe', border: '#93c5fd' },
+      },
+    },
+    purple: {
+      dark: {
+        normal: { background: '#1a1620', container: '#23182b', border: '#2f1a3a' },
+        extreme: { background: '#3b0764', container: '#581c87', border: '#6b21a8' },
+      },
+      light: {
+        normal: { background: '#faf5ff', container: '#f3eaff', border: '#e0d6ff' },
+        extreme: { background: '#f3e8ff', container: '#e9d5ff', border: '#d8b4fe' },
+      },
+    },
+    pink: {
+      dark: {
+        normal: { background: '#20151a', container: '#2b1820', border: '#3a1a23' },
+        extreme: { background: '#500724', container: '#831843', border: '#9f1239' },
+      },
+      light: {
+        normal: { background: '#fff5f8', container: '#ffeaf0', border: '#ffd6e0' },
+        extreme: { background: '#fce7f3', container: '#fbcfe8', border: '#f9a8d4' },
+      },
+    },
+    grey: {
+      dark: {
+        normal: { background: '#1a1a1a', container: '#232323', border: '#3a3a3a' },
+        extreme: { background: '#0a0a0a', container: '#171717', border: '#262626' },
+      },
+      light: {
+        normal: { background: '#f8f8f8', container: '#f0f0f0', border: '#e0e0e0' },
+        extreme: { background: '#f5f5f5', container: '#e5e5e5', border: '#d4d4d4' },
+      },
+    },
+  };
+
+  const colors = colorValues[theme][effectiveMode][themeType];
+  
+  // Accent colors
+  const accentColors = {
+    red: '#ef4444',
+    orange: '#f97316',
+    yellow: '#eab308',
+    green: '#22c55e',
+    blue: '#3b82f6',
+    purple: '#a855f7',
+    pink: '#ec4899',
+    grey: '#6b7280',
+  };
+
+  return {
+    background: colors.background,
+    container: colors.container,
+    border: colors.border,
+    accent: accentColors[theme],
+    text: effectiveMode === 'light' ? '#000000' : '#ffffff',
+    textSecondary: effectiveMode === 'light' ? 'rgba(0, 0, 0, 0.6)' : 'rgba(255, 255, 255, 0.7)',
+    buttonText: '#ffffff',
+    buttonAccent: accentColors[theme],
+  };
+};
+
 // Helper function to get colors for a specific theme and type
 export const getColors = (theme: ThemeKey, themeType: 'normal' | 'extreme', effectiveMode: 'light' | 'dark') => {
   const colors = colorVars[theme][effectiveMode][themeType];
