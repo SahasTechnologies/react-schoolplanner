@@ -58,12 +58,22 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       (async () => {
         try {
-          // Always fetch index.html for navigation requests
-          const fresh = await fetch('/');
-          // Cache the HTML for offline navigations
-          const cache = await caches.open(CACHE_NAME);
-          cache.put(OFFLINE_FALLBACK_PAGE, fresh.clone());
-          return fresh;
+          // Fetch the actual requested URL so any CDN-injected attributes/scripts remain consistent
+          const fresh = await fetch(req);
+          if (fresh && fresh.ok) {
+            // In the background, refresh the offline fallback HTML from /index.html
+            try {
+              const cache = await caches.open(CACHE_NAME);
+              const idx = await fetch(OFFLINE_FALLBACK_PAGE);
+              if (idx && idx.ok) {
+                cache.put(OFFLINE_FALLBACK_PAGE, idx.clone());
+              }
+            } catch (_) {}
+            return fresh;
+          }
+          // Non-OK response: serve cached offline fallback if available
+          const cached = await caches.match(OFFLINE_FALLBACK_PAGE);
+          return cached || fresh;
         } catch (_) {
           // Offline: serve cached index.html
           const cached = await caches.match(OFFLINE_FALLBACK_PAGE);
