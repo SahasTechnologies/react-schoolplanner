@@ -122,6 +122,16 @@ function arrayBufferToBase64(buffer: ArrayBuffer) {
   return btoa(binary);
 }
 
+function safeAutoTable(doc: jsPDF, options: any) {
+  // Prefer the method attached to the doc instance if available
+  const anyDoc = doc as any;
+  if (typeof anyDoc.autoTable === 'function') {
+    return anyDoc.autoTable(options);
+  }
+  // Fallback to the imported function
+  return (autoTable as unknown as (doc: jsPDF, options: any) => void)(doc, options);
+}
+
 function drawFooter(doc: jsPDF, faviconPngDataUrl: string | null) {
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
@@ -139,11 +149,12 @@ function drawFooter(doc: jsPDF, faviconPngDataUrl: string | null) {
       try { doc.addImage(faviconPngDataUrl, 'PNG', margin, h - margin - 14, 14, 14); } catch {}
     }
     // Use Red Hat font if loaded
-    try { doc.setFont('RedHatText', 'normal'); } catch { doc.setFont('helvetica', 'normal'); }
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.text('School Planner', margin + (faviconPngDataUrl ? 18 : 0), h - margin + 2);
 
     // Right: page number
+    doc.setFont('helvetica', 'normal');
     const pageText = String(i);
     doc.text(pageText, w - margin, h - margin + 2, { align: 'right' });
   }
@@ -154,7 +165,7 @@ function drawSubjectBarsPage(doc: jsPDF, items: { name: string; avg: number }[],
   const marginX = 40;
   const top = 64;
 
-  try { doc.setFont(getPreferredFont(doc), 'bold'); } catch { doc.setFont('helvetica', 'bold'); }
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
   doc.text(title, marginX, top);
 
@@ -173,12 +184,12 @@ function drawSubjectBarsPage(doc: jsPDF, items: { name: string; avg: number }[],
   doc.line(chartLeft, chartTop + chartHeight, chartLeft + chartWidth, chartTop + chartHeight);
 
   // y ticks 0..100 step 20
-  try { doc.setFont('RedHatText', 'normal'); } catch { doc.setFont('helvetica', 'normal'); }
   doc.setFontSize(8);
   for (let t = 0; t <= 100; t += 20) {
     const y = chartTop + chartHeight - (t / 100) * chartHeight;
     doc.setDrawColor(220);
     doc.line(chartLeft, y, chartLeft + chartWidth, y);
+    doc.setFont('helvetica', 'normal');
     doc.setTextColor(80);
     doc.text(`${t}%`, chartLeft - 22, y + 2);
   }
@@ -198,11 +209,13 @@ function drawSubjectBarsPage(doc: jsPDF, items: { name: string; avg: number }[],
     doc.rect(x, y, barWidth, hPct, 'F');
 
     // name rotated or small text below
+    doc.setFont('helvetica', 'normal');
     doc.setTextColor(50);
     doc.setFontSize(8);
     doc.text(it.name, x + barWidth / 2, chartTop + chartHeight + 10, { align: 'center' });
 
     // value label
+    doc.setFont('helvetica', 'normal');
     doc.setTextColor(20);
     doc.setFontSize(9);
     doc.text(`${it.avg.toFixed(1)}%`, x + barWidth / 2, y - 4, { align: 'center' });
@@ -218,6 +231,7 @@ export async function exportMarkbookPdf(args: {
   includeSubjectsTable?: boolean;
   includeSubjectPages?: boolean;
 }) {
+  console.log('[PDF Export] Starting export...', args);
   const {
     subjects,
     examsBySubject,
@@ -225,6 +239,7 @@ export async function exportMarkbookPdf(args: {
     includeSubjectsTable = true,
     includeSubjectPages = true,
   } = args;
+  console.log('[PDF Export] Options:', { includeBarChart, includeSubjectsTable, includeSubjectPages });
 
   // Prepare averages
   const withAvgs = subjects.map((s) => ({
@@ -245,8 +260,17 @@ export async function exportMarkbookPdf(args: {
   } catch {}
 
   // Build doc
+  console.log('[PDF Export] Creating jsPDF instance...');
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  console.log('[PDF Export] jsPDF created:', doc);
+  
+  // CRITICAL: Set default font immediately to avoid widths errors
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  
+  console.log('[PDF Export] Loading fonts...');
   await tryLoadRedHatFont(doc);
+  console.log('[PDF Export] Fonts loaded');
   const preferredFont = getPreferredFont(doc);
   try { doc.setFont(preferredFont, 'normal'); } catch { doc.setFont('helvetica', 'normal'); }
   const w = doc.internal.pageSize.getWidth();
@@ -270,7 +294,7 @@ export async function exportMarkbookPdf(args: {
   // List page: subjects + marks
   if (includeSubjectsTable) {
     if (hasDrawnContent) doc.addPage();
-    try { doc.setFont(getPreferredFont(doc), 'bold'); } catch { doc.setFont('helvetica', 'bold'); }
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
     doc.text('Subjects and Marks', 40, 64);
 
@@ -295,19 +319,13 @@ export async function exportMarkbookPdf(args: {
 
     let __listEndY: number | null = null;
     try {
-      autoTable(doc, {
+      safeAutoTable(doc, {
         head,
         body,
         startY: tableStartY,
         styles: { font: getPreferredFont(doc), fontSize: 10 },
         headStyles: { fillColor: [59, 130, 246] },
         margin: { bottom: footerReserve },
-        columnStyles: {
-          0: { cellWidth: 18 },
-          1: { cellWidth: w - 40 - 40 - 200 },
-          2: { cellWidth: 100, halign: 'right' },
-          3: { cellWidth: 80, halign: 'center' },
-        },
         didDrawCell: (data: any) => {
           if (data.section === 'body' && data.column.index === 0) {
             const subj = withAvgs[data.row.index].subject;
@@ -336,6 +354,7 @@ export async function exportMarkbookPdf(args: {
       doc.setFontSize(10);
       const lh = 16;
       body.forEach((row: any[]) => {
+        doc.setFont('helvetica', 'normal');
         const text = `${row[1]}  ${row[2]}  ${row[3]}`;
         doc.text(text, tableX + 12, yAlt);
         yAlt += lh;
@@ -372,7 +391,7 @@ export async function exportMarkbookPdf(args: {
     }
     hasDrawnContent = true;
     // Header with color chip and subject name
-    try { doc.setFont('RedHatText', 'bold'); } catch { doc.setFont('helvetica', 'bold'); }
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
     doc.text(s.name, 40, 64);
     // color chip
@@ -393,7 +412,7 @@ export async function exportMarkbookPdf(args: {
 
     let endY: number = 140;
     try {
-      autoTable(doc, {
+      safeAutoTable(doc, {
         head: [['Exam', 'Mark', 'Total', 'Percent', 'Weight %']],
         body: rows,
         startY: y,
@@ -410,11 +429,13 @@ export async function exportMarkbookPdf(args: {
       doc.setFontSize(10);
       const lh = 16;
       // Header
+      doc.setFont('helvetica', 'normal');
       doc.setTextColor(80);
       doc.text('Exam    Mark   Total   Percent   Weight %', 40, yAlt);
       yAlt += lh;
       doc.setTextColor(20);
       rows.forEach((r) => {
+        doc.setFont('helvetica', 'normal');
         const txt = `${r[0]}   ${r[1]}   ${r[2]}   ${r[3]}   ${r[4]}`;
         doc.text(txt, 40, yAlt);
         yAlt += lh;
@@ -443,10 +464,14 @@ export async function exportMarkbookPdf(args: {
     try { drawLineChart(doc, exams, 40, chartTop, chartWidth, chartHeight); } catch {}
   }
 
+  console.log('[PDF Export] Loading favicon...');
   const favicon = await loadFaviconPng(64); // high-res rasterization for crisp footer icon
+  console.log('[PDF Export] Drawing footer...');
   drawFooter(doc, favicon);
 
+  console.log('[PDF Export] Saving PDF...');
   doc.save('Markbook.pdf');
+  console.log('[PDF Export] PDF saved successfully!');
 }
 
 function drawLineChart(doc: jsPDF, exams: Exam[], left: number, top: number, width: number, height: number) {
@@ -471,6 +496,7 @@ function drawLineChart(doc: jsPDF, exams: Exam[], left: number, top: number, wid
     const y = top + height - (t / 100) * height;
     doc.setDrawColor(220);
     doc.line(left, y, left + width, y);
+    doc.setFont('helvetica', 'normal');
     doc.setTextColor(80);
     doc.text(`${t}%`, left - 22, y + 2);
   }
@@ -500,8 +526,10 @@ function drawLineChart(doc: jsPDF, exams: Exam[], left: number, top: number, wid
     const x = xs[i];
     const y = top + height - (d.pct / 100) * height;
     doc.circle(x, y, 2.5, 'F');
+    doc.setFont('helvetica', 'normal');
     doc.text(`${d.pct.toFixed(1)}%`, x, y - 6, { align: 'center' });
     // names on x axis
+    doc.setFont('helvetica', 'normal');
     doc.text(d.name, x, top + height + 12, { align: 'center' });
   });
 }

@@ -668,6 +668,12 @@ const SchoolPlanner = () => {
 
       return list;
     })();
+    
+    console.log('[Gradient Debug] Timeline events:', 
+      'Total:', eventsWithBreaks.length,
+      'Displayed:', timelineEvents.length,
+      'Names:', timelineEvents.map(e => e.summary).join(', ')
+    );
 
     // Subject icon helper mirroring CountdownBox styling
     const ColoredSubjectIcon = ({ summary, color }: { summary: string; color: string }) => {
@@ -1258,41 +1264,58 @@ const SchoolPlanner = () => {
     if (location.pathname !== '/home') {
       return;
     }
-    try {
-      const container = listRef.current;
-      if (!container) {
-        setMeasuredHeights([]);
-        setSegments([]);
-        return;
+    
+    // Measure function
+    const measure = () => {
+      try {
+        const container = listRef.current;
+        if (!container) {
+          setMeasuredHeights([]);
+          setSegments([]);
+          return;
+        }
+        const listRect = container.getBoundingClientRect();
+        const n = cardRefs.current.filter(r => r !== null).length; // Count non-null refs
+        if (!n || listRect.height <= 0) {
+          setMeasuredHeights([]);
+          setSegments([]);
+          return;
+        }
+        setContainerHeight(Math.max(1, Math.round(listRect.height)));
+        const heights: number[] = [];
+        const segs: { startPct: number; endPct: number }[] = [];
+        for (let i = 0; i < cardRefs.current.length; i++) {
+          const el = cardRefs.current[i];
+          if (!el) continue; // Skip null refs
+          const r = el.getBoundingClientRect();
+          const h = Math.max(1, Math.round(r.height));
+          heights.push(h);
+          const start = Math.max(0, r.top - listRect.top);
+          const end = Math.max(start, r.bottom - listRect.top);
+          const startPct = Math.max(0, Math.min(100, (start / listRect.height) * 100));
+          const endPct = Math.max(0, Math.min(100, (end / listRect.height) * 100));
+          segs.push({ startPct, endPct });
+        }
+        console.log('[Gradient Debug] Measured:', 
+          'Refs:', cardRefs.current.length, 
+          'Non-null:', cardRefs.current.filter(r => r).length,
+          'Heights:', heights,
+          'Segments:', segs.map(s => `${s.startPct.toFixed(1)}-${s.endPct.toFixed(1)}%`).join(', ')
+        );
+        setMeasuredHeights(heights);
+        setSegments(segs);
+      } catch (e) {
+        console.error('[Gradient Debug] Measurement error:', e);
       }
-      const listRect = container.getBoundingClientRect();
-      const n = cardRefs.current.length;
-      if (!n || listRect.height <= 0) {
-        setMeasuredHeights([]);
-        setSegments([]);
-        return;
-      }
-      setContainerHeight(Math.max(1, Math.round(listRect.height)));
-      const heights: number[] = [];
-      const segs: { startPct: number; endPct: number }[] = [];
-      for (let i = 0; i < n; i++) {
-        const el = cardRefs.current[i];
-        const r = el?.getBoundingClientRect();
-        if (!r) continue;
-        const h = Math.max(1, Math.round(r.height));
-        heights.push(h);
-        const start = Math.max(0, r.top - listRect.top);
-        const end = Math.max(start, r.bottom - listRect.top);
-        const startPct = Math.max(0, Math.min(100, (start / listRect.height) * 100));
-        const endPct = Math.max(0, Math.min(100, (end / listRect.height) * 100));
-        segs.push({ startPct, endPct });
-      }
-      setMeasuredHeights(heights);
-      setSegments(segs);
-    } catch {
-      // ignore
-    }
-  }, [location.pathname, showNextDay, cardRefs.current.length]);
+    };
+    
+    // Immediate measure
+    measure();
+    
+    // Delayed re-measure to ensure DOM has updated
+    const timer = setTimeout(measure, 100);
+    return () => clearTimeout(timer);
+  }, [location.pathname, showNextDay, forceShowActualToday]);
 
   // Note: Hover changes are handled by ResizeObserver below; no extra timers on hover to avoid flicker.
 
