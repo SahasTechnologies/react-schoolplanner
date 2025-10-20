@@ -1,4 +1,5 @@
-import { BarChart3, Shield } from 'lucide-react';
+import React from 'react';
+import { BarChart3, Shield, FileDown } from 'lucide-react';
 import { Subject, Exam } from '../types';
 import SubjectCard from '../components/SubjectCard';
 import SubjectEditModal from '../components/SubjectEditModal';
@@ -7,6 +8,7 @@ import { normalizeSubjectName } from '../utils/subjectUtils';
 import { memoizedComparePassword } from '../utils/passwordUtils';
 import { showError } from '../utils/notificationUtils';
 import { defaultColours } from '../utils/fileUtils';
+import { exportMarkbookPdf } from '../utils/markbookPdf';
 
 interface MarkbookPageProps {
   subjects: Subject[];
@@ -166,12 +168,29 @@ export default function MarkbookPage({
     />
   );
 
+  const [showExportModal, setShowExportModal] = React.useState(false);
+  const [includeBarChart, setIncludeBarChart] = React.useState(true);
+  const [includeSubjectsTable, setIncludeSubjectsTable] = React.useState(true);
+  const [includeSubjectPages, setIncludeSubjectPages] = React.useState(true);
+  const canExport = includeBarChart || includeSubjectsTable || includeSubjectPages;
+
   // Always render markbook content with subjects list visible
   return (
     <div className="space-y-6 pt-3">
-      <div className="flex items-center gap-3">
-        <BarChart3 className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={28} />
-        <h2 className={`text-3xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Markbook</h2>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <BarChart3 className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={28} />
+          <h2 className={`text-3xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Markbook</h2>
+        </div>
+        {!(markbookPasswordEnabled && isMarkbookLocked) && (
+          <button
+            onClick={() => setShowExportModal(true)}
+            className={`inline-flex items-center gap-2 px-3 py-2 rounded-md border ${colors.border} ${effectiveMode==='light'?'bg-white hover:bg-gray-50 text-black':'bg-gray-800 hover:bg-gray-700 text-white'} transition-colors`}
+          >
+            <FileDown size={16} />
+            <span className="text-sm font-medium">Export PDF</span>
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-[calc(100vh-220px)]">
@@ -221,6 +240,116 @@ export default function MarkbookPage({
           {examPanelContent}
         </div>
       </div>
+
+      {showExportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className={`${effectiveMode==='light'?'bg-white text-black':'bg-gray-800 text-white'} rounded-2xl border ${colors.border} w-full max-w-md p-5`}> 
+            <div className="text-lg font-semibold mb-3">Export to PDF</div>
+            <p className={`${effectiveMode==='light'?'text-gray-600':'text-gray-300'} text-sm mb-4`}>Only subjects with marks will have their own page.</p>
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <div className="checkbox-wrapper-30">
+                  <span className="checkbox">
+                    <input type="checkbox" checked={includeBarChart} onChange={(e)=> setIncludeBarChart(e.target.checked)} />
+                    <svg>
+                      <use xlinkHref="#checkbox-30" className="checkbox"></use>
+                    </svg>
+                  </span>
+                  <svg xmlns="http://www.w3.org/2000/svg" style={{display:'none'}}>
+                    <symbol id="checkbox-30" viewBox="0 0 22 22">
+                      <path fill="none" stroke="currentColor" d="M5.5,11.3L9,14.8L20.2,3.3l0,0c-0.5-1-1.5-1.8-2.7-1.8h-13c-1.7,0-3,1.3-3,3v13c0,1.7,1.3,3,3,3h13 c1.7,0,3-1.3,3-3v-13c0-0.4-0.1-0.8-0.3-1.2"/>
+                    </symbol>
+                  </svg>
+                </div>
+                <span>Overall graph of subjects</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <div className="checkbox-wrapper-30">
+                  <span className="checkbox">
+                    <input type="checkbox" checked={includeSubjectsTable} onChange={(e)=> setIncludeSubjectsTable(e.target.checked)} />
+                    <svg>
+                      <use xlinkHref="#checkbox-30" className="checkbox"></use>
+                    </svg>
+                  </span>
+                  <svg xmlns="http://www.w3.org/2000/svg" style={{display:'none'}}>
+                    <symbol id="checkbox-30" viewBox="0 0 22 22">
+                      <path fill="none" stroke="currentColor" d="M5.5,11.3L9,14.8L20.2,3.3l0,0c-0.5-1-1.5-1.8-2.7-1.8h-13c-1.7,0-3,1.3-3,3v13c0,1.7,1.3,3,3,3h13 c1.7,0,3-1.3,3-3v-13c0-0.4-0.1-0.8-0.3-1.2"/>
+                    </symbol>
+                  </svg>
+                </div>
+                <span>Table of subjects</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <div className="checkbox-wrapper-30">
+                  <span className="checkbox">
+                    <input type="checkbox" checked={includeSubjectPages} onChange={(e)=> setIncludeSubjectPages(e.target.checked)} />
+                    <svg>
+                      <use xlinkHref="#checkbox-30" className="checkbox"></use>
+                    </svg>
+                  </span>
+                  <svg xmlns="http://www.w3.org/2000/svg" style={{display:'none'}}>
+                    <symbol id="checkbox-30" viewBox="0 0 22 22">
+                      <path fill="none" stroke="currentColor" d="M5.5,11.3L9,14.8L20.2,3.3l0,0c-0.5-1-1.5-1.8-2.7-1.8h-13c-1.7,0-3,1.3-3,3v13c0,1.7,1.3,3,3,3h13 c1.7,0,3-1.3,3-3v-13c0-0.4-0.1-0.8-0.3-1.2"/>
+                    </symbol>
+                  </svg>
+                </div>
+                <span>Individual subject marks</span>
+              </label>
+            </div>
+            <div className="flex justify-end gap-3 mt-5">
+              <button onClick={()=> setShowExportModal(false)} className={`${effectiveMode==='light'?'bg-gray-100 hover:bg-gray-200 text-black':'bg-gray-700 hover:bg-gray-600 text-white'} px-3 py-2 rounded-md`}>Cancel</button>
+              <button
+                disabled={!canExport}
+                onClick={async ()=>{
+                  try {
+                    await exportMarkbookPdf({ subjects, examsBySubject, includeBarChart, includeSubjectsTable, includeSubjectPages });
+                    setShowExportModal(false);
+                  } catch (e: any) {
+                    try { console.error('PDF export failed:', e); } catch {}
+                    const msg = e?.message ? String(e.message) : (typeof e === 'string' ? e : 'Please try again');
+                    showError('Export failed', msg, { effectiveMode, colors });
+                  }
+                }}
+                className={`${canExport ? (effectiveMode==='light'?'bg-blue-600 hover:bg-blue-700 text-white':'bg-blue-500 hover:bg-blue-600 text-white') : 'bg-gray-500 text-white opacity-60 cursor-not-allowed'} px-3 py-2 rounded-md`}
+              >
+                Export
+              </button>
+            </div>
+            <style>{`
+            .checkbox-wrapper-30 {
+              --color-bg: ${effectiveMode === 'light' ? '#f3f4f6' : '#232323'};
+              --color-bg-dark: ${effectiveMode === 'dark' ? '#232323' : '#f3f4f6'};
+              --color-border: ${colors.border ? (effectiveMode === 'light' ? '#d1d5db' : '#444') : '#d1d5db'};
+              --color-primary: ${colors.buttonAccent ? (effectiveMode === 'light' ? '#2563eb' : '#60a5fa') : '#2563eb'};
+              --color-primary-light: ${colors.buttonAccentHover ? (effectiveMode === 'light' ? '#93c5fd' : '#2563eb') : '#93c5fd'};
+            }
+            .checkbox-wrapper-30 .checkbox { 
+              --bg: var(--color-bg);
+              --brdr: var(--color-border);
+              --brdr-actv: var(--color-primary);
+              --brdr-hovr: var(--color-primary-light);
+              --tick: ${effectiveMode === 'light' ? '#222' : '#fff'};
+              --dur: calc((var(--size, 2)/2) * 0.6s);
+              display: inline-block; width: calc(var(--size, 1) * 22px); position: relative;
+            }
+            .checkbox-wrapper-30 .checkbox:after { content: ""; width: 100%; padding-top: 100%; display: block; }
+            .checkbox-wrapper-30 .checkbox > * { position: absolute; }
+            .checkbox-wrapper-30 .checkbox input {
+              -webkit-appearance: none; -moz-appearance: none; -webkit-tap-highlight-color: transparent; cursor: pointer;
+              background-color: var(--bg); border-radius: calc(var(--size, 1) * 4px);
+              border: calc(var(--newBrdr, var(--size, 1)) * 1px) solid; color: var(--newBrdrClr, var(--brdr));
+              outline: none; margin: 0; padding: 0; transition: all calc(var(--dur) / 3) linear;
+            }
+            .checkbox-wrapper-30 .checkbox input:hover, .checkbox-wrapper-30 .checkbox input:checked { --newBrdr: calc(var(--size, 1) * 2); }
+            .checkbox-wrapper-30 .checkbox input:hover { --newBrdrClr: var(--brdr-hovr); }
+            .checkbox-wrapper-30 .checkbox input:checked { --newBrdrClr: var(--brdr-actv); transition-delay: calc(var(--dur) /1.3); }
+            .checkbox-wrapper-30 .checkbox input:checked + svg { --dashArray: 16 93; --dashOffset: 109; stroke: var(--tick); }
+            .checkbox-wrapper-30 .checkbox svg { fill: none; left: 0; pointer-events: none; stroke: var(--tick, var(--border-active)); stroke-dasharray: var(--dashArray, 93); stroke-dashoffset: var(--dashOffset, 94); stroke-linecap: round; stroke-linejoin: round; stroke-width: 2px; top: 0; transition: stroke-dasharray var(--dur), stroke-dashoffset var(--dur); }
+            .checkbox-wrapper-30 .checkbox svg, .checkbox-wrapper-30 .checkbox input { display: block; height: 100%; width: 100%; }
+            `}</style>
+          </div>
+        </div>
+      )}
 
       <SubjectEditModal
         showSubjectEditModal={showSubjectEditModal}

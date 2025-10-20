@@ -190,10 +190,19 @@ const ExamPanel: React.FC<ExamPanelProps> = ({ subject, exams, onAddExam, onUpda
     localStorage.setItem('gradeThresholds', JSON.stringify(gradeThresholds));
   },[gradeThresholds]);
 
-  // Needed percentage in final exam to reach A
+  // Target grade selection (persisted)
+  const [targetGrade, setTargetGrade] = React.useState<'A'|'B'|'C'|'D'|'E'>(() =>
+    ((localStorage.getItem('neededTarget') as 'A'|'B'|'C'|'D'|'E' | null) ?? 'A')
+  );
+
+  React.useEffect(()=>{
+    localStorage.setItem('neededTarget', targetGrade);
+  },[targetGrade]);
+
+  // Needed percentage in final exam to reach selected grade
   const remainingWeight = Math.max(0, 100 - weightSum);
-  const neededForA = remainingWeight > 0 && weightedAvg !== null
-    ? (gradeThresholds.A * 100 - (weightedAvg * weightSum)) / remainingWeight
+  const neededForTarget = remainingWeight > 0 && weightedAvg !== null
+    ? (gradeThresholds[targetGrade] * 100 - (weightedAvg * weightSum)) / remainingWeight
     : null;
 
   const summaryBox = (label: string, value: number | null, color: string) => (
@@ -232,8 +241,19 @@ const ExamPanel: React.FC<ExamPanelProps> = ({ subject, exams, onAddExam, onUpda
           <button onClick={()=>setEditGrades(true)} className="absolute top-2 right-2 text-white/80 hover:text-white"><Edit2 size={14}/></button>
         </div>
       </div>
-      {neededForA !== null && remainingWeight > 0 && (
-        <div className="text-white/80 text-sm pt-2">{neededForA > 100 ? 'N/A' : `${neededForA.toFixed(2)}%`} needed in final exam for A</div>
+      {neededForTarget !== null && remainingWeight > 0 && (
+        <div className="text-white/80 text-sm pt-2 flex items-center gap-2">
+          <span>{neededForTarget > 100 ? 'N/A' : `${Math.max(0, neededForTarget).toFixed(2)}%`} needed in final exam for</span>
+          <select
+            className="bg-gray-700 text-white px-2 py-1 rounded"
+            value={targetGrade}
+            onChange={(e)=> setTargetGrade(e.target.value as 'A'|'B'|'C'|'D'|'E')}
+          >
+            {(['A','B','C','D','E'] as const).map((g)=> (
+              <option key={g} value={g}>{g}</option>
+            ))}
+          </select>
+        </div>
       )}
 
       {/* Edit Grade Modal */}
