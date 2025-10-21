@@ -54,6 +54,8 @@ async function loadFaviconPng(size = 16): Promise<string | null> {
   }
 }
 
+// Disabled - TTF files have unicode cmap issues
+// @ts-ignore - Kept for future use
 async function tryLoadRedHatFont(doc: jsPDF) {
   const regularCandidates = [
     '/fonts/RedHatText-Regular.ttf',
@@ -144,11 +146,11 @@ function drawFooter(doc: jsPDF, faviconPngDataUrl: string | null) {
     doc.setDrawColor(220);
     doc.line(margin, h - margin - 18, w - margin, h - margin - 18);
 
-    // Left: logo + label
+    // Left: logo + label (icon centered with text baseline)
     if (faviconPngDataUrl) {
-      try { doc.addImage(faviconPngDataUrl, 'PNG', margin, h - margin - 14, 14, 14); } catch {}
+      try { doc.addImage(faviconPngDataUrl, 'PNG', margin, h - margin - 9.5, 14, 14); } catch {}
     }
-    // Use Red Hat font if loaded
+    // Use helvetica font
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.text('School Planner', margin + (faviconPngDataUrl ? 18 : 0), h - margin + 2);
@@ -268,11 +270,8 @@ export async function exportMarkbookPdf(args: {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   
-  console.log('[PDF Export] Loading fonts...');
-  await tryLoadRedHatFont(doc);
-  console.log('[PDF Export] Fonts loaded');
-  const preferredFont = getPreferredFont(doc);
-  try { doc.setFont(preferredFont, 'normal'); } catch { doc.setFont('helvetica', 'normal'); }
+  // Skip Red Hat font loading - TTF files have unicode cmap issues
+  console.log('[PDF Export] Using helvetica font (Red Hat disabled due to TTF issues)');
   const w = doc.internal.pageSize.getWidth();
   const h = doc.internal.pageSize.getHeight();
   const footerReserve = 48; // space above footer divider to avoid collisions
@@ -490,7 +489,7 @@ function drawLineChart(doc: jsPDF, exams: Exam[], left: number, top: number, wid
   doc.line(left, top + height, left + width, top + height);
 
   // y ticks
-  try { doc.setFont('RedHatText', 'normal'); } catch { doc.setFont('helvetica', 'normal'); }
+  doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   for (let t = 0; t <= 100; t += 20) {
     const y = top + height - (t / 100) * height;

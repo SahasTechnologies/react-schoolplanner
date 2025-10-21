@@ -31,54 +31,76 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
   const { gradientCSS, progressPctVis } = useMemo(() => {
     if (n === 0) return { gradientCSS: 'none', progressPctVis: 0 };
 
-    const rawHeights = measuredHeights.length === n ? measuredHeights : new Array(n).fill(64);
-    const weightedHeights = rawHeights.map((h, i) => {
-      const isBreak = isBreakEvent(eventsWithBreaks[i]);
-      const isEOD = isEndOfDayEvent(eventsWithBreaks[i]);
-      // Make End of Day and breaks very small in the gradient
-      return Math.max(isBreak || isEOD ? 4 : 10, Math.round(h * (isBreak || isEOD ? 0.35 : 1)));
-    });
-    const totalHeightEst = weightedHeights.reduce((a, b) => a + b, 0) + gapBetweenCards * Math.max(0, n - 1);
+    // Filter out End of Day events from gradient calculation
+    const nonEODIndices = eventsWithBreaks.map((e, i) => isEndOfDayEvent(e) ? -1 : i).filter(i => i >= 0);
+    const nGradient = nonEODIndices.length;
+    
+    if (nGradient === 0) return { gradientCSS: 'none', progressPctVis: 0 };
 
-    const colorsArr = eventsWithBreaks.map(e => {
-      if (isBreakEvent(e) || isEndOfDayEvent(e)) return '#94a3b8';
+    const rawHeights = measuredHeights.length === n ? nonEODIndices.map(i => measuredHeights[i]) : new Array(nGradient).fill(64);
+    const weightedHeights = rawHeights.map((h, idx) => {
+      const i = nonEODIndices[idx];
+      const isBreak = isBreakEvent(eventsWithBreaks[i]);
+      // Make breaks smaller in the gradient
+      return Math.max(isBreak ? 4 : 10, Math.round(h * (isBreak ? 0.35 : 1)));
+    });
+    const totalHeightEst = weightedHeights.reduce((a, b) => a + b, 0) + gapBetweenCards * Math.max(0, nGradient - 1);
+
+    const colorsArr = nonEODIndices.map(i => {
+      const e = eventsWithBreaks[i];
+      if (isBreakEvent(e)) return '#94a3b8';
       return getEventColour(e.summary);
     });
     const blendPx = 10;
-    const totalHeightForPct = containerHeight > 0 && segments.length === n ? containerHeight : totalHeightEst;
+    
+    // Use segments only for non-EOD events
+    const gradientSegments = nonEODIndices.map(i => segments[i]).filter(s => s);
+    const totalHeightForPct = containerHeight > 0 && gradientSegments.length === nGradient ? containerHeight : totalHeightEst;
     if (totalHeightForPct <= 0) return { gradientCSS: 'none', progressPctVis: 0 };
 
     const toPct = (px: number) => Math.max(0, Math.min(100, (px / totalHeightForPct) * 100));
     const stops: string[] = [];
-    const hasSegments = segments.length === n && segments.every(s => Number.isFinite(s.startPct) && Number.isFinite(s.endPct));
+    const hasSegments = gradientSegments.length === nGradient && gradientSegments.every(s => Number.isFinite(s.startPct) && Number.isFinite(s.endPct));
 
     if (hasSegments) {
       const blendPct = toPct(blendPx);
-      for (let i = 0; i < n; i++) {
-        const { startPct, endPct } = segments[i];
-        stops.push(`${colorsArr[i]} ${startPct}%`);
-        if (i < n - 1) {
-          const nextStartPct = segments[i + 1].startPct;
-          stops.push(`${colorsArr[i]} ${Math.min(endPct, nextStartPct - blendPct)}%`);
-          stops.push(`${colorsArr[i + 1]} ${Math.max(startPct, nextStartPct)}%`);
+      // Find the last non-EOD event's end position to cap the gradient
+      const lastSegment = gradientSegments[nGradient - 1];
+      const gradientEndPct = lastSegment.endPct;
+      
+      for (let idx = 0; idx < nGradient; idx++) {
+        const { startPct, endPct } = gradientSegments[idx];
+        stops.push(`${colorsArr[idx]} ${startPct}%`);
+        if (idx < nGradient - 1) {
+          const nextStartPct = gradientSegments[idx + 1].startPct;
+          stops.push(`${colorsArr[idx]} ${Math.min(endPct, nextStartPct - blendPct)}%`);
+          stops.push(`${colorsArr[idx + 1]} ${Math.max(startPct, nextStartPct)}%`);
         } else {
-          stops.push(`${colorsArr[i]} ${endPct}%`);
+          // Last event - cap at its end
+          stops.push(`${colorsArr[idx]} ${endPct}%`);
+          // Fill rest with transparent or last color faded
+          if (gradientEndPct < 100) {
+            stops.push(`${colorsArr[idx]} ${gradientEndPct}%`);
+            stops.push(`transparent ${gradientEndPct}%`);
+            stops.push(`transparent 100%`);
+          }
         }
       }
     } else {
+      // Fallback: estimate positions when segments not available
       let accPx = 0;
-      for (let i = 0; i < n; i++) {
+      for (let idx = 0; idx < nGradient; idx++) {
         const startPct = toPct(accPx);
-        stops.push(`${colorsArr[i]} ${startPct}%`);
-        accPx += weightedHeights[i];
+        stops.push(`${colorsArr[idx]} ${startPct}%`);
+        accPx += weightedHeights[idx];
         const endPct = toPct(accPx);
-        if (i < n - 1) {
+        if (idx < nGradient - 1) {
           const blendEndPct = toPct(accPx + gapBetweenCards);
-          stops.push(`${colorsArr[i]} ${endPct}%`);
-          stops.push(`${colorsArr[i + 1]} ${blendEndPct}%`);
+          stops.push(`${colorsArr[idx]} ${endPct}%`);
+          stops.push(`${colorsArr[idx + 1]} ${blendEndPct}%`);
           accPx += gapBetweenCards;
         } else {
-          stops.push(`${colorsArr[i]} ${endPct}%`);
+          stops.push(`${colorsArr[idx]} ${endPct}%`);
         }
       }
     }

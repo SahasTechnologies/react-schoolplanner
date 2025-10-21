@@ -668,12 +668,6 @@ const SchoolPlanner = () => {
 
       return list;
     })();
-    
-    console.log('[Gradient Debug] Timeline events:', 
-      'Total:', eventsWithBreaks.length,
-      'Displayed:', timelineEvents.length,
-      'Names:', timelineEvents.map(e => e.summary).join(', ')
-    );
 
     // Subject icon helper mirroring CountdownBox styling
     const ColoredSubjectIcon = ({ summary, color }: { summary: string; color: string }) => {
@@ -1296,16 +1290,10 @@ const SchoolPlanner = () => {
           const endPct = Math.max(0, Math.min(100, (end / listRect.height) * 100));
           segs.push({ startPct, endPct });
         }
-        console.log('[Gradient Debug] Measured:', 
-          'Refs:', cardRefs.current.length, 
-          'Non-null:', cardRefs.current.filter(r => r).length,
-          'Heights:', heights,
-          'Segments:', segs.map(s => `${s.startPct.toFixed(1)}-${s.endPct.toFixed(1)}%`).join(', ')
-        );
         setMeasuredHeights(heights);
         setSegments(segs);
-      } catch (e) {
-        console.error('[Gradient Debug] Measurement error:', e);
+      } catch {
+        // ignore
       }
     };
     
