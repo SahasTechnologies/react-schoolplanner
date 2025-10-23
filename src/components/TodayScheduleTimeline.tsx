@@ -231,6 +231,63 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
   }
 
 
+  const currentLineColor = useMemo(() => {
+    const now = new Date(nowTs);
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayY = today.getTime();
+    const selectedY = selectedScheduleDate
+      ? new Date(
+          selectedScheduleDate.getFullYear(),
+          selectedScheduleDate.getMonth(),
+          selectedScheduleDate.getDate()
+        ).getTime()
+      : null;
+
+    const usableEvents = eventsWithBreaks.filter(e => !isEndOfDayEvent(e));
+
+    const getColourForEvent = (e: CalendarEvent) => (isBreakEvent(e) ? '#94a3b8' : getEventColour(e.summary));
+
+    const defaultColour = usableEvents.length > 0 ? getColourForEvent(usableEvents[0]) : '#3b82f6';
+
+    if (selectedY !== null && selectedY !== todayY) return defaultColour;
+
+    for (let i = 0; i < usableEvents.length; i++) {
+      const e = usableEvents[i];
+      if (!e.dtstart || !e.dtend) continue;
+
+      const eventStart = new Date(e.dtstart);
+      const eventEnd = new Date(e.dtend);
+
+      const todayStart = new Date(today);
+      todayStart.setHours(eventStart.getHours(), eventStart.getMinutes(), eventStart.getSeconds());
+
+      const todayEnd = new Date(today);
+      todayEnd.setHours(eventEnd.getHours(), eventEnd.getMinutes(), eventEnd.getSeconds());
+
+      if (nowTs >= todayStart.getTime() && nowTs <= todayEnd.getTime()) {
+        return getColourForEvent(e);
+      }
+    }
+
+    const withStartTs = usableEvents
+      .filter(e => !!e.dtstart)
+      .map(e => {
+        const s = new Date(e.dtstart as Date);
+        const ts = new Date(today);
+        ts.setHours(s.getHours(), s.getMinutes(), s.getSeconds());
+        return { e, startTs: ts.getTime() };
+      })
+      .sort((a, b) => a.startTs - b.startTs);
+
+    if (withStartTs.length === 0) return defaultColour;
+
+    if (nowTs < withStartTs[0].startTs) {
+      return getColourForEvent(withStartTs[0].e);
+    }
+
+    return getColourForEvent(withStartTs[withStartTs.length - 1].e);
+  }, [eventsWithBreaks, nowTs, selectedScheduleDate, getEventColour]);
+
   const countdownInfo = useMemo(() => {
     if (!showCountdownInTimeline) return null;
     
@@ -360,7 +417,7 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
           style={{
             height: `${progressHeightPct}%`,
             opacity: 1,
-            background: gradientCSS === 'none' ? 'linear-gradient(to bottom, #3b82f6, #ef4444, #10b981)' : gradientCSS,
+            background: currentLineColor,
             transition: 'height 220ms ease-out',
             willChange: 'height',
           }}
@@ -373,25 +430,7 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
               top: `${progressPctVis}%`,
               transform: 'translateY(-50%)',
               background: 'linear-gradient(to right, transparent 0%, currentColor 50%, transparent 100%)',
-              color: (() => {
-                // Get the color at the current progress point from the gradient
-                const gradientMatch = gradientCSS.match(/linear-gradient\(to bottom, (.+)\)/);
-                if (gradientMatch) {
-                  const stops = gradientMatch[1].split(', ');
-                  // Find the color at the current progress percentage
-                  for (const stop of stops) {
-                    const match = stop.match(/(.+?)\s+(\d+(?:\.\d+)?)%/);
-                    if (match) {
-                      const color = match[1].trim();
-                      const percentage = parseFloat(match[2]);
-                      if (percentage >= progressPctVis) {
-                        return color;
-                      }
-                    }
-                  }
-                }
-                return '#ffffff';
-              })(),
+              color: currentLineColor,
               opacity: 0.8,
               transition: 'top 220ms ease-out',
               willChange: 'top',
