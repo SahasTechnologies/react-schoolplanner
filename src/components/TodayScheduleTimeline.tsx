@@ -231,63 +231,6 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
   }
 
 
-  const currentLineColor = useMemo(() => {
-    const now = new Date(nowTs);
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const todayY = today.getTime();
-    const selectedY = selectedScheduleDate
-      ? new Date(
-          selectedScheduleDate.getFullYear(),
-          selectedScheduleDate.getMonth(),
-          selectedScheduleDate.getDate()
-        ).getTime()
-      : null;
-
-    const usableEvents = eventsWithBreaks.filter(e => !isEndOfDayEvent(e));
-
-    const getColourForEvent = (e: CalendarEvent) => (isBreakEvent(e) ? '#94a3b8' : getEventColour(e.summary));
-
-    const defaultColour = usableEvents.length > 0 ? getColourForEvent(usableEvents[0]) : '#3b82f6';
-
-    if (selectedY !== null && selectedY !== todayY) return defaultColour;
-
-    for (let i = 0; i < usableEvents.length; i++) {
-      const e = usableEvents[i];
-      if (!e.dtstart || !e.dtend) continue;
-
-      const eventStart = new Date(e.dtstart);
-      const eventEnd = new Date(e.dtend);
-
-      const todayStart = new Date(today);
-      todayStart.setHours(eventStart.getHours(), eventStart.getMinutes(), eventStart.getSeconds());
-
-      const todayEnd = new Date(today);
-      todayEnd.setHours(eventEnd.getHours(), eventEnd.getMinutes(), eventEnd.getSeconds());
-
-      if (nowTs >= todayStart.getTime() && nowTs <= todayEnd.getTime()) {
-        return getColourForEvent(e);
-      }
-    }
-
-    const withStartTs = usableEvents
-      .filter(e => !!e.dtstart)
-      .map(e => {
-        const s = new Date(e.dtstart as Date);
-        const ts = new Date(today);
-        ts.setHours(s.getHours(), s.getMinutes(), s.getSeconds());
-        return { e, startTs: ts.getTime() };
-      })
-      .sort((a, b) => a.startTs - b.startTs);
-
-    if (withStartTs.length === 0) return defaultColour;
-
-    if (nowTs < withStartTs[0].startTs) {
-      return getColourForEvent(withStartTs[0].e);
-    }
-
-    return getColourForEvent(withStartTs[withStartTs.length - 1].e);
-  }, [eventsWithBreaks, nowTs, selectedScheduleDate, getEventColour]);
-
   const countdownInfo = useMemo(() => {
     if (!showCountdownInTimeline) return null;
     
@@ -395,6 +338,41 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
   // Calculate height percentage for progress overlay to preserve rounded corners
   const progressHeightPct = Math.min(100, Math.max(0, progressPctVis));
 
+  // Find the current event color based on progress position
+  const currentProgressColor = useMemo(() => {
+    // Filter out End of Day events
+    const nonEODIndices = eventsWithBreaks.map((e, i) => isEndOfDayEvent(e) ? -1 : i).filter(i => i >= 0);
+    
+    // Find which event segment contains the current progress
+    for (let idx = 0; idx < nonEODIndices.length; idx++) {
+      const i = nonEODIndices[idx];
+      const segment = segments[i];
+      if (segment && progressPctVis >= segment.startPct && progressPctVis <= segment.endPct) {
+        const e = eventsWithBreaks[i];
+        if (isBreakEvent(e)) return '#94a3b8'; // Gray for breaks
+        return getEventColour(e.summary);
+      }
+    }
+    
+    // Fallback: if we're between segments (in gaps), find the nearest event
+    for (let idx = 0; idx < nonEODIndices.length - 1; idx++) {
+      const i = nonEODIndices[idx];
+      const nextI = nonEODIndices[idx + 1];
+      const segment = segments[i];
+      const nextSegment = segments[nextI];
+      
+      if (segment && nextSegment && progressPctVis > segment.endPct && progressPctVis < nextSegment.startPct) {
+        // We're in a gap - use the next event's color
+        const nextE = eventsWithBreaks[nextI];
+        if (isBreakEvent(nextE)) return '#94a3b8';
+        return getEventColour(nextE.summary);
+      }
+    }
+    
+    // Default fallback
+    return '#3b82f6';
+  }, [progressPctVis, eventsWithBreaks, segments, getEventColour]);
+
   return (
     <>
       {/* Container controls rounding; children are square and clipped inside to avoid top/bottom gaps */}
@@ -411,14 +389,14 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
             background: gradientCSS === 'none' ? 'linear-gradient(to bottom, #3b82f6, #ef4444, #10b981)' : gradientCSS
           }}
         />
-        {/* Progress overlay: full-opacity gradient with height-based progress to preserve rounded top */}
+        {/* Progress overlay: single color matching current event */}
         <div
           className="absolute top-0 left-0 right-0 z-[1] rounded-full"
           style={{
             height: `${progressHeightPct}%`,
             opacity: 1,
-            background: currentLineColor,
-            transition: 'height 220ms ease-out',
+            background: currentProgressColor,
+            transition: 'height 220ms ease-out, background 220ms ease-out',
             willChange: 'height',
           }}
         />
@@ -430,9 +408,9 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
               top: `${progressPctVis}%`,
               transform: 'translateY(-50%)',
               background: 'linear-gradient(to right, transparent 0%, currentColor 50%, transparent 100%)',
-              color: currentLineColor,
+              color: currentProgressColor,
               opacity: 0.8,
-              transition: 'top 220ms ease-out',
+              transition: 'top 220ms ease-out, color 220ms ease-out',
               willChange: 'top',
             }}
           />
