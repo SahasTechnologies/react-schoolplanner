@@ -51,7 +51,7 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
       if (isBreakEvent(e)) return '#94a3b8';
       return getEventColour(e.summary);
     });
-    const blendPx = 10;
+    
     
     // Use segments only for non-EOD events
     const gradientSegments = nonEODIndices.map(i => segments[i]).filter(s => s);
@@ -63,27 +63,27 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
     const hasSegments = gradientSegments.length === nGradient && gradientSegments.every(s => Number.isFinite(s.startPct) && Number.isFinite(s.endPct));
 
     if (hasSegments) {
-      const blendPct = toPct(blendPx);
-      // Find the last non-EOD event's end position to cap the gradient
-      const lastSegment = gradientSegments[nGradient - 1];
-      const gradientEndPct = lastSegment.endPct;
-      
+      // Build a stepped gradient: solid color within each card segment, transparent in gaps
+      const firstStart = gradientSegments[0].startPct;
+      if (firstStart > 0) {
+        stops.push(`transparent 0%`);
+        stops.push(`transparent ${firstStart}%`);
+      }
       for (let idx = 0; idx < nGradient; idx++) {
         const { startPct, endPct } = gradientSegments[idx];
+        // Solid block for this event
         stops.push(`${colorsArr[idx]} ${startPct}%`);
+        stops.push(`${colorsArr[idx]} ${endPct}%`);
+        // Transparent gap until next start
         if (idx < nGradient - 1) {
-          const nextStartPct = gradientSegments[idx + 1].startPct;
-          stops.push(`${colorsArr[idx]} ${Math.min(endPct, nextStartPct - blendPct)}%`);
-          stops.push(`${colorsArr[idx + 1]} ${Math.max(startPct, nextStartPct)}%`);
-        } else {
-          // Last event - cap at its end
-          stops.push(`${colorsArr[idx]} ${endPct}%`);
-          // Fill rest with transparent or last color faded
-          if (gradientEndPct < 100) {
-            stops.push(`${colorsArr[idx]} ${gradientEndPct}%`);
-            stops.push(`transparent ${gradientEndPct}%`);
-            stops.push(`transparent 100%`);
+          const nextStart = gradientSegments[idx + 1].startPct;
+          if (endPct < nextStart) {
+            stops.push(`transparent ${endPct}%`);
+            stops.push(`transparent ${nextStart}%`);
           }
+        } else if (endPct < 100) {
+          stops.push(`transparent ${endPct}%`);
+          stops.push(`transparent 100%`);
         }
       }
     } else {
@@ -335,43 +335,16 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countdownInfo]);
 
-  // Calculate height percentage for progress overlay to preserve rounded corners
-  const progressHeightPct = Math.min(100, Math.max(0, progressPctVis));
+  // progressPctVis already represents the Y-position (0-100) of the progress
 
-  // Find the current event color based on progress position
-  const currentProgressColor = useMemo(() => {
-    // Filter out End of Day events
-    const nonEODIndices = eventsWithBreaks.map((e, i) => isEndOfDayEvent(e) ? -1 : i).filter(i => i >= 0);
-    
-    // Find which event segment contains the current progress
-    for (let idx = 0; idx < nonEODIndices.length; idx++) {
-      const i = nonEODIndices[idx];
-      const segment = segments[i];
-      if (segment && progressPctVis >= segment.startPct && progressPctVis <= segment.endPct) {
-        const e = eventsWithBreaks[i];
-        if (isBreakEvent(e)) return '#94a3b8'; // Gray for breaks
-        return getEventColour(e.summary);
-      }
-    }
-    
-    // Fallback: if we're between segments (in gaps), find the nearest event
-    for (let idx = 0; idx < nonEODIndices.length - 1; idx++) {
-      const i = nonEODIndices[idx];
-      const nextI = nonEODIndices[idx + 1];
-      const segment = segments[i];
-      const nextSegment = segments[nextI];
-      
-      if (segment && nextSegment && progressPctVis > segment.endPct && progressPctVis < nextSegment.startPct) {
-        // We're in a gap - use the next event's color
-        const nextE = eventsWithBreaks[nextI];
-        if (isBreakEvent(nextE)) return '#94a3b8';
-        return getEventColour(nextE.summary);
-      }
-    }
-    
-    // Default fallback
-    return '#3b82f6';
-  }, [progressPctVis, eventsWithBreaks, segments, getEventColour]);
+  // Compute clip insets for a thin horizontal band centered at progressPctVis
+  const lineThicknessPx = 6;
+  const { topInsetPct, bottomInsetPct } = useMemo(() => {
+    const halfPct = containerHeight > 0 ? (lineThicknessPx / containerHeight) * 50 : 0.3; // half thickness in %
+    const topInset = Math.max(0, progressPctVis - halfPct);
+    const bottomInset = Math.max(0, 100 - (progressPctVis + halfPct));
+    return { topInsetPct: topInset, bottomInsetPct: bottomInset };
+  }, [containerHeight, progressPctVis]);
 
   return (
     <>
@@ -389,32 +362,17 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
             background: gradientCSS === 'none' ? 'linear-gradient(to bottom, #3b82f6, #ef4444, #10b981)' : gradientCSS
           }}
         />
-        {/* Progress overlay: single color matching current event */}
+        {/* Progress line: same gradient clipped to a thin band at progressPctVis */}
         <div
-          className="absolute top-0 left-0 right-0 z-[1] rounded-full"
+          className="absolute inset-0 z-[1] rounded-full"
           style={{
-            height: `${progressHeightPct}%`,
-            opacity: 1,
-            background: currentProgressColor,
-            transition: 'height 220ms ease-out, background 220ms ease-out',
-            willChange: 'height',
+            background: gradientCSS === 'none' ? 'linear-gradient(to bottom, #3b82f6, #ef4444, #10b981)' : gradientCSS,
+            WebkitClipPath: `inset(${topInsetPct}% 0% ${bottomInsetPct}% 0%)`,
+            clipPath: `inset(${topInsetPct}% 0% ${bottomInsetPct}% 0%)`,
+            transition: 'clip-path 200ms ease-out',
+            willChange: 'clip-path',
           }}
         />
-        {/* Curved end cap for the progress line */}
-        {progressPctVis > 0 && progressPctVis < 100 && (
-          <div
-            className="absolute left-0 w-[10px] h-[5px] z-[2] rounded-full"
-            style={{
-              top: `${progressPctVis}%`,
-              transform: 'translateY(-50%)',
-              background: 'linear-gradient(to right, transparent 0%, currentColor 50%, transparent 100%)',
-              color: currentProgressColor,
-              opacity: 0.8,
-              transition: 'top 220ms ease-out, color 220ms ease-out',
-              willChange: 'top',
-            }}
-          />
-        )}
       </div>
       
 
