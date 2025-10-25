@@ -1,0 +1,6 @@
+# Allow all crawlers to index the site
+User-agent: *
+Allow: /
+
+# Disallow non-content endpoints (optional)
+Disallow: /sw.js
