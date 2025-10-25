@@ -6,6 +6,7 @@ export default defineConfig({
         react(),
     ],
     build: {
+        sourcemap: true,
         chunkSizeWarningLimit: 1000,
         minify: 'terser',
         terserOptions: {

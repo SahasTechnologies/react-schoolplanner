@@ -9,7 +9,10 @@
     <!-- Bunny Fonts preconnect for performance -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <!-- Red Hat Text font from Bunny Fonts with multiple weights -->
-    <link href="https://fonts.bunny.net/css?family=red-hat-text:300,400,500,600,700&display=swap" rel="stylesheet">
+    <link rel="preload" href="https://fonts.bunny.net/css?family=red-hat-text:300,400,500,600,700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+      <link href="https://fonts.bunny.net/css?family=red-hat-text:300,400,500,600,700&display=swap" rel="stylesheet">
+    </noscript>
     <link rel="manifest" href="/manifest.webmanifest">
   </head>
   <body>

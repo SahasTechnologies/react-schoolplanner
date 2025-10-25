@@ -2388,7 +2388,7 @@ const SchoolPlanner = () => {
       </div>
 
       {/* Main content with proper left margin for sidebar */}
-      <div className="flex-1 lg:ml-16 pt-0 px-6 pb-20 lg:pb-6">
+      <main id="main-content" role="main" className="flex-1 lg:ml-16 pt-0 px-6 pb-20 lg:pb-6">
         {mainContent}
 
         {/* Fullscreen countdown modal */}
@@ -2516,7 +2516,7 @@ const SchoolPlanner = () => {
             </div>
           </div>
         )}
-      </div>
+      </main>
       <div className={`lg:hidden fixed bottom-0 left-0 right-0 ${colors.container} ${colors.border} border-t z-40`}>
         <div className="flex justify-around items-center h-14">
           <button onClick={() => navigate('/home')} className="flex flex-col items-center text-xs" title="Home">
