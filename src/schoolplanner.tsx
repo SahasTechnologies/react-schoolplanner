@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useMemo, lazy, Suspense } from 'react';
 import {
   Calendar,
   Settings as SettingsIcon, ChevronsUpDown,
@@ -13,7 +13,6 @@ import { CalendarEvent, WeekData, insertBreaksBetweenEvents, isBreakEvent } from
 import TodayScheduleTimeline from './components/TodayScheduleTimeline';
 import { ThemeModal } from './components/ThemeModal';
 import WelcomeScreen from './components/WelcomeScreen';
-import Settings from './components/Settings';
 import EventCard from './components/EventCard';
 
 import { Subject } from './types';
@@ -34,10 +33,52 @@ import FullscreenCountdown from './components/FullscreenCountdown';
 import { getGreeting, getDeterministicColour, formatCountdownForTab } from './utils/helperUtils';
 import { getCachedNswTerms, fetchNswTerms, cacheNswTerms, getNswWeekLabelForDate, getCustomWeekLabelForDate } from './utils/nswTermUtils';
 import { findNextRepeatingEvent, findEventsByDayToggle } from './utils/eventHelpers';
-import WeekViewPage from './components/WeekViewPage';
-import MarkbookPage from './components/MarkbookPage';
+
+// Lazy load heavy components not needed on welcome screen
+const WeekViewPage = lazy(() => import('./components/WeekViewPage'));
+const MarkbookPage = lazy(() => import('./components/MarkbookPage'));
+const Settings = lazy(() => import('./components/Settings'));
 
 const SchoolPlanner = () => {
+  // Theme state must be defined first since effectiveMode and colors are used throughout
+  const [theme, setTheme] = useState<ThemeKey>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('theme');
+      if (saved && ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink', 'grey'].includes(saved)) {
+        return saved as ThemeKey;
+      }
+    }
+    return 'blue';
+  });
+  const [themeType, setThemeType] = useState<'normal' | 'extreme'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('themeType');
+      if (saved === 'normal' || saved === 'extreme') return saved;
+    }
+    return 'normal';
+  });
+  const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'system'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('themeMode');
+      if (saved === 'light' || saved === 'dark' || saved === 'system') return saved;
+    }
+    return 'system';
+  });
+
+  // System color scheme detection
+  const getSystemMode = () => {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    return 'light';
+  };
+
+  // Compute the effective mode
+  const effectiveMode: 'light' | 'dark' = themeMode === 'system' ? getSystemMode() : themeMode;
+
+  // Helper to get the correct color set for the current theme and type
+  const colors = getColors(theme, themeType, effectiveMode);
+
   const [weekData, setWeekData] = useState<WeekData | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -61,8 +102,9 @@ const SchoolPlanner = () => {
   // NEW: Sort option for subjects in Markbook
   const [subjectSortOption, setSubjectSortOption] = useState<'alphabetical-asc' | 'alphabetical-desc' | 'marks-asc' | 'marks-desc'>('alphabetical-asc');
 
-
-
+  // Welcome screen states - must be declared early since used in useEffect dependencies
+  const [welcomeStep, setWelcomeStep] = useState<'legal' | 'upload' | 'name_input' | 'completed'>('legal');
+  const [userName, setUserName] = useState('');
 
   // Persist examsBySubject
   useEffect(() => {
@@ -99,33 +141,43 @@ const SchoolPlanner = () => {
   }, []);
 
   // Auto-fetch NSW term data if week numbering is enabled and the cache is missing
+  // Defer to avoid blocking initial render
   useEffect(() => {
+    // Only fetch if welcome screen is completed to avoid blocking welcome page
+    if (welcomeStep !== 'completed') return;
+    
     const enabled = localStorage.getItem('weekNumberingEnabled') === 'true';
     const source = (localStorage.getItem('weekSource') as 'nsw' | 'custom') || 'nsw';
     if (!enabled || source !== 'nsw') return;
-    const now = new Date();
-    const year = now.getFullYear();
-    const cached = getCachedNswTerms(year);
-    const cachedNext = getCachedNswTerms(year + 1);
-    (async () => {
-      try {
-        if (!cached) {
-          const data = await fetchNswTerms(year);
-          if (data) {
-            cacheNswTerms(data);
-            setWeekSettingsVersion(v => v + 1);
+    
+    // Defer fetch to avoid blocking render
+    const timer = setTimeout(() => {
+      const now = new Date();
+      const year = now.getFullYear();
+      const cached = getCachedNswTerms(year);
+      const cachedNext = getCachedNswTerms(year + 1);
+      (async () => {
+        try {
+          if (!cached) {
+            const data = await fetchNswTerms(year);
+            if (data) {
+              cacheNswTerms(data);
+              setWeekSettingsVersion(v => v + 1);
+            }
           }
-        }
-        if (!cachedNext) {
-          const dataNext = await fetchNswTerms(year + 1);
-          if (dataNext) {
-            cacheNswTerms(dataNext);
-            setWeekSettingsVersion(v => v + 1);
+          if (!cachedNext) {
+            const dataNext = await fetchNswTerms(year + 1);
+            if (dataNext) {
+              cacheNswTerms(dataNext);
+              setWeekSettingsVersion(v => v + 1);
+            }
           }
-        }
-      } catch { }
-    })();
-  }, [weekSettingsVersion]);
+        } catch { }
+      })();
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [weekSettingsVersion, welcomeStep]);
 
   const handleSubjectSelect = (subject: Subject) => {
     setSelectedSubjectForExam(subject);
@@ -172,10 +224,6 @@ const SchoolPlanner = () => {
   const [editColour, setEditColour] = useState(''); // Changed to 'editColour'
   const [editIcon, setEditIcon] = useState('');
 
-  // Welcome screen states
-  const [welcomeStep, setWelcomeStep] = useState<'legal' | 'upload' | 'name_input' | 'completed'>('legal');
-  const [userName, setUserName] = useState('');
-
   // New state for auto-naming toggle
   const [autoNamingEnabled, setAutoNamingEnabled] = useState(() => {
     const saved = localStorage.getItem('autoNamingEnabled');
@@ -187,6 +235,10 @@ const SchoolPlanner = () => {
     const saved = localStorage.getItem('offlineCachingEnabled');
     return saved === null ? true : saved === 'true';
   });
+
+  const [showThemeModal, setShowThemeModal] = useState(false);
+  const [showThemeInterferenceModal, setShowThemeInterferenceModal] = useState(false);
+  const [customCssDetected, setCustomCssDetected] = useState(false);
 
   const handleOfflineCachingToggle = async (enabled: boolean) => {
     setOfflineCachingEnabled(enabled);
@@ -1717,54 +1769,6 @@ const SchoolPlanner = () => {
     );
   };
 
-
-
-
-
-  // Add a new state to track if the user selected a normal or extreme theme
-  const [theme, setTheme] = useState<ThemeKey>(() => {
-    // Try to load from localStorage, fallback to 'blue'
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('theme');
-      if (saved && ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink', 'grey'].includes(saved)) {
-        return saved as ThemeKey;
-      }
-    }
-    return 'blue';
-  });
-  const [themeType, setThemeType] = useState<'normal' | 'extreme'>(() => {
-    // Try to load from localStorage, fallback to 'normal'
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('themeType');
-      if (saved === 'normal' || saved === 'extreme') return saved;
-    }
-    return 'normal';
-  });
-  const [showThemeModal, setShowThemeModal] = useState(false);
-  // Add theme mode state: 'light' | 'dark' | 'system'
-  const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'system'>(() => {
-    // Try to load from localStorage, fallback to 'system'
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('themeMode');
-      if (saved === 'light' || saved === 'dark' || saved === 'system') return saved;
-    }
-    return 'system';
-  });
-
-  // System color scheme detection
-  const getSystemMode = () => {
-    if (typeof window !== 'undefined' && window.matchMedia) {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-    return 'light';
-  };
-
-  // Compute the effective mode
-  const effectiveMode: 'light' | 'dark' = themeMode === 'system' ? getSystemMode() : themeMode;
-
-  // Helper to get the correct color set for the current theme and type
-  const colors = getColors(theme, themeType, effectiveMode);
-
   // Dynamically set the body background color to match the theme
   React.useEffect(() => {
     // Extract the background color from the colors.background (which may be a Tailwind class or hex)
@@ -2009,10 +2013,6 @@ const SchoolPlanner = () => {
 
   // Add state for tab countdown info (for tab title)
   const [tabCountdown, setTabCountdown] = useState<{ time: string; event: string; location?: string } | null>(null);
-
-  // Fullscreen theme interference modal
-  const [showThemeInterferenceModal, setShowThemeInterferenceModal] = useState(false);
-  const [customCssDetected, setCustomCssDetected] = useState(false);
 
   // Save infoOrder and infoShown to localStorage
   useEffect(() => {
@@ -2335,26 +2335,32 @@ const SchoolPlanner = () => {
   }, [location.pathname]);
 
 
-  // Main content routes
+  // Main content routes with Suspense for lazy-loaded components
   // Only show welcome screen if not completed
   const mainContent = (
-    <Routes>
-      {welcomeStep !== 'completed' ? (
-        <>
-          <Route path="/" element={<Navigate to="/welcome" replace />} />
-          <Route path="/welcome" element={renderWelcomeScreen()} />
-        </>
-      ) : (
-        <>
-          <Route path="/" element={<Navigate to="/home" replace />} />
-          <Route path="/home" element={renderHome()} />
-          <Route path="/calendar" element={renderWeekView()} />
-          <Route path="/markbook" element={renderMarkbook()} />
-          <Route path="/settings" element={renderSettings()} />
-        </>
-      )}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <Suspense fallback={
+      <div className={`flex items-center justify-center p-8`}>
+        <div className={`${colors.container} ${colors.border} border rounded-xl px-4 py-3`}>Loading…</div>
+      </div>
+    }>
+      <Routes>
+        {welcomeStep !== 'completed' ? (
+          <>
+            <Route path="/" element={<Navigate to="/welcome" replace />} />
+            <Route path="/welcome" element={renderWelcomeScreen()} />
+          </>
+        ) : (
+          <>
+            <Route path="/" element={<Navigate to="/home" replace />} />
+            <Route path="/home" element={renderHome()} />
+            <Route path="/calendar" element={renderWeekView()} />
+            <Route path="/markbook" element={renderMarkbook()} />
+            <Route path="/settings" element={renderSettings()} />
+          </>
+        )}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
   );
 
   // Main render logic
@@ -2367,9 +2373,9 @@ const SchoolPlanner = () => {
   }
   if (welcomeStep !== 'completed') {
     return (
-      <div className={`min-h-screen ${colors.background} text-white flex items-center justify-center`}>
+      <main className={`min-h-screen ${colors.background} text-white flex items-center justify-center`}>
         {mainContent}
-      </div>
+      </main>
     );
   }
 
