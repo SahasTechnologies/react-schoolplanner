@@ -1,19 +1,16 @@
-// Utility to fetch Quote of the Day from BrainyQuote, RandomQuotes API, or Baulko Bell Times
+// Utility to fetch Quote of the Day from BrainyQuote, Favqs, ZenQuotes, or Baulko Bell Times
+import { fetchTextViaCors, fetchJsonViaCors } from './corsProxy';
 
 export interface QuoteOfTheDay {
   quote: string;
   author: string;
   link: string;
-  source?: 'brainyquote' | 'random-quotes-api' | 'baulko-bell-times';
+  source?: 'brainyquote' | 'favqs' | 'zenquotes' | 'baulko-bell-times';
 }
 
-// Quote types mapping
-// Note: BrainyQuote shows quotes in this order:
-// Index 0: Yesterday's "Quote of the Day" 
-// Index 1: Today's main quote (what we want)
-// Index 2+: Other category quotes (love, art, nature, funny)
+
 const quoteTypes = {
-  normal: 0,  // Today's main quote (first in the list after yesterday's)
+  normal: 0,
   love: 1,
   art: 2,
   nature: 3,
@@ -39,153 +36,53 @@ function parseHtmlEntities(str: string): string {
 
 // Timeout-enabled fetch to avoid long hangs per proxy
 const QUOTE_FETCH_TIMEOUT_MS = 6000;
-async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = QUOTE_FETCH_TIMEOUT_MS): Promise<Response> {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { ...init, signal: controller.signal });
-  } finally {
-    clearTimeout(id);
-  }
-}
 
 // Fetch Quote of the Day data using CORS proxy with fallback
 export async function fetchQuoteOfTheDay(type: QuoteType = 'normal'): Promise<QuoteOfTheDay | null> {
   console.log('[QuoteOfTheDay] Starting fetch with type:', type);
-  
-  // Try multiple CORS proxies in order (most reliable first). Support both param- and path-style proxies.
-  const proxies: { prefix: string; mode: 'param' | 'path' | 'json' }[] = [
-    // Param-style (prefer raw passthroughs first)
-    { prefix: 'https://corsproxy.io/?', mode: 'param' },
-    { prefix: 'https://api.codetabs.com/v1/proxy?quest=', mode: 'param' },
-    { prefix: 'https://api.allorigins.win/raw?url=', mode: 'param' },
-    { prefix: 'https://api.allorigins.win/get?url=', mode: 'json' },
-    { prefix: 'https://api.allorigins.workers.dev/raw?url=', mode: 'param' },
-    { prefix: 'https://api.allorigins.workers.dev/get?url=', mode: 'json' },
-    { prefix: 'https://allorigins.deno.dev/raw?url=', mode: 'param' },
-    { prefix: 'https://allorigins.deno.dev/get?url=', mode: 'json' },
-    { prefix: 'https://bird.ioliu.cn/v1?url=', mode: 'param' },
-    { prefix: 'https://proxy.techzbots1.workers.dev/?u=', mode: 'param' },
+  try {
+    const html = await fetchTextViaCors('https://www.brainyquote.com/quote_of_the_day', {}, QUOTE_FETCH_TIMEOUT_MS);
+    console.log('[QuoteOfTheDay] Got response, HTML length:', html?.length);
 
-    // Path-style
-    { prefix: 'https://cors.isomorphic-git.org/', mode: 'path' },
-    { prefix: 'https://cors-anywhere.herokuapp.com/', mode: 'path' },
-    { prefix: 'https://cors.eu.org/', mode: 'path' },
-    { prefix: 'https://thingproxy.freeboard.io/fetch/', mode: 'path' },
-  ];
-  
-  for (let i = 0; i < proxies.length; i++) {
-    try {
-      const { prefix, mode } = proxies[i];
-      const targetUrlRaw = 'https://www.brainyquote.com/quote_of_the_day';
-      const targetUrlEnc = encodeURIComponent(targetUrlRaw);
-      const fetchUrl = mode === 'path' ? (prefix + targetUrlRaw) : (prefix + targetUrlEnc);
-      console.log(`[QuoteOfTheDay] Attempt ${i + 1}/${proxies.length} - Fetching from proxy:`, prefix, '(' + mode + ')');
-
-      const response = await fetchWithTimeout(fetchUrl);
-      console.log('[QuoteOfTheDay] Response status:', response.status);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      // Different proxies return different formats
-      let html: string;
-      if (mode === 'json') {
-        // AllOrigins GET returns a JSON object with a `contents` field
-        try {
-          const data = await response.json();
-          html = (data && data.contents) ? String(data.contents) : '';
-        } catch (_e) {
-          // Fallback to text if JSON parse fails
-          html = await response.text();
-        }
-      } else {
-        html = await response.text();
-      }
-      
-      console.log('[QuoteOfTheDay] Got response, HTML length:', html?.length);
-      
-      // Check if we got a Cloudflare challenge page
-      if (html.includes('Just a moment') || html.includes('cf-browser-verification')) {
-        console.warn('[QuoteOfTheDay] Got Cloudflare challenge page, trying next proxy');
-        throw new Error('Cloudflare challenge detected');
-      }
+    // Check for Cloudflare challenge pages
+    if (html.includes('Just a moment') || html.includes('cf-browser-verification')) {
+      throw new Error('Cloudflare challenge detected');
+    }
 
     // Extract all quotes
     const quotesMatch = html.match(/<h2 class="qotd-h2">[\s\S]+?<\/a>\n<\/div>/g);
     if (!quotesMatch || quotesMatch.length === 0) {
       console.error('[QuoteOfTheDay] Could not parse quotes from HTML');
       console.log('[QuoteOfTheDay] HTML sample:', html.substring(0, 500));
-      throw new Error('Could not parse quotes');
+      return null;
     }
     console.log('[QuoteOfTheDay] Found', quotesMatch.length, 'quotes');
-    
-    // Log all quotes to see which is which
-    quotesMatch.forEach((q, idx) => {
-      const previewMatch = q.match(/>([\s\S]{0,50})/);
-      console.log(`[QuoteOfTheDay] Quote ${idx}:`, previewMatch ? previewMatch[1].substring(0, 50) : 'N/A');
-    });
 
-    // BrainyQuote structure: First quote in HTML is usually today's featured quote
-    // We want index 0 for 'normal' type (today's main quote)
+    // Decide which quote to use
     let qNumber = quoteTypes[type] || 0;
-    if (qNumber >= quotesMatch.length) {
-      console.error('[QuoteOfTheDay] Quote index out of bounds, using index 0');
-      qNumber = 0;
-      console.log('[QuoteOfTheDay] Using fallback quote at index 0');
-    }
+    if (qNumber >= quotesMatch.length) qNumber = 0;
     const selectedQuoteHtml = quotesMatch[qNumber];
-    console.log('[QuoteOfTheDay] Selected quote index:', qNumber);
-    console.log('[QuoteOfTheDay] Selected quote HTML sample:', selectedQuoteHtml.substring(0, 200));
 
     // Extract link
-    const linkMatch = selectedQuoteHtml.match(/href="(.+?)"/);
-    if (!linkMatch) {
-      console.error('[QuoteOfTheDay] Could not parse link');
-      throw new Error('Could not parse link');
-    }
+    const linkMatch = selectedQuoteHtml.match(/href=\"(.+?)\"/);
+    if (!linkMatch) return null;
     const link = 'https://www.brainyquote.com' + linkMatch[1];
-    console.log('[QuoteOfTheDay] Parsed link:', link);
 
     // Extract quote text
-    const quoteMatch = selectedQuoteHtml.match(/space-between">\n([\s\S]+?)\n<img/);
-    if (!quoteMatch) {
-      console.error('[QuoteOfTheDay] Could not parse quote text');
-      throw new Error('Could not parse quote text');
-    }
+    const quoteMatch = selectedQuoteHtml.match(/space-between\">\n([\s\S]+?)\n<img/);
+    if (!quoteMatch) return null;
     const quote = parseHtmlEntities(quoteMatch[1]);
-    console.log('[QuoteOfTheDay] Parsed quote:', quote.substring(0, 50) + '...');
 
     // Extract author
-    const authorMatch = selectedQuoteHtml.match(/title="view author">(.+?)<\/a>/);
-    if (!authorMatch) {
-      console.error('[QuoteOfTheDay] Could not parse author');
-      throw new Error('Could not parse author');
-    }
+    const authorMatch = selectedQuoteHtml.match(/title=\"view author\">(.+?)<\/a>/);
+    if (!authorMatch) return null;
     const author = parseHtmlEntities(authorMatch[1]);
-    console.log('[QuoteOfTheDay] Parsed author:', author);
 
-      const result = {
-        quote,
-        author,
-        link,
-        source: 'brainyquote' as const,
-      };
-      console.log('[QuoteOfTheDay] Successfully parsed all data with proxy', i + 1);
-      return result;
-    } catch (error) {
-      console.error(`[QuoteOfTheDay] Proxy ${i + 1} failed:`, error);
-      if (i === proxies.length - 1) {
-        console.error('[QuoteOfTheDay] All proxies failed');
-        return null;
-      }
-      // Continue to next proxy
-      console.log('[QuoteOfTheDay] Trying next proxy...');
-    }
+    return { quote, author, link, source: 'brainyquote' };
+  } catch (error) {
+    console.error('[QuoteOfTheDay] Failed to fetch via CORS helper:', error);
+    return null;
   }
-  
-  return null;
 }
 
 // Cache management - Cache never expires, always returns cached quote if available
@@ -229,74 +126,39 @@ export function clearQuoteCache(quoteType?: QuoteType): void {
   }
 }
 
-// Fetch from RandomQuotes API
-export async function fetchRandomQuotesApiQuote(): Promise<QuoteOfTheDay | null> {
-  console.log('[RandomQuotesAPI] Fetching random quote...');
+// Favqs QOTD
+export async function fetchFavqsQuote(): Promise<QuoteOfTheDay | null> {
   try {
-    const response = await fetch('https://random-quotes-freeapi.vercel.app/api/random');
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('[RandomQuotesAPI] Received data:', data);
-
-    if (!data.quote || !data.author) {
-      throw new Error('Invalid response format');
-    }
-
-    const result: QuoteOfTheDay = {
-      quote: data.quote,
-      author: data.author,
-      link: 'https://random-quotes-freeapi.vercel.app/',
-      source: 'random-quotes-api',
+    const data = await fetchJsonViaCors<any>('https://favqs.com/api/qotd');
+    const q = data?.quote;
+    if (!q?.body || !q?.author) return null;
+    return {
+      quote: String(q.body),
+      author: String(q.author),
+      link: typeof q.url === 'string' ? q.url : 'https://favqs.com/',
+      source: 'favqs',
     };
-
-    console.log('[RandomQuotesAPI] Successfully fetched quote');
-    return result;
-  } catch (error) {
-    console.error('[RandomQuotesAPI] Failed to fetch:', error);
+  } catch (e) {
+    console.error('[Favqs] Failed:', e);
     return null;
   }
 }
 
-// Cache management for RandomQuotes API
-export function getCachedRandomQuotesQuote(): QuoteOfTheDay | null {
+// ZenQuotes Today
+export async function fetchZenQuotesToday(): Promise<QuoteOfTheDay | null> {
   try {
-    const refreshMode = localStorage.getItem('randomQuotesRefreshMode') || 'daily';
-
-    if (refreshMode === 'reload') {
-      // Always return null to force refresh on every reload
-      console.log('[RandomQuotesAPI] Refresh mode is "reload", skipping cache');
-      return null;
-    }
-
-    // Daily mode: check if cache is from today
-    const cached = localStorage.getItem('randomQuoteCache');
-    const cachedDate = localStorage.getItem('randomQuoteCacheDate');
-    const today = new Date().toDateString();
-
-    if (cached && cachedDate === today) {
-      console.log('[RandomQuotesAPI] Using cached quote from today');
-      return JSON.parse(cached);
-    }
-
-    console.log('[RandomQuotesAPI] No valid cache found');
+    const arr = await fetchJsonViaCors<any[]>('https://zenquotes.io/api/today');
+    const first = Array.isArray(arr) ? arr[0] : null;
+    if (!first?.q || !first?.a) return null;
+    return {
+      quote: String(first.q),
+      author: String(first.a),
+      link: 'https://zenquotes.io/',
+      source: 'zenquotes',
+    };
+  } catch (e) {
+    console.error('[ZenQuotes] Failed:', e);
     return null;
-  } catch (error) {
-    console.error('[RandomQuotesAPI] Error reading cache:', error);
-    return null;
-  }
-}
-
-export function cacheRandomQuotesQuote(quote: QuoteOfTheDay): void {
-  try {
-    const today = new Date().toDateString();
-    localStorage.setItem('randomQuoteCache', JSON.stringify(quote));
-    localStorage.setItem('randomQuoteCacheDate', today);
-    console.log('[RandomQuotesAPI] Cached quote for date:', today);
-  } catch (error) {
-    console.error('[RandomQuotesAPI] Error caching quote:', error);
   }
 }
 

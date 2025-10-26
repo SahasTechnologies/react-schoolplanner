@@ -1,83 +1,80 @@
-// Utility to fetch Word of the Day from Vocabulary.com using CORS proxy
+// Utility to fetch Word of the Day from Vocabulary.com using centralized CORS helper
 // Fallback sources: Merriam-Webster and Dictionary.com
 // Based on parsing logic from Normal-Tangerine8609/Scriptable-Widgets
+import { fetchTextViaCors } from './corsProxy';
 
 export interface WordOfTheDay {
   word: string;
   pronunciation: string;
   type: string;
   definition: string;
-  source: 'vocabulary' | 'dictionary' | 'worddaily' | 'merriam-webster' | 'britannica';
+  source: 'vocabulary' | 'dictionary' | 'worddaily' | 'merriam-webster' | 'britannica' | 'wordsmith';
 }
 
-// Multi-proxy HTML fetch with timeout to improve reliability and speed
-const WORD_FETCH_TIMEOUT_MS = 8000;
-const WORD_PROXIES: { prefix: string; mode: 'param' | 'path' | 'json' }[] = [
-  // Param-style (most reliable first)
-  { prefix: 'https://corsproxy.io/?', mode: 'param' },
-  { prefix: 'https://api.codetabs.com/v1/proxy?quest=', mode: 'param' },
-  { prefix: 'https://api.allorigins.win/raw?url=', mode: 'param' },
-  { prefix: 'https://api.allorigins.win/get?url=', mode: 'json' },
-  { prefix: 'https://api.allorigins.workers.dev/raw?url=', mode: 'param' },
-  { prefix: 'https://api.allorigins.workers.dev/get?url=', mode: 'json' },
-  { prefix: 'https://allorigins.deno.dev/raw?url=', mode: 'param' },
-  { prefix: 'https://allorigins.deno.dev/get?url=', mode: 'json' },
-  { prefix: 'https://bird.ioliu.cn/v1?url=', mode: 'param' },
-  { prefix: 'https://proxy.techzbots1.workers.dev/?u=', mode: 'param' },
-  { prefix: 'https://cors.isomorphic-git.org/', mode: 'path' },
-  { prefix: 'https://cors-anywhere.herokuapp.com/', mode: 'path' },
-  { prefix: 'https://cors.eu.org/', mode: 'path' },
-  { prefix: 'https://thingproxy.freeboard.io/fetch/', mode: 'path' },
-  { prefix: 'https://cors.zimjs.com/', mode: 'path' },
-];
-
-
-async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = WORD_FETCH_TIMEOUT_MS): Promise<Response> {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeoutMs);
+// HTML fallback for Merriam-Webster
+async function fetchFromMerriamWebster(): Promise<WordOfTheDay | null> {
+  console.log('[WordOfTheDay] Trying Merriam-Webster (HTML)...');
   try {
-    return await fetch(url, { ...init, signal: controller.signal });
-  } finally {
-    clearTimeout(id);
+    const html = await fetchHtmlWithProxies('https://www.merriam-webster.com/word-of-the-day');
+    // Word
+    const wordMatch = html.match(/<title>Word of the Day: (.+?) \| Merriam-Webster<\/title>/);
+    if (!wordMatch) throw new Error('MW HTML: word not found');
+    const word = wordMatch[1];
+    // Pronunciation
+    let pronunciation = word;
+    const parts = html.split('<span class="word-syllables">');
+    if (parts.length >= 3) pronunciation = parts[2].split('<\/span>')[0];
+    // Type
+    let type = 'word';
+    const typeMatch = html.match(/<span class="main-attr">(.+?)<\/span>/);
+    if (typeMatch) type = typeMatch[1];
+    // Definition
+    let definition = 'Visit Merriam-Webster to see the full definition.';
+    const defMatch = html.match(/<h2>What It Means<\/h2>\s+?<p>([\s\S]+?)<\/p>/);
+    if (defMatch) definition = parseHtmlEntities(defMatch[1].replace(/<[^>]*>/g, ''));
+    return { word, pronunciation, type, definition, source: 'merriam-webster' };
+  } catch (e) {
+    console.error('[WordOfTheDay] Merriam-Webster HTML failed:', e);
+    return null;
   }
 }
 
-async function fetchHtmlWithProxies(targetUrl: string): Promise<string> {
-  for (let i = 0; i < WORD_PROXIES.length; i++) {
-    const { prefix, mode } = WORD_PROXIES[i];
-    const proxied = mode === 'path' ? (prefix + targetUrl) : (prefix + encodeURIComponent(targetUrl));
-    try {
-      console.log(`[WordOfTheDay] Proxy attempt ${i + 1}/${WORD_PROXIES.length}:`, prefix, '(' + mode + ')');
-      const resp = await fetchWithTimeout(proxied);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      if (mode === 'json') {
-        try {
-          const data = await resp.json() as any;
-          const html = (data && (data.contents ?? data.body ?? data.result)) ? String(data.contents ?? data.body ?? data.result) : '';
-          if (!html) throw new Error('Empty JSON contents');
-          if (html.includes('Just a moment') || html.includes('cf-browser-verification')) {
-            throw new Error('Cloudflare challenge detected');
-          }
-          return html;
-        } catch (_e) {
-          const text = await resp.text();
-          if (text.includes('Just a moment') || text.includes('cf-browser-verification')) {
-            throw new Error('Cloudflare challenge detected');
-          }
-          return text;
-        }
-      }
-      const text = await resp.text();
-      if (text.includes('Just a moment') || text.includes('cf-browser-verification')) {
-        throw new Error('Cloudflare challenge detected');
-      }
-      return text;
-    } catch (e) {
-      console.warn('[WordOfTheDay] Proxy failed:', prefix, e);
-      if (i === WORD_PROXIES.length - 1) throw e;
-    }
+// Dictionary.com
+async function fetchFromDictionaryCom(): Promise<WordOfTheDay | null> {
+  console.log('[WordOfTheDay] Trying Dictionary.com...');
+  try {
+    const html = await fetchHtmlWithProxies('https://www.dictionary.com/e/word-of-the-day/');
+    // Word
+    const titleMatch = html.match(/<title>Word of the Day - ([^|]+) \| Dictionary\.com<\/title>/);
+    if (!titleMatch) throw new Error('Dict.com: word not found');
+    const word = titleMatch[1].trim();
+    // Pronunciation
+    let pronunciation = word;
+    const pronMatch = html.match(/<span class="otd-item-headword__pronunciation__text">\s*\[\s*([^\]]+)\]\s*<\/span>/);
+    if (pronMatch) pronunciation = pronMatch[1].replace(/<[^>]*>/g, '').trim();
+    // Type
+    let type = 'word';
+    const tMatch = html.match(/<span class="italic">\s*([^<]+?)\s*<\/span>\s*<\/p>\s*<p>/);
+    if (tMatch) type = tMatch[1].trim();
+    // Definition
+    let definition = 'Visit Dictionary.com to see the full definition.';
+    const dMatch = html.match(/<span class="italic">\s*[^<]+?\s*<\/span>\s*<\/p>\s*<p>([^<]+)<\/p>/);
+    if (dMatch) definition = parseHtmlEntities(dMatch[1].trim());
+    return { word, pronunciation, type, definition, source: 'dictionary' };
+  } catch (e) {
+    console.error('[WordOfTheDay] Dictionary.com failed:', e);
+    return null;
   }
-  throw new Error('All proxies failed');
+}
+// Multi-proxy HTML fetch using centralized helper with timeout
+const WORD_FETCH_TIMEOUT_MS = 8000;
+async function fetchHtmlWithProxies(targetUrl: string): Promise<string> {
+  // The centralized helper cycles proxies and remembers last-good per host
+  const text = await fetchTextViaCors(targetUrl, {}, WORD_FETCH_TIMEOUT_MS);
+  if (text.includes('Just a moment') || text.includes('cf-browser-verification')) {
+    throw new Error('Cloudflare challenge detected');
+  }
+  return text;
 }
 
 function parseHtmlEntities(str: string): string {
@@ -318,120 +315,92 @@ async function fetchFromBritannica(): Promise<WordOfTheDay | null> {
   }
 }
 
-// Fetch from Merriam-Webster (FALLBACK 1)
-async function fetchFromMerriamWebster(): Promise<WordOfTheDay | null> {
-  console.log('[WordOfTheDay] Trying Merriam-Webster...');
+// Prefer RSS for Merriam-Webster
+async function fetchFromMerriamWebsterRSS(): Promise<WordOfTheDay | null> {
+  console.log('[WordOfTheDay] Trying Merriam-Webster RSS...');
   try {
-    const html = await fetchHtmlWithProxies('https://www.merriam-webster.com/word-of-the-day');
-    console.log('[WordOfTheDay] MW HTML length:', html?.length);
-
-    // Extract word - using pattern from Scriptable code
-    const wordMatch = html.match(/<title>Word of the Day: (.+?) \| Merriam-Webster<\/title>/);
-    if (!wordMatch) {
-      throw new Error('Could not parse word');
+    const xml = await fetchHtmlWithProxies('https://www.merriam-webster.com/wotd/feed/rss2');
+    const parser = new DOMParser();
+    const rss = parser.parseFromString(xml, 'text/xml');
+    const item = rss.querySelector('item');
+    if (!item) throw new Error('No RSS items');
+    const descNode = item.querySelector('description');
+    const desc = descNode?.textContent || '';
+    // description is HTML inside CDATA
+    const htmlDoc = parser.parseFromString(`<div>${desc}</div>`, 'text/html');
+    // Word is bolded early in description
+    let word = '';
+    const strong = htmlDoc.querySelector('strong');
+    if (strong && strong.textContent) {
+      word = strong.textContent.trim();
     }
-    const word = wordMatch[1];
-    console.log('[WordOfTheDay] Parsed word:', word);
-
-    // Extract pronunciation - using split method from Scriptable code
-    let pronunciation = '';
-    const pronunciationParts = html.split('<span class="word-syllables">');
-    if (pronunciationParts.length >= 3) {
-      pronunciation = pronunciationParts[2].split('</span>')[0];
-    } else {
-      pronunciation = word;
-      console.warn('[WordOfTheDay] Could not parse pronunciation, using word');
+    if (!word) {
+      // fallback simple match
+      const m = desc.match(/<strong>([^<]+)<\/strong>/i);
+      if (m) word = m[1].trim();
     }
-    console.log('[WordOfTheDay] Parsed pronunciation:', pronunciation);
-
-    // Extract type - using pattern from Scriptable code
-    let type = '';
-    const typeMatch = html.match(/<span class="main-attr">(.+?)<\/span>/);
-    if (typeMatch) {
-      type = typeMatch[1];
-    } else {
-      type = 'word';
-      console.warn('[WordOfTheDay] Could not parse type');
-    }
-    console.log('[WordOfTheDay] Parsed type:', type);
-
-    // Extract definition - using pattern from Scriptable code
+    if (!word) throw new Error('MW RSS: no word');
+    // Type
+    let type = 'word';
+    const em = htmlDoc.querySelector('em');
+    if (em && em.textContent) type = em.textContent.trim();
+    // Pronunciation appears like \pron\ in the CDATA
+    let pronunciation = word;
+    const pronMatch = desc.match(/\\([^<\\]+)\\/);
+    if (pronMatch) pronunciation = pronMatch[1].trim();
+    // Find a paragraph that looks like the primary definition (skip headers/examples)
     let definition = '';
-    const defMatch = html.match(/<h2>What It Means<\/h2>\s+?<p>([\s\S]+?)<\/p>/);
-    if (defMatch) {
-      definition = parseHtmlEntities(defMatch[1].replace(/<[^>]*>/g, ''));
-    } else {
-      definition = 'Visit Merriam-Webster to see the full definition.';
-      console.warn('[WordOfTheDay] Could not parse definition');
+    const ps = Array.from(htmlDoc.querySelectorAll('p')) as HTMLParagraphElement[];
+    for (const p of ps) {
+      const t = (p.textContent || '').trim();
+      if (!t) continue;
+      if (/Merriam-Webster's Word of the Day/i.test(t)) continue;
+      if (/^Examples:/i.test(t)) continue;
+      if (/^Did you know\?/i.test(t)) continue;
+      if (t.length < 20) continue;
+      definition = t;
+      break;
     }
-    console.log('[WordOfTheDay] Parsed definition:', definition.substring(0, 50) + '...');
-
-    return {
-      word,
-      pronunciation,
-      type,
-      definition,
-      source: 'merriam-webster',
-    };
-  } catch (error) {
-    console.error('[WordOfTheDay] Merriam-Webster failed:', error);
+    if (!definition) definition = 'Visit Merriam-Webster to see the full definition.';
+    return { word, pronunciation, type, definition, source: 'merriam-webster' };
+  } catch (e) {
+    console.error('[WordOfTheDay] Merriam-Webster RSS failed:', e);
     return null;
   }
 }
 
-// Fetch from Dictionary.com (FALLBACK 2)
-async function fetchFromDictionaryCom(): Promise<WordOfTheDay | null> {
-  console.log('[WordOfTheDay] Trying Dictionary.com...');
+// Wordsmith (A.Word.A.Day) via RSS1.0
+async function fetchFromWordsmith(): Promise<WordOfTheDay | null> {
+  console.log('[WordOfTheDay] Trying Wordsmith AWAD RSS...');
   try {
-    const html = await fetchHtmlWithProxies('https://www.dictionary.com/e/word-of-the-day/');
-    console.log('[WordOfTheDay] Dict.com HTML length:', html?.length);
-
-    // Extract word from title
-    const titleMatch = html.match(/<title>Word of the Day - ([^|]+) \| Dictionary\.com<\/title>/);
-    if (!titleMatch) {
-      throw new Error('Could not parse word from Dictionary.com');
-    }
-    const word = titleMatch[1].trim();
-
-    // Extract pronunciation
-    let pronunciation = '';
-    const pronMatch = html.match(/<span class="otd-item-headword__pronunciation__text">\s*\[\s*([^\]]+)\]\s*<\/span>/);
-    if (pronMatch) {
-      pronunciation = pronMatch[1].replace(/<[^>]*>/g, '').trim();
-    } else {
-      pronunciation = word;
-    }
-
-    // Extract type
-    let type = '';
-    const typeMatch = html.match(/<span class="italic">\s*([^<]+?)\s*<\/span>\s*<\/p>\s*<p>/);
-    if (typeMatch) {
-      type = typeMatch[1].trim();
-    } else {
-      type = 'word';
-    }
-
-    // Extract definition
+    const xml = await fetchHtmlWithProxies('https://wordsmith.org/awad/rss1.xml');
+    const parser = new DOMParser();
+    const rss = parser.parseFromString(xml, 'text/xml');
+    const item = rss.querySelector('item');
+    if (!item) throw new Error('No AWAD item');
+    const title = (item.querySelector('title')?.textContent || '').trim();
+    const desc = (item.querySelector('description')?.textContent || '').trim();
+    const word = title || '';
+    if (!word) throw new Error('AWAD: no title');
+    // Attempt to parse "part: definition" format; otherwise use description as definition
+    let type = 'word';
     let definition = '';
-    const defMatch = html.match(/<span class="italic">\s*[^<]+?\s*<\/span>\s*<\/p>\s*<p>([^<]+)<\/p>/);
-    if (defMatch) {
-      definition = parseHtmlEntities(defMatch[1].trim());
+    const m = desc.match(/^\s*([A-Za-z]+)\s*:\s*(.+)$/);
+    if (m) {
+      type = m[1].toLowerCase();
+      definition = m[2].trim();
     } else {
-      definition = 'Visit Dictionary.com to see the full definition.';
+      definition = desc.replace(/\s+/g, ' ').trim();
     }
-
-    return {
-      word,
-      pronunciation,
-      type,
-      definition,
-      source: 'dictionary',
-    };
-  } catch (error) {
-    console.error('[WordOfTheDay] Dictionary.com failed:', error);
+    const pronunciation = word; // Not provided in RSS
+    return { word, pronunciation, type, definition, source: 'wordsmith' };
+  } catch (e) {
+    console.error('[WordOfTheDay] Wordsmith AWAD failed:', e);
     return null;
   }
 }
+
+// (duplicate Wordsmith AWAD function removed)
 
 // Main function to fetch Word of the Day
 // Respects user preference, falls back to other sources if needed
@@ -454,8 +423,17 @@ export async function fetchWordOfTheDay(): Promise<WordOfTheDay | null> {
   } else if (preferredSource === 'worddaily') {
     result = await fetchFromWordDaily();
     if (result) return result;
+  } else if (preferredSource === 'merriam-webster') {
+    // Prefer RSS first
+    result = await fetchFromMerriamWebsterRSS();
+    if (result) return result;
+    result = await fetchFromMerriamWebster();
+    if (result) return result;
   } else if (preferredSource === 'britannica') {
     result = await fetchFromBritannica();
+    if (result) return result;
+  } else if (preferredSource === 'wordsmith') {
+    result = await fetchFromWordsmith();
     if (result) return result;
   }
   
@@ -478,8 +456,11 @@ export async function fetchWordOfTheDay(): Promise<WordOfTheDay | null> {
     if (result) return result;
   }
   
-  // Last attempt: Merriam-Webster (do not fallback to Vocabulary unless selected explicitly)
-  console.log('[WordOfTheDay] Trying Merriam-Webster as final fallback...');
+  // Try Merriam-Webster RSS as a robust general fallback
+  console.log('[WordOfTheDay] Trying Merriam-Webster RSS as fallback...');
+  result = await fetchFromMerriamWebsterRSS();
+  if (result) return result;
+  // Then HTML fallback
   result = await fetchFromMerriamWebster();
   if (result) return result;
   
@@ -487,7 +468,7 @@ export async function fetchWordOfTheDay(): Promise<WordOfTheDay | null> {
   return null;
 }
 
-// Cache management - Cache never expires, always returns cached word if available for current source
+// ... (rest of the code remains the same)
 const CACHE_KEY = 'wordOfTheDayCache';
 
 export function getCachedWord(): WordOfTheDay | null {

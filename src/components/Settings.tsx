@@ -281,16 +281,17 @@ const Settings: React.FC<SettingsProps> = ({
   const [showMarkbookPasswordVerification, setShowMarkbookPasswordVerification] = useState(false);
   const [quoteProvider, setQuoteProvider] = useState(() => {
     const stored = localStorage.getItem('quoteProvider');
-    if (stored === 'notion-quote') {
-      localStorage.setItem('quoteProvider', 'random-quotes-api');
-      return 'random-quotes-api';
+    // Migrate deprecated values
+    if (stored === 'notion-quote' || stored === 'random-quotes-api') {
+      localStorage.setItem('quoteProvider', 'favqs');
+      return 'favqs';
     }
     return stored || 'brainyquote';
   });
   const [brainyQuoteType, setBrainyQuoteType] = useState(() => localStorage.getItem('quoteType') || 'normal');
-  const [randomQuotesRefreshMode, setRandomQuotesRefreshMode] = useState(() => localStorage.getItem('randomQuotesRefreshMode') || localStorage.getItem('notionQuoteRefreshMode') || 'daily');
   const [baulkoQuoteRefreshMode, setBaulkoQuoteRefreshMode] = useState(() => localStorage.getItem('baulkoQuoteRefreshMode') || 'daily');
 
+  // Word of the Day source lives only in localStorage; no component state needed
 
   return (
     <div className={`space-y-8 ${colors.background}`}>
@@ -600,12 +601,13 @@ const Settings: React.FC<SettingsProps> = ({
                   ['normal', 'love', 'art', 'nature', 'funny'].forEach(type => {
                     localStorage.removeItem(`quoteOfTheDayCache_${type}`);
                   });
-                  // Clear RandomQuotes API cache
+                  // Clear legacy RandomQuotes API cache if present
                   localStorage.removeItem('randomQuoteCache');
                   localStorage.removeItem('randomQuoteCacheDate');
                   // Clear Baulko cache
                   localStorage.removeItem('baulkoQuoteCache');
                   localStorage.removeItem('baulkoQuoteCacheDate');
+
                   // Notify widgets to refresh automatically
                   window.dispatchEvent(new CustomEvent('quoteTypeChanged'));
                   showSuccess('Quote Provider Updated', `Quote provider changed. The widget will refresh automatically!`, { effectiveMode, colors });
@@ -613,8 +615,9 @@ const Settings: React.FC<SettingsProps> = ({
                 className={`px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text}`}
               >
                 <option value="brainyquote">BrainyQuote</option>
+                <option value="favqs">Favqs</option>
+                <option value="zenquotes">ZenQuotes</option>
                 <option value="baulko-bell-times">Baulko Bell Times</option>
-                <option value="random-quotes-api">RandomQuotes API</option>
               </select>
             </div>
             <div
@@ -653,43 +656,6 @@ const Settings: React.FC<SettingsProps> = ({
                   <option value="art">BrainyQuote Art Quote</option>
                   <option value="nature">BrainyQuote Nature Quote</option>
                   <option value="funny">BrainyQuote Funny Quote</option>
-                </select>
-              </div>
-            </div>
-            <div
-              className="overflow-hidden transition-all duration-500 ease-in-out"
-              style={{
-                maxHeight: quoteProvider === 'random-quotes-api' ? '140px' : '0px',
-                opacity: quoteProvider === 'random-quotes-api' ? 1 : 0,
-                marginTop: quoteProvider === 'random-quotes-api' ? '4px' : '0px'
-              }}
-            >
-              <div className={`${colors.container} ${colors.border} border p-4 flex items-center justify-between transition-all duration-500`} style={{ borderRadius: '10px 10px 16px 16px' }}>
-                <div className="flex items-center gap-3">
-                  <Quote className={`${colors.accentText}`} size={18} />
-                  <div>
-                    <p className={`font-medium ${colors.containerText}`}>RandomQuotes API Refresh Mode</p>
-                    <p className={`text-sm ${colors.containerText} opacity-80`}>Choose when to refresh the quote</p>
-                  </div>
-                </div>
-                <select
-                  value={randomQuotesRefreshMode}
-                  onChange={(e) => {
-                    const mode = e.target.value;
-                    setRandomQuotesRefreshMode(mode);
-                    localStorage.setItem('randomQuotesRefreshMode', mode);
-                    if (mode === 'reload') {
-                      // Clear cache to force refresh on next reload
-                      localStorage.removeItem('randomQuoteCache');
-                      localStorage.removeItem('randomQuoteCacheDate');
-                    }
-                    showSuccess('Refresh Mode Updated', `RandomQuotes API will refresh ${mode === 'reload' ? 'on every page reload' : 'once daily at midnight'}`, { effectiveMode, colors });
-                    window.dispatchEvent(new CustomEvent('quoteTypeChanged'));
-                  }}
-                  className={`px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text}`}
-                >
-                  <option value="daily">Daily (at midnight)</option>
-                  <option value="reload">Every Page Reload</option>
                 </select>
               </div>
             </div>
@@ -750,7 +716,9 @@ const Settings: React.FC<SettingsProps> = ({
                     vocabulary: 'Vocabulary.com',
                     dictionary: 'Dictionary.com',
                     worddaily: 'WordDaily.com',
-                    britannica: 'Britannica Dictionary'
+                    britannica: 'Britannica Dictionary',
+                    'merriam-webster': 'Merriam-Webster (RSS)',
+                    wordsmith: 'Wordsmith (A.Word.A.Day)'
                   };
                   // Dispatch custom event to trigger widget refresh
                   window.dispatchEvent(new CustomEvent('wordSourceChanged'));
@@ -762,6 +730,8 @@ const Settings: React.FC<SettingsProps> = ({
                 <option value="vocabulary">Vocabulary.com</option>
                 <option value="dictionary">Dictionary.com</option>
                 <option value="britannica">Britannica Dictionary</option>
+                <option value="merriam-webster">Merriam-Webster (RSS)</option>
+                <option value="wordsmith">Wordsmith (A.Word.A.Day)</option>
               </select>
             </div>
           )}

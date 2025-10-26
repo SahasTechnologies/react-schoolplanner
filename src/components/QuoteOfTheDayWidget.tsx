@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { LoaderCircle, Quote } from 'lucide-react';
+import { LoaderCircle, Quote, Ban } from 'lucide-react';
 import { ThemeKey, getColors } from '../utils/themeUtils';
 import {
   fetchQuoteOfTheDay,
@@ -7,9 +7,8 @@ import {
   cacheQuote,
   QuoteOfTheDay,
   clearQuoteCache,
-  fetchRandomQuotesApiQuote,
-  getCachedRandomQuotesQuote,
-  cacheRandomQuotesQuote,
+  fetchFavqsQuote,
+  fetchZenQuotesToday,
   fetchBaulkoQuote,
   getCachedBaulkoQuote,
   cacheBaulkoQuote
@@ -29,6 +28,7 @@ export default function QuoteOfTheDayWidget({
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
   const [quoteData, setQuoteData] = React.useState<QuoteOfTheDay | null>(null);
+  const [blockedNote, setBlockedNote] = React.useState<string | null>(null);
   const colors = getColors(theme, themeType, effectiveMode);
   const mountTimeRef = React.useRef(Date.now());
   const MIN_SPIN_MS = 800; // Minimum spinner time for better visibility
@@ -53,38 +53,42 @@ export default function QuoteOfTheDayWidget({
       mountTimeRef.current = Date.now();
     }
 
-    const quoteProvider = localStorage.getItem('quoteProvider') || 'brainyquote';
+    let quoteProvider = localStorage.getItem('quoteProvider') || 'brainyquote';
+    // Migrate deprecated providers
+    if (quoteProvider === 'notion-quote' || quoteProvider === 'random-quotes-api') {
+      quoteProvider = 'favqs';
+      localStorage.setItem('quoteProvider', 'favqs');
+    }
     console.log('[QuoteWidget] Using quote provider:', quoteProvider);
 
-    if (quoteProvider === 'random-quotes-api') {
-      if (forceRefresh) {
-        localStorage.removeItem('randomQuoteCache');
-        localStorage.removeItem('randomQuoteCacheDate');
-      } else {
-        const cached = getCachedRandomQuotesQuote();
-        if (cached) {
-          console.log('[QuoteWidget] Using cached RandomQuotes API quote');
-          setQuoteData(cached);
-          setLoading(false);
-          return;
-        }
-      }
+    const originalProvider = quoteProvider;
+    const label = (p: string) => p === 'brainyquote' ? 'BrainyQuote' : p === 'favqs' ? 'Favqs' : p === 'zenquotes' ? 'ZenQuotes' : 'Baulko Bell Times';
 
-      console.log('[QuoteWidget] Fetching new RandomQuotes API quote...');
-      const data = await fetchRandomQuotesApiQuote();
-      if (data) {
-        console.log('[QuoteWidget] Successfully fetched RandomQuotes API quote');
+    const tryFavqs = async () => await fetchFavqsQuote();
+    const tryZen = async () => await fetchZenQuotesToday();
+
+    const finish = (ok: boolean, data?: QuoteOfTheDay | null) => {
+      if (ok && data) {
         setQuoteData(data);
-        cacheRandomQuotesQuote(data);
+        if (data.source !== originalProvider) setBlockedNote(`${label(originalProvider)} is being blocked`); else setBlockedNote(null);
       } else {
-        console.error('[QuoteWidget] Failed to fetch RandomQuotes API quote');
         if (!silent) setError(true);
+        setBlockedNote(null);
       }
-      if (silent) {
-        setLoading(false);
-      } else {
-        stopSpinner();
-      }
+      if (silent) setLoading(false); else stopSpinner();
+    };
+
+    if (quoteProvider === 'favqs') {
+      const data = await tryFavqs();
+      if (data) return finish(true, data);
+      // fallback order
+      const alt = await tryZen() || await fetchQuoteOfTheDay((localStorage.getItem('quoteType') || 'normal') as any);
+      return finish(!!alt, alt);
+    } else if (quoteProvider === 'zenquotes') {
+      const data = await tryZen();
+      if (data) return finish(true, data);
+      const alt = await tryFavqs() || await fetchQuoteOfTheDay((localStorage.getItem('quoteType') || 'normal') as any);
+      return finish(!!alt, alt);
     } else if (quoteProvider === 'baulko-bell-times') {
       if (forceRefresh) {
         localStorage.removeItem('baulkoQuoteCache');
@@ -105,15 +109,12 @@ export default function QuoteOfTheDayWidget({
         console.log('[QuoteWidget] Successfully fetched Baulko quote');
         setQuoteData(data);
         cacheBaulkoQuote(data);
-      } else {
-        console.error('[QuoteWidget] Failed to fetch Baulko quote');
-        if (!silent) setError(true);
+        setBlockedNote(null);
+        return finish(true, data);
       }
-      if (silent) {
-        setLoading(false);
-      } else {
-        stopSpinner();
-      }
+      console.error('[QuoteWidget] Failed to fetch Baulko quote, trying fallbacks');
+      const alt = await tryFavqs() || await tryZen() || await fetchQuoteOfTheDay((localStorage.getItem('quoteType') || 'normal') as any);
+      return finish(!!alt, alt);
     } else {
       // Handle BrainyQuote
       const quoteType = (localStorage.getItem('quoteType') || 'normal') as 'normal' | 'love' | 'art' | 'nature' | 'funny';
@@ -150,15 +151,12 @@ export default function QuoteOfTheDayWidget({
         console.log('[QuoteWidget] Successfully fetched quote');
         setQuoteData(data);
         cacheQuote(data, quoteType);
-      } else {
-        console.error('[QuoteWidget] Failed to fetch quote');
-        if (!silent) setError(true);
+        setBlockedNote(null);
+        return finish(true, data);
       }
-      if (silent) {
-        setLoading(false);
-      } else {
-        stopSpinner();
-      }
+      console.error('[QuoteWidget] BrainyQuote failed, trying fallbacks');
+      const alt = await tryFavqs() || await tryZen();
+      return finish(!!alt, alt);
     }
   }, []);
 
@@ -192,7 +190,10 @@ export default function QuoteOfTheDayWidget({
         )}
         {error && !loading && (
           <div className={`text-center space-y-3 ${colors.text}`}>
-            <div className="text-base">Could not load quote.</div>
+            <div className="flex items-center justify-center gap-2">
+              <Ban size={18} className={colors.text} />
+              <div className="text-base">Looks like your network is blocking this from loading</div>
+            </div>
           </div>
         )}
         {quoteData && !loading && (
@@ -205,6 +206,9 @@ export default function QuoteOfTheDayWidget({
             <div className={`text-base text-right px-2 opacity-70 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
               - {quoteData.author}
             </div>
+            {blockedNote && (
+              <div className={`text-xs text-center opacity-60 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{blockedNote}</div>
+            )}
           </div>
         )}
       </div>
@@ -216,11 +220,13 @@ export default function QuoteOfTheDayWidget({
           rel="noopener noreferrer"
           className={`text-xs mt-2 opacity-60 hover:opacity-100 transition-opacity ${colors.text}`}
         >
-          {quoteData.source === 'random-quotes-api'
-            ? 'View on RandomQuotes API →'
-            : quoteData.source === 'baulko-bell-times'
-              ? 'View on Baulko Bell Times →'
-              : 'View on BrainyQuote →'}
+          {quoteData.source === 'favqs'
+            ? 'View on Favqs →'
+            : quoteData.source === 'zenquotes'
+              ? 'View on ZenQuotes →'
+              : quoteData.source === 'baulko-bell-times'
+                ? 'View on Baulko Bell Times →'
+                : 'View on BrainyQuote →'}
         </a>
       )}
     </div>

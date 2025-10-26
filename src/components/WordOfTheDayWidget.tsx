@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { LoaderCircle, BookOpen } from 'lucide-react';
+import { LoaderCircle, BookOpen, Ban } from 'lucide-react';
 import { ThemeKey, getColors } from '../utils/themeUtils';
 import { fetchWordOfTheDay, getCachedWord, cacheWord, WordOfTheDay, clearWordCache } from '../utils/wordOfTheDayUtils';
 
@@ -17,6 +17,7 @@ export default function WordOfTheDayWidget({
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(false);
   const [wordData, setWordData] = React.useState<WordOfTheDay | null>(null);
+  const [blockedNote, setBlockedNote] = React.useState<string | null>(null);
   const colors = getColors(theme, themeType, effectiveMode);
   const mountTimeRef = React.useRef(Date.now());
   const MIN_SPIN_MS = 800; // Minimum spinner time for better visibility
@@ -71,14 +72,22 @@ export default function WordOfTheDayWidget({
 
     // Fetch new data
     console.log('[WordWidget] No cache, fetching new word...');
+    const preferred = localStorage.getItem('wordOfTheDaySource') || 'worddaily';
     const data = await fetchWordOfTheDay();
     if (data) {
       console.log('[WordWidget] Got word data');
       setWordData(data);
       cacheWord(data);
+      // If utils fell back, show small blocked note
+      if (data.source !== preferred) {
+        setBlockedNote(`${preferred} is being blocked`);
+      } else {
+        setBlockedNote(null);
+      }
     } else {
       console.error('[WordWidget] Failed to fetch word');
       if (!silent) setError(true);
+      setBlockedNote(null);
     }
     if (silent) {
       setLoading(false);
@@ -118,7 +127,10 @@ export default function WordOfTheDayWidget({
         )}
         {error && !loading && (
           <div className={`text-center space-y-3 ${colors.text}`}>
-            <div className="text-base">Could not load word of the day.</div>
+            <div className="flex items-center justify-center gap-2">
+              <Ban size={18} className={colors.text} />
+              <div className="text-base">Looks like your network is blocking this from loading</div>
+            </div>
           </div>
         )}
         {wordData && !loading && (
@@ -147,6 +159,10 @@ export default function WordOfTheDayWidget({
             <div className={`text-base leading-relaxed px-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
               {wordData.definition}
             </div>
+            {/* Blocked note when fallback used */}
+            {blockedNote && (
+              <div className={`text-xs opacity-60 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{blockedNote}</div>
+            )}
           </div>
         )}
       </div>
@@ -158,6 +174,7 @@ export default function WordOfTheDayWidget({
           worddaily: { url: 'https://worddaily.com/todays-word/', name: 'WordDaily.com' },
           britannica: { url: 'https://www.britannica.com/dictionary/eb/word-of-the-day', name: 'Britannica Dictionary' },
           'merriam-webster': { url: 'https://www.merriam-webster.com/word-of-the-day', name: 'Merriam-Webster' },
+          wordsmith: { url: 'https://wordsmith.org/awad/', name: 'Wordsmith (A.Word.A.Day)' },
         };
         const source = sourceLinks[wordData.source] || sourceLinks.vocabulary;
         return (

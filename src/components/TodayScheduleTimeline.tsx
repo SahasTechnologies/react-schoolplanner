@@ -63,27 +63,28 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
     const hasSegments = gradientSegments.length === nGradient && gradientSegments.every(s => Number.isFinite(s.startPct) && Number.isFinite(s.endPct));
 
     if (hasSegments) {
-      // Build a stepped gradient: solid color within each card segment, transparent in gaps
+      // Build a continuous gradient: event color within its segment,
+      // and smoothly blend across the gaps between segments.
       const firstStart = gradientSegments[0].startPct;
       if (firstStart > 0) {
-        stops.push(`transparent 0%`);
-        stops.push(`transparent ${firstStart}%`);
+        // Fill area above first card with the first event color
+        stops.push(`${colorsArr[0]} 0%`);
+        stops.push(`${colorsArr[0]} ${firstStart}%`);
       }
       for (let idx = 0; idx < nGradient; idx++) {
         const { startPct, endPct } = gradientSegments[idx];
         // Solid block for this event
         stops.push(`${colorsArr[idx]} ${startPct}%`);
         stops.push(`${colorsArr[idx]} ${endPct}%`);
-        // Transparent gap until next start
+        // Smoothly transition to the next event color across the physical gap
         if (idx < nGradient - 1) {
           const nextStart = gradientSegments[idx + 1].startPct;
-          if (endPct < nextStart) {
-            stops.push(`transparent ${endPct}%`);
-            stops.push(`transparent ${nextStart}%`);
-          }
+          // By specifying the next color at the next segment start, CSS will
+          // linearly interpolate from current color at endPct to next color at nextStart.
+          stops.push(`${colorsArr[idx + 1]} ${nextStart}%`);
         } else if (endPct < 100) {
-          stops.push(`transparent ${endPct}%`);
-          stops.push(`transparent 100%`);
+          // Extend the last color to the bottom
+          stops.push(`${colorsArr[idx]} 100%`);
         }
       }
     } else {
@@ -346,6 +347,21 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
     return { topInsetPct: topInset, bottomInsetPct: bottomInset };
   }, [containerHeight, progressPctVis]);
 
+  // Determine when to show fill/tip
+  const nowDateLocal = useMemo(() => new Date(nowTs), [nowTs]);
+  const todayMidnightTs = useMemo(() => new Date(nowDateLocal.getFullYear(), nowDateLocal.getMonth(), nowDateLocal.getDate()).getTime(), [nowDateLocal]);
+  const selectedMidnightTs = useMemo(() => selectedScheduleDate ? new Date(
+    selectedScheduleDate.getFullYear(),
+    selectedScheduleDate.getMonth(),
+    selectedScheduleDate.getDate()
+  ).getTime() : null, [selectedScheduleDate]);
+  const selectedDayIsPast = selectedMidnightTs !== null && selectedMidnightTs < todayMidnightTs;
+  const selectedDayIsFuture = selectedMidnightTs !== null && selectedMidnightTs > todayMidnightTs;
+  const showFill = progressPctVis > 0 || selectedDayIsPast; // no fill before start; full/past allowed
+  const showLine = progressPctVis > 0 && !selectedDayIsFuture; // hide tip before start and for future days
+
+  const bottomFillInsetPct = Math.max(0, 100 - progressPctVis);
+
   return (
     <>
       {/* Container controls rounding; children are square and clipped inside to avoid top/bottom gaps */}
@@ -362,17 +378,32 @@ const TodayScheduleTimeline: React.FC<TodayScheduleTimelineProps> = ({
             background: gradientCSS === 'none' ? 'linear-gradient(to bottom, #3b82f6, #ef4444, #10b981)' : gradientCSS
           }}
         />
+        {/* Filled portion (loading bar) - same gradient, clipped from top to current progress */}
+        {showFill && (
+          <div
+            className="absolute inset-0 z-[1] rounded-full"
+            style={{
+              background: gradientCSS === 'none' ? 'linear-gradient(to bottom, #3b82f6, #ef4444, #10b981)' : gradientCSS,
+              WebkitClipPath: `inset(0% 0% ${bottomFillInsetPct}% 0%)`,
+              clipPath: `inset(0% 0% ${bottomFillInsetPct}% 0%)`,
+              transition: 'clip-path 200ms ease-out',
+              willChange: 'clip-path',
+            }}
+          />
+        )}
         {/* Progress line: same gradient clipped to a thin band at progressPctVis */}
-        <div
-          className="absolute inset-0 z-[1] rounded-full"
-          style={{
-            background: gradientCSS === 'none' ? 'linear-gradient(to bottom, #3b82f6, #ef4444, #10b981)' : gradientCSS,
-            WebkitClipPath: `inset(${topInsetPct}% 0% ${bottomInsetPct}% 0%)`,
-            clipPath: `inset(${topInsetPct}% 0% ${bottomInsetPct}% 0%)`,
-            transition: 'clip-path 200ms ease-out',
-            willChange: 'clip-path',
-          }}
-        />
+        {showLine && (
+          <div
+            className="absolute inset-0 z-[2] rounded-full"
+            style={{
+              background: gradientCSS === 'none' ? 'linear-gradient(to bottom, #3b82f6, #ef4444, #10b981)' : gradientCSS,
+              WebkitClipPath: `inset(${topInsetPct}% 0% ${bottomInsetPct}% 0%)`,
+              clipPath: `inset(${topInsetPct}% 0% ${bottomInsetPct}% 0%)`,
+              transition: 'clip-path 200ms ease-out',
+              willChange: 'clip-path',
+            }}
+          />
+        )}
       </div>
       
 

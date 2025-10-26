@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { makeProxyUrlCandidates } from '../utils/corsProxy';
 import { ThemeKey } from '../utils/themeUtils';
 import { Smile, HeartHandshake, BotOff, PartyPopper } from 'lucide-react';
 
@@ -256,28 +257,10 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
     return p;
   };
 
-  // Try to fetch hidden tokens (fbzx, fvv, pageHistory) from the viewform via CORS-friendly proxies
+  // Try to fetch hidden tokens (fbzx, fvv, pageHistory) from the viewform via centralized CORS proxies
   const fetchGoogleTokens = async (): Promise<{ fbzx: string; fvv: string; pageHistory: string } | null> => {
     const viewUrl = GOOGLE_FORM_URL.replace('formResponse', 'viewform');
-    const candidates = [
-      (u: string) => `https://r.jina.ai/http://${u.replace(/^https?:\/\//, '')}`,
-      (u: string) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-      (u: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-      (u: string) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
-      (u: string) => `https://cors-anywhere.herokuapp.com/${u}`,
-      (u: string) => `https://thingproxy.freeboard.io/fetch/${u}`,
-      (u: string) => `https://yacdn.org/proxy/${u}`,
-      (u: string) => `https://cors.eu.org/${u}`,
-      (u: string) => `https://cors.bridged.cc/${u}`,
-      (u: string) => `https://crossorigin.me/${u}`,
-      (u: string) => `https://cors-proxy.htmldriven.com/?url=${encodeURIComponent(u)}`,
-      (u: string) => `https://proxy.cors.sh/${u}`,
-      (u: string) => `https://cors.zimjs.com/${u}`,
-      (u: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-      (u: string) => `https://cors-proxy.fringe.zone/${u}`,
-      (u: string) => `https://cors.proxy.consumet.org/${u}`,
-      (u: string) => `https://proxy.techzbots1.workers.dev/?u=${encodeURIComponent(u)}`,
-    ];
+    const candidates = makeProxyUrlCandidates();
     for (const wrap of candidates) {
       const url = wrap(viewUrl);
       try {
