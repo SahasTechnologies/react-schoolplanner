@@ -22,8 +22,11 @@ async function fetchFromMerriamWebster(): Promise<WordOfTheDay | null> {
     const word = wordMatch[1];
     // Pronunciation
     let pronunciation = word;
-    const parts = html.split('<span class="word-syllables">');
-    if (parts.length >= 3) pronunciation = parts[2].split('<\/span>')[0];
+    const mPron = html.match(/<span class="word-syllables">([\s\S]*?)<\/span>/);
+    if (mPron) {
+      const raw = mPron[1].replace(/<[^>]*>/g, '').trim();
+      pronunciation = sanitizePronunciation(raw, word);
+    }
     // Type
     let type = 'word';
     const typeMatch = html.match(/<span class="main-attr">(.+?)<\/span>/);
@@ -89,6 +92,17 @@ function parseHtmlEntities(str: string): string {
     .replace(/&quot;/g, '"')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>');
+}
+
+// Guard against Cloudflare/report JSON leaking into pronunciation
+function sanitizePronunciation(pron: string, word: string): string {
+  const p = (pron || '').trim();
+  if (!p) return word;
+  // Reject long or suspicious content
+  if (p.length > 40) return word;
+  if (/https?:\/\//i.test(p)) return word;
+  if (/[{}"<>\n]/.test(p)) return word;
+  return p;
 }
 
 // Fetch from Vocabulary.com (PRIMARY SOURCE)
@@ -347,7 +361,7 @@ async function fetchFromMerriamWebsterRSS(): Promise<WordOfTheDay | null> {
     // Pronunciation appears like \pron\ in the CDATA
     let pronunciation = word;
     const pronMatch = desc.match(/\\([^<\\]+)\\/);
-    if (pronMatch) pronunciation = pronMatch[1].trim();
+    if (pronMatch) pronunciation = sanitizePronunciation(pronMatch[1], word);
     // Find a paragraph that looks like the primary definition (skip headers/examples)
     let definition = '';
     const ps = Array.from(htmlDoc.querySelectorAll('p')) as HTMLParagraphElement[];

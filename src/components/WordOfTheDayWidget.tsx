@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { LoaderCircle, BookOpen, Ban } from 'lucide-react';
+import { LoaderCircle, BookOpen, CloudOff } from 'lucide-react';
 import { ThemeKey, getColors } from '../utils/themeUtils';
 import { fetchWordOfTheDay, getCachedWord, cacheWord, WordOfTheDay, clearWordCache } from '../utils/wordOfTheDayUtils';
 
@@ -56,12 +56,23 @@ export default function WordOfTheDayWidget({
           hasCheckedForUpdate.current = true;
           console.log('[WordWidget] Checking for updates in background...');
           const newData = await fetchWordOfTheDay();
-          if (newData && newData.word !== cached.word) {
-            console.log('[WordWidget] Found new word, updating...');
-            setWordData(newData);
-            cacheWord(newData);
-          } else {
-            console.log('[WordWidget] Word is up to date');
+          if (newData) {
+            const changed = (
+              newData.word !== cached.word ||
+              newData.pronunciation !== cached.pronunciation ||
+              newData.definition !== cached.definition ||
+              newData.source !== cached.source ||
+              newData.type !== cached.type
+            );
+            if (changed) {
+              console.log('[WordWidget] Found updated data, applying...');
+              setWordData(newData);
+              cacheWord(newData);
+              const preferredBg = localStorage.getItem('wordOfTheDaySource') || 'worddaily';
+              setBlockedNote(newData.source !== preferredBg ? `${preferredBg} is being blocked` : null);
+            } else {
+              console.log('[WordWidget] Data is up to date');
+            }
           }
         }
         return;
@@ -128,8 +139,8 @@ export default function WordOfTheDayWidget({
         {error && !loading && (
           <div className={`text-center space-y-3 ${colors.text}`}>
             <div className="flex items-center justify-center gap-2">
-              <Ban size={18} className={colors.text} />
-              <div className="text-base">Looks like your network is blocking this from loading</div>
+              <CloudOff size={18} className={colors.text} />
+              <div className="text-base">Your network might be blocking this from loading</div>
             </div>
           </div>
         )}

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { LoaderCircle, Quote, Ban } from 'lucide-react';
+import { LoaderCircle, Quote, CloudOff } from 'lucide-react';
 import { ThemeKey, getColors } from '../utils/themeUtils';
 import {
   fetchQuoteOfTheDay,
@@ -191,8 +191,8 @@ export default function QuoteOfTheDayWidget({
         {error && !loading && (
           <div className={`text-center space-y-3 ${colors.text}`}>
             <div className="flex items-center justify-center gap-2">
-              <Ban size={18} className={colors.text} />
-              <div className="text-base">Looks like your network is blocking this from loading</div>
+              <CloudOff size={18} className={colors.text} />
+              <div className="text-base">Your network might be blocking this from loading</div>
             </div>
           </div>
         )}
