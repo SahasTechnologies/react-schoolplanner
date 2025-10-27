@@ -54,7 +54,7 @@ async function fetchFromDictionaryCom(): Promise<WordOfTheDay | null> {
     // Pronunciation
     let pronunciation = word;
     const pronMatch = html.match(/<span class="otd-item-headword__pronunciation__text">\s*\[\s*([^\]]+)\]\s*<\/span>/);
-    if (pronMatch) pronunciation = pronMatch[1].replace(/<[^>]*>/g, '').trim();
+    if (pronMatch) pronunciation = sanitizePronunciation(pronMatch[1].replace(/<[^>]*>/g, '').trim(), word);
     // Type
     let type = 'word';
     const tMatch = html.match(/<span class="italic">\s*([^<]+?)\s*<\/span>\s*<\/p>\s*<p>/);
@@ -205,12 +205,12 @@ async function fetchFromWordDaily(): Promise<WordOfTheDay | null> {
     let pronunciation = '';
     let pronMatch = html.match(/<[^>]*class=["']?[^"']*phonetic[^"']*["']?[^>]*>\s*<[^>]*>([^<]+)<\//);
     if (pronMatch) {
-      pronunciation = pronMatch[1].trim();
+      pronunciation = sanitizePronunciation(pronMatch[1].trim(), word);
     } else {
       // Try simpler pattern
       pronMatch = html.match(/\[([^\]]+)\]/);
       if (pronMatch) {
-        pronunciation = pronMatch[1].trim();
+        pronunciation = sanitizePronunciation(pronMatch[1].trim(), word);
       } else {
         pronunciation = word;
       }
@@ -283,10 +283,13 @@ async function fetchFromBritannica(): Promise<WordOfTheDay | null> {
     let pronMatch = html.match(/<span\s+class\s*=\s*["']hpron_word[^"']*["'][^>]*>(.*?)<\/span>/i);
     if (pronMatch) {
       // Remove HTML tags and slashes, keep IPA content
-      pronunciation = pronMatch[1]
+      pronunciation = sanitizePronunciation(
+        pronMatch[1]
         .replace(/<[^>]*>/g, '') // Remove all HTML tags
         .replace(/^\/|\/$/g, '') // Remove leading/trailing slashes
-        .trim();
+        .trim(),
+        word
+      );
     } else {
       pronunciation = word;
     }
@@ -490,6 +493,8 @@ export function getCachedWord(): WordOfTheDay | null {
     const cached = localStorage.getItem(CACHE_KEY);
     if (cached) {
       const parsed = JSON.parse(cached) as WordOfTheDay;
+      // Sanitize legacy/bad pronunciation cached earlier
+      parsed.pronunciation = sanitizePronunciation(parsed.pronunciation, parsed.word);
       const preferredSource = localStorage.getItem('wordOfTheDaySource') || 'worddaily';
       if (parsed?.source === preferredSource) {
         console.log('[WordOfTheDay] Using cached word for source:', preferredSource, '(no expiration)');
