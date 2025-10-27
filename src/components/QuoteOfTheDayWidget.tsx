@@ -64,8 +64,14 @@ export default function QuoteOfTheDayWidget({
     const originalProvider = quoteProvider;
     const label = (p: string) => p === 'brainyquote' ? 'BrainyQuote' : p === 'favqs' ? 'Favqs' : p === 'zenquotes' ? 'ZenQuotes' : 'Baulko Bell Times';
 
-    const tryFavqs = async () => await fetchFavqsQuote();
-    const tryZen = async () => await fetchZenQuotesToday();
+    const tryFavqs = async () => {
+      console.log('[QuoteWidget] Trying Favqs...');
+      return await fetchFavqsQuote();
+    };
+    const tryZen = async () => {
+      console.log('[QuoteWidget] Trying ZenQuotes...');
+      return await fetchZenQuotesToday();
+    };
 
     const finish = (ok: boolean, data?: QuoteOfTheDay | null) => {
       if (ok && data) {
@@ -80,13 +86,25 @@ export default function QuoteOfTheDayWidget({
 
     if (quoteProvider === 'favqs') {
       const data = await tryFavqs();
-      if (data) return finish(true, data);
+      if (data) {
+        setQuoteData(data);
+        setBlockedNote(null);
+        if (silent) setLoading(false); else stopSpinner();
+        return;
+      }
       // fallback order
+      console.log('[QuoteWidget] Favqs failed, trying fallbacks...');
       const alt = await tryZen() || await fetchQuoteOfTheDay((localStorage.getItem('quoteType') || 'normal') as any);
       return finish(!!alt, alt);
     } else if (quoteProvider === 'zenquotes') {
       const data = await tryZen();
-      if (data) return finish(true, data);
+      if (data) {
+        setQuoteData(data);
+        setBlockedNote(null);
+        if (silent) setLoading(false); else stopSpinner();
+        return;
+      }
+      console.log('[QuoteWidget] ZenQuotes failed, trying fallbacks...');
       const alt = await tryFavqs() || await fetchQuoteOfTheDay((localStorage.getItem('quoteType') || 'normal') as any);
       return finish(!!alt, alt);
     } else if (quoteProvider === 'baulko-bell-times') {
@@ -110,7 +128,8 @@ export default function QuoteOfTheDayWidget({
         setQuoteData(data);
         cacheBaulkoQuote(data);
         setBlockedNote(null);
-        return finish(true, data);
+        if (silent) setLoading(false); else stopSpinner();
+        return;
       }
       console.error('[QuoteWidget] Failed to fetch Baulko quote, trying fallbacks');
       const alt = await tryFavqs() || await tryZen() || await fetchQuoteOfTheDay((localStorage.getItem('quoteType') || 'normal') as any);
@@ -152,11 +171,22 @@ export default function QuoteOfTheDayWidget({
         setQuoteData(data);
         cacheQuote(data, quoteType);
         setBlockedNote(null);
-        return finish(true, data);
+      } else {
+        console.error('[QuoteWidget] BrainyQuote failed, trying fallbacks');
+        const alt = await tryFavqs() || await tryZen();
+        if (alt) {
+          setQuoteData(alt);
+          setBlockedNote(`${label(originalProvider)} is being blocked`);
+        } else {
+          if (!silent) setError(true);
+          setBlockedNote(null);
+        }
       }
-      console.error('[QuoteWidget] BrainyQuote failed, trying fallbacks');
-      const alt = await tryFavqs() || await tryZen();
-      return finish(!!alt, alt);
+      if (silent) {
+        setLoading(false);
+      } else {
+        stopSpinner();
+      }
     }
   }, []);
 

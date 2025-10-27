@@ -2,6 +2,7 @@
 // Fallback sources: Merriam-Webster and Dictionary.com
 // Based on parsing logic from Normal-Tangerine8609/Scriptable-Widgets
 import { fetchTextViaCors } from './corsProxy';
+import { XMLParser } from 'fast-xml-parser';
 
 export interface WordOfTheDay {
   word: string;
@@ -337,45 +338,35 @@ async function fetchFromMerriamWebsterRSS(): Promise<WordOfTheDay | null> {
   console.log('[WordOfTheDay] Trying Merriam-Webster RSS...');
   try {
     const xml = await fetchHtmlWithProxies('https://www.merriam-webster.com/wotd/feed/rss2');
-    const parser = new DOMParser();
-    const rss = parser.parseFromString(xml, 'text/xml');
-    const item = rss.querySelector('item');
+    const parser = new XMLParser({ ignoreAttributes: false, cdataPropName: '__cdata' });
+    const rss = parser.parse(xml);
+    const item = rss?.rss?.channel?.item || rss?.channel?.item;
     if (!item) throw new Error('No RSS items');
-    const descNode = item.querySelector('description');
-    const desc = descNode?.textContent || '';
+    const desc = String(item.description || item.__cdata || '');
     // description is HTML inside CDATA
-    const htmlDoc = parser.parseFromString(`<div>${desc}</div>`, 'text/html');
-    // Word is bolded early in description
+    // Word is bolded early
     let word = '';
-    const strong = htmlDoc.querySelector('strong');
-    if (strong && strong.textContent) {
-      word = strong.textContent.trim();
-    }
-    if (!word) {
-      // fallback simple match
-      const m = desc.match(/<strong>([^<]+)<\/strong>/i);
-      if (m) word = m[1].trim();
-    }
+    const mWord = desc.match(/<strong>([^<]+)<\/strong>/i);
+    if (mWord) word = mWord[1].trim();
     if (!word) throw new Error('MW RSS: no word');
     // Type
     let type = 'word';
-    const em = htmlDoc.querySelector('em');
-    if (em && em.textContent) type = em.textContent.trim();
+    const mType = desc.match(/<em>([^<]+)<\/em>/i);
+    if (mType) type = mType[1].trim();
     // Pronunciation appears like \pron\ in the CDATA
     let pronunciation = word;
     const pronMatch = desc.match(/\\([^<\\]+)\\/);
     if (pronMatch) pronunciation = sanitizePronunciation(pronMatch[1], word);
     // Find a paragraph that looks like the primary definition (skip headers/examples)
     let definition = '';
-    const ps = Array.from(htmlDoc.querySelectorAll('p')) as HTMLParagraphElement[];
-    for (const p of ps) {
-      const t = (p.textContent || '').trim();
-      if (!t) continue;
+    const pMatches = desc.match(/<p>([\s\S]+?)<\/p>/g) || [];
+    for (const pTag of pMatches) {
+      const t = pTag.replace(/<[^>]*>/g, '').trim();
+      if (!t || t.length < 20) continue;
       if (/Merriam-Webster's Word of the Day/i.test(t)) continue;
       if (/^Examples:/i.test(t)) continue;
       if (/^Did you know\?/i.test(t)) continue;
-      if (t.length < 20) continue;
-      definition = t;
+      definition = parseHtmlEntities(t);
       break;
     }
     if (!definition) definition = 'Visit Merriam-Webster to see the full definition.';
@@ -391,12 +382,12 @@ async function fetchFromWordsmith(): Promise<WordOfTheDay | null> {
   console.log('[WordOfTheDay] Trying Wordsmith AWAD RSS...');
   try {
     const xml = await fetchHtmlWithProxies('https://wordsmith.org/awad/rss1.xml');
-    const parser = new DOMParser();
-    const rss = parser.parseFromString(xml, 'text/xml');
-    const item = rss.querySelector('item');
+    const parser = new XMLParser({ ignoreAttributes: false });
+    const rss = parser.parse(xml);
+    const item = rss?.['rdf:RDF']?.item || rss?.item;
     if (!item) throw new Error('No AWAD item');
-    const title = (item.querySelector('title')?.textContent || '').trim();
-    const desc = (item.querySelector('description')?.textContent || '').trim();
+    const title = String(item.title || '').trim();
+    const desc = String(item.description || '').trim();
     const word = title || '';
     if (!word) throw new Error('AWAD: no title');
     // Attempt to parse "part: definition" format; otherwise use description as definition
@@ -493,7 +484,6 @@ export function getCachedWord(): WordOfTheDay | null {
     const cached = localStorage.getItem(CACHE_KEY);
     if (cached) {
       const parsed = JSON.parse(cached) as WordOfTheDay;
-      // Sanitize legacy/bad pronunciation cached earlier
       parsed.pronunciation = sanitizePronunciation(parsed.pronunciation, parsed.word);
       const preferredSource = localStorage.getItem('wordOfTheDaySource') || 'worddaily';
       if (parsed?.source === preferredSource) {

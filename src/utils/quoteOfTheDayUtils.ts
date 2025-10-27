@@ -35,7 +35,7 @@ function parseHtmlEntities(str: string): string {
 }
 
 // Timeout-enabled fetch to avoid long hangs per proxy
-const QUOTE_FETCH_TIMEOUT_MS = 6000;
+const QUOTE_FETCH_TIMEOUT_MS = 10000; // Increased to 10s for better reliability
 
 // Fetch Quote of the Day data using CORS proxy with fallback
 export async function fetchQuoteOfTheDay(type: QuoteType = 'normal'): Promise<QuoteOfTheDay | null> {
@@ -128,10 +128,16 @@ export function clearQuoteCache(quoteType?: QuoteType): void {
 
 // Favqs QOTD
 export async function fetchFavqsQuote(): Promise<QuoteOfTheDay | null> {
+  console.log('[Favqs] Fetching quote...');
   try {
-    const data = await fetchJsonViaCors<any>('https://favqs.com/api/qotd');
+    const data = await fetchJsonViaCors<any>('https://favqs.com/api/qotd', {}, QUOTE_FETCH_TIMEOUT_MS);
+    console.log('[Favqs] Raw response:', data);
     const q = data?.quote;
-    if (!q?.body || !q?.author) return null;
+    if (!q?.body || !q?.author) {
+      console.error('[Favqs] Invalid response structure:', data);
+      return null;
+    }
+    console.log('[Favqs] Successfully parsed quote');
     return {
       quote: String(q.body),
       author: String(q.author),
@@ -146,10 +152,16 @@ export async function fetchFavqsQuote(): Promise<QuoteOfTheDay | null> {
 
 // ZenQuotes Today
 export async function fetchZenQuotesToday(): Promise<QuoteOfTheDay | null> {
+  console.log('[ZenQuotes] Fetching quote...');
   try {
-    const arr = await fetchJsonViaCors<any[]>('https://zenquotes.io/api/today');
+    const arr = await fetchJsonViaCors<any[]>('https://zenquotes.io/api/today', {}, QUOTE_FETCH_TIMEOUT_MS);
+    console.log('[ZenQuotes] Raw response:', arr);
     const first = Array.isArray(arr) ? arr[0] : null;
-    if (!first?.q || !first?.a) return null;
+    if (!first?.q || !first?.a) {
+      console.error('[ZenQuotes] Invalid response structure:', arr);
+      return null;
+    }
+    console.log('[ZenQuotes] Successfully parsed quote');
     return {
       quote: String(first.q),
       author: String(first.a),
