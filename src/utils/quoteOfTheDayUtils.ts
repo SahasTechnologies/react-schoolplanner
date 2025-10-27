@@ -64,17 +64,17 @@ export async function fetchQuoteOfTheDay(type: QuoteType = 'normal'): Promise<Qu
     const selectedQuoteHtml = quotesMatch[qNumber];
 
     // Extract link
-    const linkMatch = selectedQuoteHtml.match(/href=\"(.+?)\"/);
+    const linkMatch = selectedQuoteHtml.match(/href="(.+?)"/);
     if (!linkMatch) return null;
     const link = 'https://www.brainyquote.com' + linkMatch[1];
 
     // Extract quote text
-    const quoteMatch = selectedQuoteHtml.match(/space-between\">\n([\s\S]+?)\n<img/);
+    const quoteMatch = selectedQuoteHtml.match(/space-between">\n([\s\S]+?)\n<img/);
     if (!quoteMatch) return null;
     const quote = parseHtmlEntities(quoteMatch[1]);
 
     // Extract author
-    const authorMatch = selectedQuoteHtml.match(/title=\"view author\">(.+?)<\/a>/);
+    const authorMatch = selectedQuoteHtml.match(/title="view author">(.+?)<\/a>/);
     if (!authorMatch) return null;
     const author = parseHtmlEntities(authorMatch[1]);
 
@@ -130,7 +130,7 @@ export function clearQuoteCache(quoteType?: QuoteType): void {
 export async function fetchFavqsQuote(): Promise<QuoteOfTheDay | null> {
   console.log('[Favqs] Fetching quote...');
   try {
-    const data = await fetchJsonViaCors<any>('https://favqs.com/api/qotd', {}, QUOTE_FETCH_TIMEOUT_MS);
+    const data = await fetchJsonViaCors<{ quote?: { body?: string; author?: string; url?: string } }>('https://favqs.com/api/qotd', {}, QUOTE_FETCH_TIMEOUT_MS);
     console.log('[Favqs] Raw response:', data);
     const q = data?.quote;
     if (!q?.body || !q?.author) {
@@ -154,7 +154,7 @@ export async function fetchFavqsQuote(): Promise<QuoteOfTheDay | null> {
 export async function fetchZenQuotesToday(): Promise<QuoteOfTheDay | null> {
   console.log('[ZenQuotes] Fetching quote...');
   try {
-    const arr = await fetchJsonViaCors<any[]>('https://zenquotes.io/api/today', {}, QUOTE_FETCH_TIMEOUT_MS);
+    const arr = await fetchJsonViaCors<Array<{ q?: string; a?: string }>>('https://zenquotes.io/api/today', {}, QUOTE_FETCH_TIMEOUT_MS);
     console.log('[ZenQuotes] Raw response:', arr);
     const first = Array.isArray(arr) ? arr[0] : null;
     if (!first?.q || !first?.a) {

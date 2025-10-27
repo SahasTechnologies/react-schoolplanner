@@ -220,7 +220,7 @@ async function fetchFromWordDaily(): Promise<WordOfTheDay | null> {
 
     // Extract type - try multiple patterns
     let type = 'word';
-    let typeMatch = html.match(/<[^>]*>\s*(noun|verb|adjective|adverb|pronoun|preposition|conjunction|interjection)\s*<\/[^>]*>/i);
+    const typeMatch = html.match(/<[^>]*>\s*(noun|verb|adjective|adverb|pronoun|preposition|conjunction|interjection)\s*<\/[^>]*>/i);
     if (typeMatch) {
       type = typeMatch[1].toLowerCase();
     }
@@ -281,7 +281,7 @@ async function fetchFromBritannica(): Promise<WordOfTheDay | null> {
 
     // Extract pronunciation from hpron_word span (contains slashes and inner spans)
     let pronunciation = '';
-    let pronMatch = html.match(/<span\s+class\s*=\s*["']hpron_word[^"']*["'][^>]*>(.*?)<\/span>/i);
+    const pronMatch = html.match(/<span\s+class\s*=\s*["']hpron_word[^"']*["'][^>]*>(.*?)<\/span>/i);
     if (pronMatch) {
       // Remove HTML tags and slashes, keep IPA content
       pronunciation = sanitizePronunciation(
@@ -298,7 +298,7 @@ async function fetchFromBritannica(): Promise<WordOfTheDay | null> {
 
     // Extract type from fl span
     let type = 'word';
-    let typeMatch = html.match(/<span\s+class\s*=\s*["']fl["'][^>]*>([^<]+)<\/span>/i);
+    const typeMatch = html.match(/<span\s+class\s*=\s*["']fl["'][^>]*>([^<]+)<\/span>/i);
     if (typeMatch) {
       type = typeMatch[1].trim();
     }

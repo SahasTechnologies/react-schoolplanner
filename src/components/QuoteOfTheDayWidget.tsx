@@ -6,6 +6,7 @@ import {
   getCachedQuote,
   cacheQuote,
   QuoteOfTheDay,
+  QuoteType,
   clearQuoteCache,
   fetchFavqsQuote,
   fetchZenQuotesToday,
@@ -94,7 +95,7 @@ export default function QuoteOfTheDayWidget({
       }
       // fallback order
       console.log('[QuoteWidget] Favqs failed, trying fallbacks...');
-      const alt = await tryZen() || await fetchQuoteOfTheDay((localStorage.getItem('quoteType') || 'normal') as any);
+      const alt = await tryZen() || await fetchQuoteOfTheDay((localStorage.getItem('quoteType') || 'normal') as QuoteType);
       return finish(!!alt, alt);
     } else if (quoteProvider === 'zenquotes') {
       const data = await tryZen();
@@ -105,7 +106,7 @@ export default function QuoteOfTheDayWidget({
         return;
       }
       console.log('[QuoteWidget] ZenQuotes failed, trying fallbacks...');
-      const alt = await tryFavqs() || await fetchQuoteOfTheDay((localStorage.getItem('quoteType') || 'normal') as any);
+      const alt = await tryFavqs() || await fetchQuoteOfTheDay((localStorage.getItem('quoteType') || 'normal') as QuoteType);
       return finish(!!alt, alt);
     } else if (quoteProvider === 'baulko-bell-times') {
       if (forceRefresh) {
@@ -132,7 +133,7 @@ export default function QuoteOfTheDayWidget({
         return;
       }
       console.error('[QuoteWidget] Failed to fetch Baulko quote, trying fallbacks');
-      const alt = await tryFavqs() || await tryZen() || await fetchQuoteOfTheDay((localStorage.getItem('quoteType') || 'normal') as any);
+      const alt = await tryFavqs() || await tryZen() || await fetchQuoteOfTheDay((localStorage.getItem('quoteType') || 'normal') as QuoteType);
       return finish(!!alt, alt);
     } else {
       // Handle BrainyQuote
