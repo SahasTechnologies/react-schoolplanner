@@ -1,4 +1,4 @@
-// NSW School Term utilities: fetch, cache, and parse term dates from nsw.gov.au
+// NSW School Term utilities: fetch, cache, and parse term dates from nswschoolholiday.com.au
 import { fetchTextViaCors } from './corsProxy';
 
 export type NswDivision = 'eastern' | 'western';
@@ -25,6 +25,75 @@ function toISODateOnly(d: Date): string {
 function endOfDayISO(d: Date): string {
   const x = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
   return x.toISOString();
+}
+
+function parseTablepressTerms(html: string, year: number): NswTermsByDivision | null {
+  const results: NswTermsByDivision = { year, eastern: [], western: [] };
+
+  const pushTerm = (division: NswDivision, term: number, startStr: string, endStr: string) => {
+    const start = parseAuLongDate(startStr);
+    const end = parseAuLongDate(endStr);
+    if (!start || !end) return;
+    const termRange: NswTermRange = {
+      term: term as 1 | 2 | 3 | 4,
+      start: toISODateOnly(start),
+      end: endOfDayISO(end)
+    };
+    results[division].push(termRange);
+  };
+
+  try {
+    const container = document.createElement('div');
+    container.innerHTML = html;
+
+    // TablePress tables usually have id="tablepress-<year>"
+    const table =
+      (container.querySelector(`#tablepress-${year}`) as HTMLTableElement | null) ||
+      (container.querySelector('table.tablepress') as HTMLTableElement | null) ||
+      (container.querySelector('table') as HTMLTableElement | null);
+    if (!table) return null;
+
+    const rows = Array.from(table.querySelectorAll('tbody tr'));
+    for (const tr of rows) {
+      const tds = Array.from(tr.querySelectorAll('td'));
+      if (tds.length < 3) continue;
+
+      const label = (tds[0].textContent || '').replace(/\s+/g, ' ').trim();
+      const startStr = (tds[1].textContent || '').trim();
+      const endStr = (tds[2].textContent || '').trim();
+
+      // Ignore holiday rows and anything that's not a term row
+      const termMatch = label.match(/\bTerm\s*(1|2|3|4)\b/i);
+      if (!termMatch) continue;
+      if (/School\s*Holidays/i.test(label)) continue;
+
+      const term = parseInt(termMatch[1], 10);
+      const hasEastern = /Eastern/i.test(label);
+      const hasWestern = /Western/i.test(label);
+
+      if (term === 1) {
+        // Term 1 is split into Eastern/Western on this site
+        if (hasEastern) pushTerm('eastern', term, startStr, endStr);
+        if (hasWestern) pushTerm('western', term, startStr, endStr);
+        // If no division is specified, assume both
+        if (!hasEastern && !hasWestern) {
+          pushTerm('eastern', term, startStr, endStr);
+          pushTerm('western', term, startStr, endStr);
+        }
+      } else {
+        // Terms 2-4 apply to both divisions
+        pushTerm('eastern', term, startStr, endStr);
+        pushTerm('western', term, startStr, endStr);
+      }
+    }
+  } catch {
+    return null;
+  }
+
+  results.eastern.sort((a, b) => a.term - b.term);
+  results.western.sort((a, b) => a.term - b.term);
+  if (results.eastern.length === 0 || results.western.length === 0) return null;
+  return results;
 }
 
 // Robust AU date parser like: "Thursday 6 February 2025"
@@ -151,12 +220,10 @@ function parseTermsFromSection(sectionHtml: string, year: number): NswTermsByDiv
 }
 
 export async function fetchNswTerms(year: number): Promise<NswTermsByDivision | null> {
-  const url = 'https://www.nsw.gov.au/about-nsw/school-holidays';
+  const url = `https://www.nswschoolholiday.com.au/new-south-wales-${year}/`;
   const html = await fetchViaProxies(url);
   if (!html) return null;
-  const section = sliceYearSection(html, year);
-  if (!section) return null;
-  return parseTermsFromSection(section, year);
+  return parseTablepressTerms(html, year);
 }
 
 export function cacheNswTerms(data: NswTermsByDivision): void {

@@ -9,7 +9,7 @@ import { BrowserRouter } from 'react-router-dom';
 // Allow only the primary production domain and local development hosts
 const hostname = window.location.hostname;
 const isLocalDev = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
-const isPrimaryDomain = hostname === 'school.sahas.dpdns.org';
+const isPrimaryDomain = hostname === 'school.shimpi.link';
 const isAllowedHost = isLocalDev || isPrimaryDomain;
 
 // On disallowed hosts: try to clear caches and unregister SW so users see the redirect page fresh

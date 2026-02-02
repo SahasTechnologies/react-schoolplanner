@@ -777,6 +777,10 @@ const SchoolPlanner = () => {
                     let label = '';
                     let daysRemaining = 0;
 
+                    const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
+                    const toLocalDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                    const diffDays = (a: Date, b: Date) => Math.round((a.getTime() - b.getTime()) / 86400000);
+
                     if (source === 'nsw' && !isHolidayBadge) {
                       const div = (localStorage.getItem('weekNswDivision') as 'eastern' | 'western') || 'eastern';
                       const year = now.getFullYear();
@@ -788,15 +792,15 @@ const SchoolPlanner = () => {
                           return now.getTime() >= start.getTime() && now.getTime() <= end.getTime();
                         });
                         if (term) {
-                          const start = new Date(term.start).getTime();
-                          const end = new Date(term.end).getTime();
-                          const current = now.getTime();
-                          percentage = Math.round(((current - start) / (end - start)) * 100);
+                          const startDay = toLocalDay(new Date(term.start));
+                          const endDay = toLocalDay(new Date(term.end));
+                          const totalDays = diffDays(endDay, startDay) + 1;
+                          const elapsedDays = diffDays(today, startDay) + 1;
+                          const pct = totalDays > 0 ? Math.round((elapsedDays / totalDays) * 100) : 0;
+                          percentage = clamp(pct, 0, 100);
                           label = `Term ${term.term} Progress`;
-                          const endDate = new Date(term.end);
-                          const endDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-                          const rawDays = Math.ceil((endDay.getTime() - today.getTime()) / 86400000);
-                          daysRemaining = Math.max(1, rawDays);
+                          const rawDays = diffDays(endDay, today);
+                          daysRemaining = Math.max(0, rawDays);
                         }
                       }
                     } else if (isHolidayBadge && source === 'nsw') {
@@ -819,14 +823,18 @@ const SchoolPlanner = () => {
                           }
                         }
                         if (prevEnd && nextStart) {
-                          const start = prevEnd.getTime();
-                          const end = nextStart.getTime();
-                          const current = now.getTime();
-                          percentage = Math.round(((current - start) / (end - start)) * 100);
+                          const holidayStartDay = toLocalDay(prevEnd);
+                          holidayStartDay.setDate(holidayStartDay.getDate() + 1);
+                          const nextStartDay = toLocalDay(nextStart);
+                          const holidayEndDay = new Date(nextStartDay);
+                          holidayEndDay.setDate(holidayEndDay.getDate() - 1);
+                          const totalDays = diffDays(holidayEndDay, holidayStartDay) + 1;
+                          const elapsedDays = diffDays(today, holidayStartDay) + 1;
+                          const pct = totalDays > 0 ? Math.round((elapsedDays / totalDays) * 100) : 0;
+                          percentage = clamp(pct, 0, 100);
                           label = 'Holiday Progress';
-                          const nextStartDay = new Date(nextStart.getFullYear(), nextStart.getMonth(), nextStart.getDate());
-                          const rawDays = Math.ceil((nextStartDay.getTime() - today.getTime()) / 86400000);
-                          daysRemaining = Math.max(1, rawDays);
+                          const rawDays = diffDays(nextStartDay, today);
+                          daysRemaining = Math.max(0, rawDays);
                         }
                       }
                     }
