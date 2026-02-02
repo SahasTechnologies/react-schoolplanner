@@ -1604,7 +1604,15 @@ const SchoolPlanner = () => {
         ? new Date(selectedScheduleDate.getFullYear(), selectedScheduleDate.getMonth(), selectedScheduleDate.getDate()).getTime() ===
         new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
         : true;
-      if (!forceShowActualToday && isSelectedDateToday && todayDow >= 1 && todayDow <= 5 && events.length > 0) {
+      const countdownEnabled = (() => {
+        try {
+          const saved = localStorage.getItem('showCountdownInTimeline');
+          return saved === null ? true : saved === 'true';
+        } catch {
+          return true;
+        }
+      })();
+      if (!forceShowActualToday && !countdownEnabled && isSelectedDateToday && todayDow >= 1 && todayDow <= 5 && events.length > 0) {
         const lastEvent = events[events.length - 1];
         if (lastEvent.dtend) {
           const lastEventEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate());

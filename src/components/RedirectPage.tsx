@@ -100,7 +100,9 @@ const RedirectPage: React.FC = () => {
 
       {/* New Domain Button */}
       <a
-        href="https://school.sahas.dpdns.org"
+        href="https://school.shimpi.link"
+        target="_self"
+        rel="noreferrer"
         style={{
           display: 'block',
           backgroundColor: effectiveMode === 'dark' ? '#1f2937' : '#f9fafb',
@@ -142,7 +144,7 @@ const RedirectPage: React.FC = () => {
             wordBreak: 'break-all'
           }}
         >
-          school.sahas.dpdns.org
+          school.shimpi.link
         </p>
       </a>
 
@@ -216,7 +218,7 @@ const RedirectPage: React.FC = () => {
           maxWidth: '600px'
         }}
       >
-        Your bookmarks and saved links will need to be updated. This old domain will be deactivated soon.
+        Your bookmarks and saved links will need to be updated. Please use school.shimpi.link.
       </p>
     </div>
   );
