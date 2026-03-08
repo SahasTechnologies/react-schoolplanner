@@ -1,5 +1,5 @@
 // Service Worker for School Planner
-const CACHE_NAME = 'school-planner-v3';
+const CACHE_NAME = 'school-planner-v4';
 const OFFLINE_FALLBACK_PAGE = '/index.html';
 
 // Pre-cache the application shell (keep this minimal; Vite assets are cached at runtime)

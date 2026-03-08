@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /sw.js
 
-Sitemap: https://school.sahas.dpdns.org/sitemap.xml
+Sitemap: https://school.shimpi.dev/sitemap.xml

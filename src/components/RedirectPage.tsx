@@ -100,7 +100,7 @@ const RedirectPage: React.FC = () => {
 
       {/* New Domain Button */}
       <a
-        href="https://school.shimpi.link"
+        href="https://school.shimpi.dev"
         target="_self"
         rel="noreferrer"
         style={{
@@ -144,7 +144,7 @@ const RedirectPage: React.FC = () => {
             wordBreak: 'break-all'
           }}
         >
-          school.shimpi.link
+          school.shimpi.dev
         </p>
       </a>
 
@@ -218,7 +218,7 @@ const RedirectPage: React.FC = () => {
           maxWidth: '600px'
         }}
       >
-        Your bookmarks and saved links will need to be updated. Please use school.shimpi.link.
+        Your bookmarks and saved links will need to be updated. Please use school.shimpi.dev.
       </p>
     </div>
   );
