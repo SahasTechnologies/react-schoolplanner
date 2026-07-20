@@ -1,11 +1,11 @@
-// Utility to fetch Quote of the Day from BrainyQuote, Favqs, ZenQuotes, or Baulko Bell Times
-import { fetchTextViaCors, fetchJsonViaCors } from './corsProxy';
+// Utility to fetch Quote of the Day from Favqs, ZenQuotes, or Baulko Bell Times
+import { fetchJsonViaCors } from './corsProxy';
 
 export interface QuoteOfTheDay {
   quote: string;
   author: string;
   link: string;
-  source?: 'brainyquote' | 'favqs' | 'zenquotes' | 'baulko-bell-times';
+  source?: 'favqs' | 'zenquotes' | 'baulko-bell-times';
 }
 
 
@@ -19,123 +19,10 @@ const quoteTypes = {
 
 export type QuoteType = keyof typeof quoteTypes;
 
-// Parse HTML entities
-function parseHtmlEntities(str: string): string {
-  return str
-    .replace(/&#([0-9]{1,4});/g, (_match, numStr) => {
-      const num = parseInt(numStr, 10);
-      return String.fromCharCode(num);
-    })
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&apos;/g, "'")
-    .replace(/&quot;/g, '"')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>');
-}
-
 // Timeout-enabled fetch to avoid long hangs per proxy
 const QUOTE_FETCH_TIMEOUT_MS = 10000; // Increased to 10s for better reliability
 
-function extractBrainyQuoteBlocks(html: string): string[] {
-  const strict = html.match(/<h2 class="qotd-h2">[\s\S]+?<\/a>\s*<\/div>/g);
-  if (strict && strict.length > 0) return strict;
 
-  const relaxed = html.match(/<h2[^>]*class="qotd-h2"[^>]*>[\s\S]+?title="view author">[\s\S]+?<\/a>/g);
-  return relaxed || [];
-}
-
-function parseBrainyQuoteBlock(blockHtml: string): QuoteOfTheDay | null {
-  const authorMatch = blockHtml.match(/title="view author">([\s\S]+?)<\/a>/);
-  if (!authorMatch) return null;
-
-  const linkMatch = blockHtml.match(/href="(\/quotes\/[^"]+)"/);
-  const quoteMatch =
-    blockHtml.match(/space-between">\s*([\s\S]+?)\s*<img/) ||
-    blockHtml.match(/title="view author">[\s\S]*?<\/a>\s*<\/div>\s*<a[^>]*>([\s\S]+?)<\/a>/);
-
-  if (!linkMatch || !quoteMatch) return null;
-
-  const quote = parseHtmlEntities(quoteMatch[1].replace(/<[^>]*>/g, '').trim());
-  const author = parseHtmlEntities(authorMatch[1].replace(/<[^>]*>/g, '').trim());
-  const link = 'https://www.brainyquote.com' + linkMatch[1];
-
-  if (!quote || !author) return null;
-  return { quote, author, link, source: 'brainyquote' };
-}
-
-// Fetch Quote of the Day data using CORS proxy with fallback
-export async function fetchQuoteOfTheDay(type: QuoteType = 'normal'): Promise<QuoteOfTheDay | null> {
-  console.log('[QuoteOfTheDay] Starting fetch with type:', type);
-  try {
-    const html = await fetchTextViaCors('https://www.brainyquote.com/quote_of_the_day', {}, QUOTE_FETCH_TIMEOUT_MS);
-    console.log('[QuoteOfTheDay] Got response, HTML length:', html?.length);
-
-    // Check for Cloudflare challenge pages
-    if (html.includes('Just a moment') || html.includes('cf-browser-verification')) {
-      throw new Error('Cloudflare challenge detected');
-    }
-
-    // Extract all quotes
-    const quotesMatch = extractBrainyQuoteBlocks(html);
-    if (!quotesMatch || quotesMatch.length === 0) {
-      console.error('[QuoteOfTheDay] Could not parse quotes from HTML');
-      console.log('[QuoteOfTheDay] HTML sample:', html.substring(0, 500));
-      return null;
-    }
-    console.log('[QuoteOfTheDay] Found', quotesMatch.length, 'quotes');
-
-    // Decide which quote to use
-    let qNumber = quoteTypes[type] || 0;
-    if (qNumber >= quotesMatch.length) qNumber = 0;
-    const selectedQuoteHtml = quotesMatch[qNumber];
-    return parseBrainyQuoteBlock(selectedQuoteHtml);
-  } catch (error) {
-    console.error('[QuoteOfTheDay] Failed to fetch via CORS helper:', error);
-    return null;
-  }
-}
-
-// Cache management - Cache never expires, always returns cached quote if available
-export function getCachedQuote(quoteType: QuoteType = 'normal'): QuoteOfTheDay | null {
-  try {
-    const CACHE_KEY = `quoteOfTheDayCache_${quoteType}`;
-    
-    const cached = localStorage.getItem(CACHE_KEY);
-    if (cached) {
-      console.log(`[QuoteOfTheDay] Using cached ${quoteType} quote (no expiration)`);
-      return JSON.parse(cached);
-    }
-    
-    console.log(`[QuoteOfTheDay] No cached quote found for ${quoteType}`);
-  } catch (error) {
-    console.error('[QuoteOfTheDay] Error reading cached quote:', error);
-  }
-  return null;
-}
-
-export function cacheQuote(quote: QuoteOfTheDay, quoteType: QuoteType = 'normal'): void {
-  try {
-    const CACHE_KEY = `quoteOfTheDayCache_${quoteType}`;
-    localStorage.setItem(CACHE_KEY, JSON.stringify(quote));
-    console.log(`[QuoteOfTheDay] Cached ${quoteType} quote (permanent)`);
-  } catch (error) {
-    console.error('[QuoteOfTheDay] Error caching quote:', error);
-  }
-}
-
-// Clear quote cache (for a single type or all BrainyQuote types)
-export function clearQuoteCache(quoteType?: QuoteType): void {
-  try {
-    const types: QuoteType[] = quoteType ? [quoteType] : ['normal', 'love', 'art', 'nature', 'funny'];
-    types.forEach((t) => {
-      localStorage.removeItem(`quoteOfTheDayCache_${t}`);
-    });
-    console.log('[QuoteOfTheDay] Cleared quote cache for types:', types.join(', '));
-  } catch (error) {
-    console.error('[QuoteOfTheDay] Error clearing quote cache:', error);
-  }
-}
 
 // Favqs QOTD
 export async function fetchFavqsQuote(): Promise<QuoteOfTheDay | null> {

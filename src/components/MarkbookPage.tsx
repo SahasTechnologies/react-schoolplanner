@@ -9,6 +9,7 @@ import { memoizedComparePassword } from '../utils/passwordUtils';
 import { showError } from '../utils/notificationUtils';
 import { defaultColours } from '../utils/fileUtils';
 import { exportMarkbookPdf } from '../utils/markbookPdf';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface MarkbookPageProps {
   subjects: Subject[];
@@ -168,6 +169,35 @@ export default function MarkbookPage({
     />
   );
 
+  // Prepare chart data
+  const chartData = React.useMemo(() => {
+    // Collect all valid exams across all subjects
+    const allExamsByIndex: Array<{ [key: string]: number }> = [];
+    
+    subjects.forEach(subject => {
+      const exams = examsBySubject[subject.id] || [];
+      exams.forEach((exam, index) => {
+        if (exam.mark !== null && exam.total !== null && exam.total > 0) {
+          const percentage = Math.round(((exam.mark / exam.total) * 100) * 100) / 100;
+          
+          // Ensure the index exists in the array
+          if (!allExamsByIndex[index]) {
+            allExamsByIndex[index] = {};
+          }
+          
+          // Add this subject's percentage
+          allExamsByIndex[index][subject.name] = percentage;
+        }
+      });
+    });
+    
+    // Now add the 'name' field for each point
+    return allExamsByIndex.map((dataPoint, index) => ({
+      name: `Exam ${index + 1}`,
+      ...dataPoint
+    }));
+  }, [subjects, examsBySubject]);
+
   const [showExportModal, setShowExportModal] = React.useState(false);
   const [includeBarChart, setIncludeBarChart] = React.useState(true);
   const [includeSubjectsTable, setIncludeSubjectsTable] = React.useState(true);
@@ -176,7 +206,7 @@ export default function MarkbookPage({
 
   // Always render markbook content with subjects list visible
   return (
-    <div className="space-y-6 pt-3">
+    <div className="space-y-8 pt-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <BarChart3 className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={28} />
@@ -193,9 +223,55 @@ export default function MarkbookPage({
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-[calc(100vh-220px)]">
+      {/* Line Chart of all marks */}
+      {!(markbookPasswordEnabled && isMarkbookLocked) && chartData.length > 0 && (
+        <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
+          <h3 className={`text-xl font-semibold mb-4 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Subject Performance Over Time</h3>
+          <ResponsiveContainer width="100%" height={400}>
+            <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={effectiveMode === 'light' ? '#d1d5db' : '#374151'} />
+              <XAxis 
+                dataKey="name" 
+                stroke={effectiveMode === 'light' ? '#111827' : '#f3f4f6'} 
+              />
+              <YAxis 
+                domain={[0, 100]} 
+                stroke={effectiveMode === 'light' ? '#111827' : '#f3f4f6'} 
+                label={{ value: 'Percentage (%)', angle: -90, position: 'insideLeft', style: { fill: effectiveMode === 'light' ? '#111827' : '#f3f4f6' } }} 
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: effectiveMode === 'light' ? '#f9fafb' : '#1f2937', 
+                  border: `1px solid ${effectiveMode === 'light' ? '#e5e7eb' : '#374151'}`,
+                  borderRadius: '0.5rem'
+                }} 
+                labelStyle={{ color: effectiveMode === 'light' ? '#111827' : '#f3f4f6' }} 
+                itemStyle={{ color: effectiveMode === 'light' ? '#111827' : '#f3f4f6' }}
+              />
+              <Legend 
+                wrapperStyle={{ color: effectiveMode === 'light' ? '#111827' : '#f3f4f6' }} 
+              />
+              {subjects.filter(subject => 
+                (examsBySubject[subject.id] || []).some(e => e.mark !== null && e.total !== null && e.total > 0)
+              ).map(subject => (
+                <Line 
+                  key={subject.id} 
+                  type="monotone" 
+                  dataKey={subject.name} 
+                  stroke={subject.colour} 
+                  strokeWidth={3} 
+                  dot={{ r: 4, fill: subject.colour }} 
+                  activeDot={{ r: 6, strokeWidth: 2 }}
+                />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-[calc(100vh-220px)]">
         {/* Left: Subjects list */}
-        <div className="space-y-4 flex flex-col">
+        <div className="space-y-6 flex flex-col">
           {/* Sort dropdown - hide when locked */}
           {!(markbookPasswordEnabled && isMarkbookLocked) && (
           <div className="flex items-center justify-between flex-shrink-0">
@@ -213,10 +289,10 @@ export default function MarkbookPage({
           </div>
           )}
 
-          <div className="space-y-4 overflow-y-auto pr-2 flex-1">
+          <div className="space-y-5 overflow-y-auto pr-2 flex-1">
             {sortedSubjects.length === 0 ? (
-              <div className="text-center py-16">
-                <BarChart3 size={64} className="mx-auto mb-4 text-gray-600" />
+              <div className="text-center py-20">
+                <BarChart3 size={64} className="mx-auto mb-6 text-gray-600" />
                 <p className={`text-gray-400 text-lg ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>No subjects found</p>
                 <p className={`text-gray-500 text-sm ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>Upload a calendar file to see your subjects</p>
               </div>
@@ -236,7 +312,7 @@ export default function MarkbookPage({
         </div>
 
         {/* Right: Exams panel */}
-        <div className={`${colors.container} rounded-lg ${colors.border} border p-4 flex flex-col`}>
+        <div className={`${colors.container} rounded-lg ${colors.border} border p-6 flex flex-col`}>
           {examPanelContent}
         </div>
       </div>

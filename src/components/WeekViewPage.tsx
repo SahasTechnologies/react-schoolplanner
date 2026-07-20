@@ -57,21 +57,21 @@ export default function WeekViewPage({
   });
 
   return (
-    <div className="space-y-6 pt-3">
+    <div className="space-y-8 pt-4">
       <div className={`flex items-center gap-3 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
         <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={28} />
         <h2 className={`text-3xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Weekly Schedule</h2>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         {days.map((day, index) => (
           <div key={day} className={`${colors.container} rounded-lg ${colors.border} border`}>
-            <div className={`p-4 border-b ${colors.border}`}>
+            <div className={`p-5 border-b ${colors.border}`}>
               <h3 className={`font-semibold text-center ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{day}</h3>
             </div>
-            <div className="p-3 space-y-2 min-h-[400px]">
+            <div className="p-4 space-y-4 min-h-[400px]">
               {dayEventsWithBreaks[index].length === 0 ? (
-                <div className="text-center text-gray-500 py-8">
-                  <Calendar size={32} className="mx-auto mb-2 opacity-50" />
+                <div className="text-center text-gray-500 py-10">
+                  <Calendar size={32} className="mx-auto mb-3 opacity-50" />
                   <p>No events</p>
                 </div>
               ) : (
