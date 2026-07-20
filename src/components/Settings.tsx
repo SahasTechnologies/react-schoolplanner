@@ -1217,19 +1217,19 @@ const Settings: React.FC<SettingsProps> = ({
       {/* Legal Modals */}
       {showTerms && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className={`bg-gray-50 dark:bg-gray-900 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}> 
-            <button 
-              onClick={() => { setShowTerms(false); setMarkdownError(null); }} 
+          <div className={`${colors.container} rounded-lg p-6 shadow-xl border ${colors.border} w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}>
+            <button
+              onClick={() => { setShowTerms(false); setMarkdownError(null); }}
               className="absolute top-4 right-4 opacity-70 hover:opacity-100 transition"
             >
-              <X className={effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} size={24} />
+              <X className={colors.containerText} size={24} />
             </button>
             {loadingMarkdown === 'terms' ? (
-              <div className="py-8 text-gray-800 dark:text-gray-100">Loading...</div>
+              <div className={`py-8 ${colors.text}`}>Loading...</div>
             ) : markdownError ? (
               <div className="text-red-500 py-8">{markdownError}</div>
             ) : (
-              <div className="markdown-content text-gray-800 dark:text-gray-100">
+              <div className={`markdown-content ${colors.text}`}>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{termsContent}</ReactMarkdown>
               </div>
             )}
@@ -1238,16 +1238,16 @@ const Settings: React.FC<SettingsProps> = ({
       )}
       {showPrivacy && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className={`bg-gray-50 dark:bg-gray-900 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}> 
+          <div className={`${colors.container} rounded-lg p-6 shadow-xl border ${colors.border} w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}>
             <button onClick={() => { setShowPrivacy(false); setMarkdownError(null); }} className="absolute top-4 right-4 opacity-70 hover:opacity-100 transition">
-              <X className={effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} size={24} />
+              <X className={colors.containerText} size={24} />
             </button>
             {loadingMarkdown === 'privacy' ? (
-              <div className="py-8 text-gray-800 dark:text-gray-100">Loading...</div>
+              <div className={`py-8 ${colors.text}`}>Loading...</div>
             ) : markdownError ? (
               <div className="text-red-500 py-8">{markdownError}</div>
             ) : (
-              <div className="markdown-content text-gray-800 dark:text-gray-100">
+              <div className={`markdown-content ${colors.text}`}>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{privacyContent}</ReactMarkdown>
               </div>
             )}
@@ -1256,16 +1256,16 @@ const Settings: React.FC<SettingsProps> = ({
       )}
       {showLicensing && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className={`bg-gray-50 dark:bg-gray-900 rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}>
+          <div className={`${colors.container} rounded-lg p-6 shadow-xl border ${colors.border} w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}>
             <button onClick={() => { setShowLicensing(false); setMarkdownError(null); }} className="absolute top-4 right-4 opacity-70 hover:opacity-100 transition">
-              <X className={effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} size={24} />
+              <X className={colors.containerText} size={24} />
             </button>
             {loadingMarkdown === 'license' ? (
-              <div className="py-8 text-gray-800 dark:text-gray-100">Loading...</div>
+              <div className={`py-8 ${colors.text}`}>Loading...</div>
             ) : markdownError ? (
               <div className="text-red-500 py-8">{markdownError}</div>
             ) : (
-              <div className="markdown-content text-gray-800 dark:text-gray-100">
+              <div className={`markdown-content ${colors.text}`}>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{licenseContent}</ReactMarkdown>
               </div>
             )}

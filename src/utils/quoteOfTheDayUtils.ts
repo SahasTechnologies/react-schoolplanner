@@ -37,6 +37,33 @@ function parseHtmlEntities(str: string): string {
 // Timeout-enabled fetch to avoid long hangs per proxy
 const QUOTE_FETCH_TIMEOUT_MS = 10000; // Increased to 10s for better reliability
 
+function extractBrainyQuoteBlocks(html: string): string[] {
+  const strict = html.match(/<h2 class="qotd-h2">[\s\S]+?<\/a>\s*<\/div>/g);
+  if (strict && strict.length > 0) return strict;
+
+  const relaxed = html.match(/<h2[^>]*class="qotd-h2"[^>]*>[\s\S]+?title="view author">[\s\S]+?<\/a>/g);
+  return relaxed || [];
+}
+
+function parseBrainyQuoteBlock(blockHtml: string): QuoteOfTheDay | null {
+  const authorMatch = blockHtml.match(/title="view author">([\s\S]+?)<\/a>/);
+  if (!authorMatch) return null;
+
+  const linkMatch = blockHtml.match(/href="(\/quotes\/[^"]+)"/);
+  const quoteMatch =
+    blockHtml.match(/space-between">\s*([\s\S]+?)\s*<img/) ||
+    blockHtml.match(/title="view author">[\s\S]*?<\/a>\s*<\/div>\s*<a[^>]*>([\s\S]+?)<\/a>/);
+
+  if (!linkMatch || !quoteMatch) return null;
+
+  const quote = parseHtmlEntities(quoteMatch[1].replace(/<[^>]*>/g, '').trim());
+  const author = parseHtmlEntities(authorMatch[1].replace(/<[^>]*>/g, '').trim());
+  const link = 'https://www.brainyquote.com' + linkMatch[1];
+
+  if (!quote || !author) return null;
+  return { quote, author, link, source: 'brainyquote' };
+}
+
 // Fetch Quote of the Day data using CORS proxy with fallback
 export async function fetchQuoteOfTheDay(type: QuoteType = 'normal'): Promise<QuoteOfTheDay | null> {
   console.log('[QuoteOfTheDay] Starting fetch with type:', type);
@@ -50,7 +77,7 @@ export async function fetchQuoteOfTheDay(type: QuoteType = 'normal'): Promise<Qu
     }
 
     // Extract all quotes
-    const quotesMatch = html.match(/<h2 class="qotd-h2">[\s\S]+?<\/a>\n<\/div>/g);
+    const quotesMatch = extractBrainyQuoteBlocks(html);
     if (!quotesMatch || quotesMatch.length === 0) {
       console.error('[QuoteOfTheDay] Could not parse quotes from HTML');
       console.log('[QuoteOfTheDay] HTML sample:', html.substring(0, 500));
@@ -62,23 +89,7 @@ export async function fetchQuoteOfTheDay(type: QuoteType = 'normal'): Promise<Qu
     let qNumber = quoteTypes[type] || 0;
     if (qNumber >= quotesMatch.length) qNumber = 0;
     const selectedQuoteHtml = quotesMatch[qNumber];
-
-    // Extract link
-    const linkMatch = selectedQuoteHtml.match(/href="(.+?)"/);
-    if (!linkMatch) return null;
-    const link = 'https://www.brainyquote.com' + linkMatch[1];
-
-    // Extract quote text
-    const quoteMatch = selectedQuoteHtml.match(/space-between">\n([\s\S]+?)\n<img/);
-    if (!quoteMatch) return null;
-    const quote = parseHtmlEntities(quoteMatch[1]);
-
-    // Extract author
-    const authorMatch = selectedQuoteHtml.match(/title="view author">(.+?)<\/a>/);
-    if (!authorMatch) return null;
-    const author = parseHtmlEntities(authorMatch[1]);
-
-    return { quote, author, link, source: 'brainyquote' };
+    return parseBrainyQuoteBlock(selectedQuoteHtml);
   } catch (error) {
     console.error('[QuoteOfTheDay] Failed to fetch via CORS helper:', error);
     return null;

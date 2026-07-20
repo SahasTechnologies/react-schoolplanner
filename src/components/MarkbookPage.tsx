@@ -243,9 +243,9 @@ export default function MarkbookPage({
 
       {showExportModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className={`${effectiveMode==='light'?'bg-white text-black':'bg-gray-800 text-white'} rounded-2xl border ${colors.border} w-full max-w-md p-5`}> 
-            <div className="text-lg font-semibold mb-3">Export to PDF</div>
-            <p className={`${effectiveMode==='light'?'text-gray-600':'text-gray-300'} text-sm mb-4`}>Only subjects with marks will have their own page.</p>
+          <div className={`${colors.container} ${colors.text} rounded-2xl border ${colors.border} w-full max-w-md p-5`}>
+            <div className={`text-lg font-semibold mb-3 ${colors.text}`}>Export to PDF</div>
+            <p className={`${colors.containerText} opacity-80 text-sm mb-4`}>Only subjects with marks will have their own page.</p>
             <div className="space-y-3">
               <label className="flex items-center gap-3 cursor-pointer">
                 <div className="checkbox-wrapper-30">

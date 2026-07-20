@@ -377,28 +377,36 @@ async function fetchFromMerriamWebsterRSS(): Promise<WordOfTheDay | null> {
   }
 }
 
-// Wordsmith (A.Word.A.Day) via RSS1.0
+// Wordsmith (A.Word.A.Day) via RSS2.0 (updated for current feed shape)
 async function fetchFromWordsmith(): Promise<WordOfTheDay | null> {
   console.log('[WordOfTheDay] Trying Wordsmith AWAD RSS...');
   try {
     const xml = await fetchHtmlWithProxies('https://wordsmith.org/awad/rss1.xml');
     const parser = new XMLParser({ ignoreAttributes: false });
     const rss = parser.parse(xml);
-    const item = rss?.['rdf:RDF']?.item || rss?.item;
-    if (!item) throw new Error('No AWAD item');
+    // Handle both RSS1.0 (rdf:RDF) and RSS2.0 (rss/channel/item)
+    let item;
+    if (rss?.['rdf:RDF']?.item) {
+      item = rss?.['rdf:RDF']?.item;
+    } else if (rss?.rss?.channel?.item) {
+      item = Array.isArray(rss.rss.channel.item) ? rss.rss.channel.item[0] : rss.rss.channel.item;
+    } else if (rss?.item) {
+      item = rss.item;
+    }
+    if (!item) throw new Error('No AWAD item found');
     const title = String(item.title || '').trim();
     const desc = String(item.description || '').trim();
     const word = title || '';
-    if (!word) throw new Error('AWAD: no title');
+    if (!word) throw new Error('AWAD: no title (word)');
     // Attempt to parse "part: definition" format; otherwise use description as definition
     let type = 'word';
     let definition = '';
     const m = desc.match(/^\s*([A-Za-z]+)\s*:\s*(.+)$/);
     if (m) {
       type = m[1].toLowerCase();
-      definition = m[2].trim();
+      definition = parseHtmlEntities(m[2].trim());
     } else {
-      definition = desc.replace(/\s+/g, ' ').trim();
+      definition = parseHtmlEntities(desc.replace(/\s+/g, ' ').trim());
     }
     const pronunciation = word; // Not provided in RSS
     return { word, pronunciation, type, definition, source: 'wordsmith' };
