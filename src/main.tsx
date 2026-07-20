@@ -2,7 +2,11 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import SchoolPlanner from './schoolplanner';
 import RedirectPage from './components/RedirectPage';
-// Red Hat Text is now loaded via Bunny Fonts in index.html
+import '@fontsource/red-hat-text/300.css';
+import '@fontsource/red-hat-text/400.css';
+import '@fontsource/red-hat-text/500.css';
+import '@fontsource/red-hat-text/600.css';
+import '@fontsource/red-hat-text/700.css';
 import './index.css' // Keep base styles
 import { BrowserRouter } from 'react-router-dom';
 

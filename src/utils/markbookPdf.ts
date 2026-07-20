@@ -1,6 +1,8 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { Subject, Exam } from '../types';
+import redHatTextRegularTtfUrl from '@fontpkg/red-hat-text/RedHatText-Regular.ttf?url';
+import redHatTextBoldTtfUrl from '@fontpkg/red-hat-text/RedHatText-Bold.ttf?url';
 
 function percent(mark: number | null, total: number | null): number | null {
   if (mark === null || total === null || total === 0) return null;
@@ -54,45 +56,18 @@ async function loadFaviconPng(size = 16): Promise<string | null> {
   }
 }
 
-// Disabled - TTF files have unicode cmap issues
-// @ts-ignore - Kept for future use
 async function tryLoadRedHatFont(doc: jsPDF) {
-  const regularCandidates = [
-    '/fonts/RedHatText-Regular.ttf',
-    'https://raw.githubusercontent.com/RedHatOfficial/RedHatFont/main/fonts/ttf/RedHatText-Regular.ttf'
-  ];
-  const boldCandidates = [
-    '/fonts/RedHatText-Bold.ttf',
-    'https://raw.githubusercontent.com/RedHatOfficial/RedHatFont/main/fonts/ttf/RedHatText-Bold.ttf'
-  ];
-
-  async function fetchWithTimeout(url: string, timeoutMs: number): Promise<ArrayBuffer | null> {
-    const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      const res = await fetch(url, { mode: 'cors' as RequestMode, signal: controller.signal });
-      if (res.ok) return await res.arrayBuffer();
-      return null;
-    } catch {
-      return null;
-    } finally {
-      clearTimeout(t);
-    }
-  }
-
-  async function firstOk(urls: string[], timeoutMs: number): Promise<ArrayBuffer | null> {
-    for (const url of urls) {
-      const buf = await fetchWithTimeout(url, timeoutMs);
-      if (buf) return buf;
-    }
-    return null;
-  }
-
   try {
-    const [regBuf, boldBuf] = await Promise.all([
-      firstOk(regularCandidates, 800),
-      firstOk(boldCandidates, 800)
+    const list = (doc as any).getFontList?.();
+    if (list && typeof list === 'object' && 'RedHatText' in list) return;
+
+    const [regRes, boldRes] = await Promise.all([
+      fetch(redHatTextRegularTtfUrl),
+      fetch(redHatTextBoldTtfUrl),
     ]);
+    const regBuf = regRes.ok ? await regRes.arrayBuffer() : null;
+    const boldBuf = boldRes.ok ? await boldRes.arrayBuffer() : null;
+
     if (regBuf) {
       const regB64 = arrayBufferToBase64(regBuf);
       (doc as any).addFileToVFS('RedHatText-Regular.ttf', regB64);
@@ -112,6 +87,21 @@ function getPreferredFont(doc: jsPDF): 'RedHatText' | 'helvetica' {
     if (list && typeof list === 'object' && 'RedHatText' in list) return 'RedHatText';
   } catch {}
   return 'helvetica';
+}
+
+function setDocFont(doc: jsPDF, style: 'normal' | 'bold' = 'normal') {
+  const family = getPreferredFont(doc);
+  try {
+    doc.setFont(family, style);
+  } catch {
+    doc.setFont('helvetica', style);
+  }
+}
+
+function truncateLabel(value: string, maxLength = 14): string {
+  const trimmed = value.trim();
+  if (trimmed.length <= maxLength) return trimmed;
+  return `${trimmed.slice(0, maxLength - 1)}…`;
 }
 
 function arrayBufferToBase64(buffer: ArrayBuffer) {
@@ -150,13 +140,12 @@ function drawFooter(doc: jsPDF, faviconPngDataUrl: string | null) {
     if (faviconPngDataUrl) {
       try { doc.addImage(faviconPngDataUrl, 'PNG', margin, h - margin - 9.5, 14, 14); } catch {}
     }
-    // Use helvetica font
-    doc.setFont('helvetica', 'normal');
+    setDocFont(doc, 'normal');
     doc.setFontSize(9);
     doc.text('School Planner', margin + (faviconPngDataUrl ? 18 : 0), h - margin + 2);
 
     // Right: page number
-    doc.setFont('helvetica', 'normal');
+    setDocFont(doc, 'normal');
     const pageText = String(i);
     doc.text(pageText, w - margin, h - margin + 2, { align: 'right' });
   }
@@ -167,7 +156,7 @@ function drawSubjectBarsPage(doc: jsPDF, items: { name: string; avg: number }[],
   const marginX = 40;
   const top = 64;
 
-  doc.setFont('helvetica', 'bold');
+  setDocFont(doc, 'bold');
   doc.setFontSize(16);
   doc.text(title, marginX, top);
 
@@ -175,10 +164,15 @@ function drawSubjectBarsPage(doc: jsPDF, items: { name: string; avg: number }[],
   const chartHeight = 260;
   const chartLeft = marginX;
   const chartWidth = w - marginX * 2;
+  const frameLeft = chartLeft - 30;
+  const frameTop = chartTop - 14;
+  const frameWidth = chartWidth + 42;
+  const frameHeight = chartHeight + 40;
 
   // Chart container (rounded outline)
   doc.setDrawColor(210);
-  doc.roundedRect(chartLeft - 10, chartTop - 10, chartWidth + 20, chartHeight + 20, 8, 8, 'S');
+  doc.setLineWidth(1);
+  doc.roundedRect(frameLeft, frameTop, frameWidth, frameHeight, 8, 8, 'S');
 
   // axes
   doc.setDrawColor(180);
@@ -191,7 +185,7 @@ function drawSubjectBarsPage(doc: jsPDF, items: { name: string; avg: number }[],
     const y = chartTop + chartHeight - (t / 100) * chartHeight;
     doc.setDrawColor(220);
     doc.line(chartLeft, y, chartLeft + chartWidth, y);
-    doc.setFont('helvetica', 'normal');
+    setDocFont(doc, 'normal');
     doc.setTextColor(80);
     doc.text(`${t}%`, chartLeft - 22, y + 2);
   }
@@ -211,16 +205,16 @@ function drawSubjectBarsPage(doc: jsPDF, items: { name: string; avg: number }[],
     doc.rect(x, y, barWidth, hPct, 'F');
 
     // name rotated or small text below
-    doc.setFont('helvetica', 'normal');
+    setDocFont(doc, 'normal');
     doc.setTextColor(50);
     doc.setFontSize(8);
-    doc.text(it.name, x + barWidth / 2, chartTop + chartHeight + 10, { align: 'center' });
+    doc.text(truncateLabel(it.name), x + barWidth / 2, chartTop + chartHeight + 18, { align: 'center' });
 
     // value label
-    doc.setFont('helvetica', 'normal');
+    setDocFont(doc, 'normal');
     doc.setTextColor(20);
     doc.setFontSize(9);
-    doc.text(`${it.avg.toFixed(1)}%`, x + barWidth / 2, y - 4, { align: 'center' });
+    doc.text(`${it.avg.toFixed(1)}%`, x + barWidth / 2, Math.max(chartTop + 10, y - 6), { align: 'center' });
 
     x += barWidth + barGap;
   });
@@ -265,13 +259,10 @@ export async function exportMarkbookPdf(args: {
   console.log('[PDF Export] Creating jsPDF instance...');
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
   console.log('[PDF Export] jsPDF created:', doc);
-  
-  // CRITICAL: Set default font immediately to avoid widths errors
-  doc.setFont('helvetica', 'normal');
+
+  await tryLoadRedHatFont(doc);
+  setDocFont(doc, 'normal');
   doc.setFontSize(10);
-  
-  // Skip Red Hat font loading - TTF files have unicode cmap issues
-  console.log('[PDF Export] Using helvetica font (Red Hat disabled due to TTF issues)');
   const w = doc.internal.pageSize.getWidth();
   const h = doc.internal.pageSize.getHeight();
   const footerReserve = 48; // space above footer divider to avoid collisions
@@ -293,7 +284,7 @@ export async function exportMarkbookPdf(args: {
   // List page: subjects + marks
   if (includeSubjectsTable) {
     if (hasDrawnContent) doc.addPage();
-    doc.setFont('helvetica', 'bold');
+    setDocFont(doc, 'bold');
     doc.setFontSize(16);
     doc.text('Subjects and Marks', 40, 64);
 
@@ -309,12 +300,9 @@ export async function exportMarkbookPdf(args: {
       ];
     });
 
-    // Rounded frame for table area
     const tableX = 30;
     const tableW = w - 60;
     const tableStartY = 80;
-    doc.setDrawColor(210);
-    doc.roundedRect(tableX, tableStartY - 14, tableW, 24, 8, 8, 'S');
 
     let __listEndY: number | null = null;
     try {
@@ -322,9 +310,15 @@ export async function exportMarkbookPdf(args: {
         head,
         body,
         startY: tableStartY,
-        styles: { font: getPreferredFont(doc), fontSize: 10 },
-        headStyles: { fillColor: [59, 130, 246] },
-        margin: { bottom: footerReserve },
+        theme: 'grid',
+        tableWidth: tableW,
+        margin: { left: tableX, right: 30, bottom: footerReserve },
+        headStyles: { fillColor: [59, 130, 246], textColor: 255, fontStyle: 'bold' },
+        bodyStyles: { textColor: 30 },
+        tableLineColor: [210, 210, 210],
+        tableLineWidth: 0.75,
+        styles: { font: getPreferredFont(doc), fontSize: 10, lineColor: [226, 232, 240], lineWidth: 0.5, cellPadding: 8 },
+        columnStyles: { 0: { cellWidth: 18 } },
         didDrawCell: (data: any) => {
           if (data.section === 'body' && data.column.index === 0) {
             const subj = withAvgs[data.row.index].subject;
@@ -349,11 +343,11 @@ export async function exportMarkbookPdf(args: {
       __listEndY = (doc as any).lastAutoTable?.finalY ?? null;
     } catch {
       let yAlt = tableStartY + 20;
-      try { doc.setFont(getPreferredFont(doc), 'normal'); } catch { doc.setFont('helvetica', 'normal'); }
+      setDocFont(doc, 'normal');
       doc.setFontSize(10);
       const lh = 16;
       body.forEach((row: any[]) => {
-        doc.setFont('helvetica', 'normal');
+        setDocFont(doc, 'normal');
         const text = `${row[1]}  ${row[2]}  ${row[3]}`;
         doc.text(text, tableX + 12, yAlt);
         yAlt += lh;
@@ -361,11 +355,7 @@ export async function exportMarkbookPdf(args: {
       __listEndY = yAlt;
     }
 
-    // Draw outer rounded border after table renders
-    // @ts-ignore
-    const listEndY = (__listEndY ?? (doc as any).lastAutoTable?.finalY) ?? tableStartY + 100;
-    doc.setDrawColor(210);
-    doc.roundedRect(tableX, tableStartY - 14, tableW, Math.max(40, listEndY - tableStartY + 28), 12, 12, 'S');
+    void __listEndY;
   }
 
   hasDrawnContent = hasDrawnContent || includeSubjectsTable;
@@ -390,7 +380,7 @@ export async function exportMarkbookPdf(args: {
     }
     hasDrawnContent = true;
     // Header with color chip and subject name
-    doc.setFont('helvetica', 'bold');
+    setDocFont(doc, 'bold');
     doc.setFontSize(16);
     doc.text(s.name, 40, 64);
     // color chip
@@ -403,11 +393,8 @@ export async function exportMarkbookPdf(args: {
     } catch {}
 
     let y = 80;
-    // Table rounded frame
     const subTableX = 30;
     const subTableW = w - 60;
-    doc.setDrawColor(210);
-    doc.roundedRect(subTableX, y - 14, subTableW, 24, 8, 8, 'S');
 
     let endY: number = 140;
     try {
@@ -415,36 +402,37 @@ export async function exportMarkbookPdf(args: {
         head: [['Exam', 'Mark', 'Total', 'Percent', 'Weight %']],
         body: rows,
         startY: y,
-        styles: { font: getPreferredFont(doc), fontSize: 10 },
-        headStyles: { fillColor: [31, 41, 55] },
-        margin: { bottom: footerReserve },
+        theme: 'grid',
+        tableWidth: subTableW,
+        margin: { left: subTableX, right: 30, bottom: footerReserve },
+        styles: { font: getPreferredFont(doc), fontSize: 10, lineColor: [226, 232, 240], lineWidth: 0.5, cellPadding: 8 },
+        headStyles: { fillColor: [31, 41, 55], textColor: 255, fontStyle: 'bold' },
+        bodyStyles: { textColor: 30 },
+        tableLineColor: [210, 210, 210],
+        tableLineWidth: 0.75,
       });
       // @ts-ignore
       endY = (doc as any).lastAutoTable?.finalY ?? 140;
     } catch {
       // Manual simple fallback in case autotable is unavailable
       let yAlt = y + 16;
-      try { doc.setFont(getPreferredFont(doc), 'normal'); } catch { doc.setFont('helvetica', 'normal'); }
+      setDocFont(doc, 'normal');
       doc.setFontSize(10);
       const lh = 16;
       // Header
-      doc.setFont('helvetica', 'normal');
+      setDocFont(doc, 'normal');
       doc.setTextColor(80);
       doc.text('Exam    Mark   Total   Percent   Weight %', 40, yAlt);
       yAlt += lh;
       doc.setTextColor(20);
       rows.forEach((r) => {
-        doc.setFont('helvetica', 'normal');
+        setDocFont(doc, 'normal');
         const txt = `${r[0]}   ${r[1]}   ${r[2]}   ${r[3]}   ${r[4]}`;
         doc.text(txt, 40, yAlt);
         yAlt += lh;
       });
       endY = yAlt;
     }
-
-    // Draw border around the table area
-    doc.setDrawColor(210);
-    doc.roundedRect(subTableX, y - 14, subTableW, Math.max(40, endY - y + 28), 12, 12, 'S');
 
     // Draw line chart of percents at the bottom
     let chartTop = endY + 24;
@@ -457,9 +445,6 @@ export async function exportMarkbookPdf(args: {
       chartTop = 100;
     }
 
-    // Chart rounded outline
-    doc.setDrawColor(210);
-    doc.roundedRect(40 - 10, chartTop - 10, chartWidth + 20, chartHeight + 20, 8, 8, 'S');
     try { drawLineChart(doc, exams, 40, chartTop, chartWidth, chartHeight); } catch {}
   }
 
@@ -478,8 +463,20 @@ function drawLineChart(doc: jsPDF, exams: Exam[], left: number, top: number, wid
   const data = exams
     .map((e, i) => ({ name: e.name?.trim() || `E${i + 1}`, pct: percent(e.mark, e.total) }))
     .filter((d) => d.pct !== null) as { name: string; pct: number }[];
+  const frameLeft = left - 30;
+  const frameTop = top - 14;
+  const frameWidth = width + 42;
+  const frameHeight = height + 40;
+
+  doc.setDrawColor(210);
+  doc.setLineWidth(1);
+  doc.roundedRect(frameLeft, frameTop, frameWidth, frameHeight, 8, 8, 'S');
+
   if (data.length < 2) {
-    // no chart
+    setDocFont(doc, 'normal');
+    doc.setTextColor(110);
+    doc.setFontSize(10);
+    doc.text('Need at least two graded exams to draw a trend chart.', left + width / 2, top + height / 2, { align: 'center' });
     return;
   }
 
@@ -489,13 +486,13 @@ function drawLineChart(doc: jsPDF, exams: Exam[], left: number, top: number, wid
   doc.line(left, top + height, left + width, top + height);
 
   // y ticks
-  doc.setFont('helvetica', 'normal');
+  setDocFont(doc, 'normal');
   doc.setFontSize(8);
   for (let t = 0; t <= 100; t += 20) {
     const y = top + height - (t / 100) * height;
     doc.setDrawColor(220);
     doc.line(left, y, left + width, y);
-    doc.setFont('helvetica', 'normal');
+    setDocFont(doc, 'normal');
     doc.setTextColor(80);
     doc.text(`${t}%`, left - 22, y + 2);
   }
@@ -525,11 +522,11 @@ function drawLineChart(doc: jsPDF, exams: Exam[], left: number, top: number, wid
     const x = xs[i];
     const y = top + height - (d.pct / 100) * height;
     doc.circle(x, y, 2.5, 'F');
-    doc.setFont('helvetica', 'normal');
-    doc.text(`${d.pct.toFixed(1)}%`, x, y - 6, { align: 'center' });
+    setDocFont(doc, 'normal');
+    doc.text(`${d.pct.toFixed(1)}%`, x, Math.max(top + 10, y - 6), { align: 'center' });
     // names on x axis
-    doc.setFont('helvetica', 'normal');
-    doc.text(d.name, x, top + height + 12, { align: 'center' });
+    setDocFont(doc, 'normal');
+    doc.text(truncateLabel(d.name), x, top + height + 18, { align: 'center' });
   });
 }
 

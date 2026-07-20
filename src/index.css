@@ -1,14 +1,22 @@
-/* Fonts loaded via Bunny Fonts CDN in index.html for privacy and performance */
+/* Red Hat Text is bundled via @fontsource for reliable loading in production */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+html,
 body {
   margin: 0;
-  /* Use Red Hat Text from Bunny Fonts, fallback to a generic sans-serif for instant render */
-  font-family: 'Red Hat Text', sans-serif;
+  font-family: 'Red Hat Text', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+#root,
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
 
 /* FeedbackForm-only lightweight animations */
