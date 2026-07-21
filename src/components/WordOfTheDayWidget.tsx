@@ -14,28 +14,14 @@ export default function WordOfTheDayWidget({
   themeType, 
   effectiveMode 
 }: WordOfTheDayWidgetProps): React.ReactElement {
-  const [loading, setLoadingRaw] = React.useState(true);
-  const [error, setErrorRaw] = React.useState(false);
-  const [wordData, setWordDataRaw] = React.useState<WordOfTheDay | null>(null);
-  const [blockedNote, setBlockedNoteRaw] = React.useState<string | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(false);
+  const [wordData, setWordData] = React.useState<WordOfTheDay | null>(null);
+  const [blockedNote, setBlockedNote] = React.useState<string | null>(null);
   const colors = getColors(theme, themeType, effectiveMode);
   const mountTimeRef = React.useRef(Date.now());
   const MIN_SPIN_MS = 800; // Minimum spinner time for better visibility
   const hasCheckedForUpdate = React.useRef(false);
-
-  // fetchWordOfTheDay can chain through several sources/proxies before
-  // resolving. If the widget unmounts mid-fetch (e.g. quick navigation away),
-  // calling the raw setters afterwards would update state on an unmounted
-  // component. Guard every setter through this ref instead.
-  const isMountedRef = React.useRef(true);
-  React.useEffect(() => {
-    isMountedRef.current = true;
-    return () => { isMountedRef.current = false; };
-  }, []);
-  const setLoading = (v: boolean) => { if (isMountedRef.current) setLoadingRaw(v); };
-  const setError = (v: boolean) => { if (isMountedRef.current) setErrorRaw(v); };
-  const setWordData = (v: WordOfTheDay | null) => { if (isMountedRef.current) setWordDataRaw(v); };
-  const setBlockedNote = (v: string | null) => { if (isMountedRef.current) setBlockedNoteRaw(v); };
 
   // Helper to stop spinner but keep minimum duration
   const stopSpinner = () => {

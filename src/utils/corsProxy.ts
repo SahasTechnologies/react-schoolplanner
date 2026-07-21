@@ -96,59 +96,37 @@ export function buildProxyUrl(proxy: ProxyEntry, targetUrl: string): string {
   return proxy.prefix + encodeURIComponent(targetUrl);
 }
 
-// How many proxies to race concurrently per batch. Racing beats trying them
-// one-by-one: a single flaky/slow proxy no longer blocks the whole chain for
-// its full timeout before the next one even starts.
-const BATCH_SIZE = 4;
-// Per-request timeout. Kept short since we race several at once, so a slow
-// proxy only costs this long before its batch's fastest response wins.
-const DEFAULT_TIMEOUT_MS = 5000;
-// Hard ceiling on the whole function, regardless of how many proxies exist.
-// Previously this had no cap: 22 proxies x 8s sequential timeouts meant a
-// single call could legitimately take ~3 minutes if proxies were down. That
-// cascaded further in fetchWordOfTheDay, which tries several sources each
-// calling this function, compounding the delay to minutes.
-const OVERALL_BUDGET_MS = 15000;
-
-export async function fetchTextViaCors(targetUrl: string, init: RequestInit = {}, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<string> {
+export async function fetchTextViaCors(targetUrl: string, init: RequestInit = {}, timeoutMs = 8000): Promise<string> {
   const hostname = getHost(targetUrl);
   const proxies = reorderByLastGood(PROXIES, hostname);
-  const deadline = Date.now() + OVERALL_BUDGET_MS;
 
-  const tryProxy = async (p: ProxyEntry): Promise<{ text: string; proxyName: string }> => {
-    const url = buildProxyUrl(p, targetUrl);
-    const res = await fetchWithTimeout(url, init, timeoutMs);
-    if (!res.ok) throw new Error(String(res.status));
-    let text: string;
-    if (p.mode === 'json') {
-      // allorigins style response
-      const data: any = await res.json();
-      text = String(data?.contents ?? data?.body ?? data?.result ?? '');
-      if (!text) throw new Error('empty json contents');
-    } else {
-      text = await res.text();
-    }
-    return { text, proxyName: p.name };
-  };
-
-  for (let i = 0; i < proxies.length; i += BATCH_SIZE) {
-    if (Date.now() >= deadline) break;
-    const batch = proxies.slice(i, i + BATCH_SIZE);
+  for (const p of proxies) {
     try {
-      const result = await Promise.any(batch.map(tryProxy));
+      const url = buildProxyUrl(p, targetUrl);
+      const res = await fetchWithTimeout(url, init, timeoutMs);
+      if (!res.ok) throw new Error(String(res.status));
+      let text: string;
+      if (p.mode === 'json') {
+        // allorigins style response
+        const data: any = await res.json();
+        text = String(data?.contents ?? data?.body ?? data?.result ?? '');
+        if (!text) throw new Error('empty json contents');
+      } else {
+        text = await res.text();
+      }
+      // success -> remember
       const map = loadLastGood();
-      map[hostname] = { name: result.proxyName, ts: Date.now() };
+      map[hostname] = { name: p.name, ts: Date.now() };
       saveLastGood(map);
-      return result.text;
-    } catch {
-      // Whole batch failed (or all rejected) - move on to the next batch,
-      // as long as we're still within budget.
+      return text;
+    } catch (e) {
+      // try next
     }
   }
   throw new Error('All CORS proxies failed');
 }
 
-export async function fetchJsonViaCors<T = any>(targetUrl: string, init: RequestInit = {}, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<T> {
+export async function fetchJsonViaCors<T = any>(targetUrl: string, init: RequestInit = {}, timeoutMs = 8000): Promise<T> {
   const raw = await fetchTextViaCors(targetUrl, init, timeoutMs);
   try {
     return JSON.parse(raw) as T;

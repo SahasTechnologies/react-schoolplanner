@@ -71,7 +71,7 @@ async function fetchFromDictionaryCom(): Promise<WordOfTheDay | null> {
   }
 }
 // Multi-proxy HTML fetch using centralized helper with timeout
-const WORD_FETCH_TIMEOUT_MS = 5000;
+const WORD_FETCH_TIMEOUT_MS = 8000;
 async function fetchHtmlWithProxies(targetUrl: string): Promise<string> {
   // The centralized helper cycles proxies and remembers last-good per host
   const text = await fetchTextViaCors(targetUrl, {}, WORD_FETCH_TIMEOUT_MS);
@@ -420,19 +420,9 @@ async function fetchFromWordsmith(): Promise<WordOfTheDay | null> {
 
 // Main function to fetch Word of the Day
 // Respects user preference, falls back to other sources if needed
-// Hard ceiling on the whole multi-source fallback chain below. Each source
-// call goes through fetchTextViaCors, which now caps itself at ~15s, but
-// with up to 6 sources tried in sequence that could still add up to well
-// over a minute in the worst case. This bounds the whole function so a bad
-// run of flaky sources degrades quickly instead of leaving the widget
-// "loading" for ages.
-const WORD_OF_THE_DAY_OVERALL_BUDGET_MS = 12000;
-
 export async function fetchWordOfTheDay(): Promise<WordOfTheDay | null> {
   console.log('[WordOfTheDay] Starting fetch...');
-  const deadline = Date.now() + WORD_OF_THE_DAY_OVERALL_BUDGET_MS;
-  const withinBudget = () => Date.now() < deadline;
-
+  
   // Get user preference from localStorage (default to 'worddaily')
   const preferredSource = localStorage.getItem('wordOfTheDaySource') || 'worddaily';
   console.log('[WordOfTheDay] Preferred source:', preferredSource);
@@ -465,39 +455,30 @@ export async function fetchWordOfTheDay(): Promise<WordOfTheDay | null> {
   
   // Fallback to other sources
   console.log('[WordOfTheDay] Preferred source failed, trying fallbacks...');
-
-  if (!withinBudget()) {
-    console.warn('[WordOfTheDay] Time budget exhausted before trying fallbacks, giving up early');
-    return null;
-  }
   
   // Try other non-vocabulary sources first to avoid jumping to Vocabulary.com immediately
-  if (preferredSource !== 'britannica' && withinBudget()) {
+  if (preferredSource !== 'britannica') {
     result = await fetchFromBritannica();
     if (result) return result;
   }
   
-  if (preferredSource !== 'worddaily' && withinBudget()) {
+  if (preferredSource !== 'worddaily') {
     result = await fetchFromWordDaily();
     if (result) return result;
   }
   
-  if (preferredSource !== 'dictionary' && withinBudget()) {
+  if (preferredSource !== 'dictionary') {
     result = await fetchFromDictionaryCom();
     if (result) return result;
   }
   
-  if (withinBudget()) {
-    // Try Merriam-Webster RSS as a robust general fallback
-    console.log('[WordOfTheDay] Trying Merriam-Webster RSS as fallback...');
-    result = await fetchFromMerriamWebsterRSS();
-    if (result) return result;
-  }
+  // Try Merriam-Webster RSS as a robust general fallback
+  console.log('[WordOfTheDay] Trying Merriam-Webster RSS as fallback...');
+  result = await fetchFromMerriamWebsterRSS();
+  if (result) return result;
   // Then HTML fallback
-  if (withinBudget()) {
-    result = await fetchFromMerriamWebster();
-    if (result) return result;
-  }
+  result = await fetchFromMerriamWebster();
+  if (result) return result;
   
   console.error('[WordOfTheDay] All sources failed');
   return null;
