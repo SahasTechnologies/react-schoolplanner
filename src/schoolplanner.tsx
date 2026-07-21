@@ -23,6 +23,7 @@ import { processFile, exportData, exportAllData, defaultColours } from './utils/
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported } from './utils/cacheUtils';
 import { showSuccess, showError, showInfo, removeNotification } from './utils/notificationUtils';
 import NotFound from './components/NotFound';
+import PageErrorBoundary from './components/PageErrorBoundary';
 import { Exam } from './types';
 import { hashPassword, memoizedComparePassword } from './utils/passwordUtils';
 import LinksWidget from './components/LinksWidget';
@@ -38,6 +39,15 @@ import { findNextRepeatingEvent, findEventsByDayToggle } from './utils/eventHelp
 const WeekViewPage = lazy(() => import('./components/WeekViewPage'));
 const MarkbookPage = lazy(() => import('./components/MarkbookPage'));
 const Settings = lazy(() => import('./components/Settings'));
+
+// Preload the chunks for these once the browser is idle so that by the time
+// the user actually clicks a sidebar button, the module is already resolved
+// and Suspense doesn't have to block the navigation on a network fetch.
+const preloadRouteChunks = () => {
+  import('./components/WeekViewPage');
+  import('./components/MarkbookPage');
+  import('./components/Settings');
+};
 
 const SchoolPlanner = () => {
   // Theme state must be defined first since effectiveMode and colors are used throughout
@@ -86,6 +96,15 @@ const SchoolPlanner = () => {
   // Remove currentPage state, use router location instead
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Preload the lazy-loaded page chunks once, shortly after mount, so that
+  // the first click on a sidebar button doesn't have to wait on a network
+  // fetch + module evaluation before the page can actually change.
+  useEffect(() => {
+    const idle: (cb: () => void) => void =
+      (window as any).requestIdleCallback || ((cb: () => void) => setTimeout(cb, 200));
+    idle(preloadRouteChunks);
+  }, []);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   // Re-render bridge for settings that affect week label
   const [weekSettingsVersion, setWeekSettingsVersion] = useState(0);
@@ -96,7 +115,15 @@ const SchoolPlanner = () => {
   // Exams by subject id
   const [examsBySubject, setExamsBySubject] = useState<Record<string, Exam[]>>(() => {
     const saved = localStorage.getItem('examsBySubject');
-    return saved ? JSON.parse(saved) : {};
+    if (!saved) return {};
+    try {
+      return JSON.parse(saved);
+    } catch {
+      // Corrupted data (e.g. a crash mid-write) shouldn't permanently brick
+      // the whole app on every future load - fall back to an empty record.
+      console.error('[SchoolPlanner] Failed to parse examsBySubject from localStorage, resetting');
+      return {};
+    }
   });
 
   // NEW: Sort option for subjects in Markbook
@@ -2015,11 +2042,24 @@ const SchoolPlanner = () => {
   ];
   const [infoOrder, setInfoOrder] = useState(() => {
     const saved = localStorage.getItem('eventInfoOrder');
-    return saved ? JSON.parse(saved) : defaultInfoOrder;
+    if (!saved) return defaultInfoOrder;
+    try {
+      return JSON.parse(saved);
+    } catch {
+      console.error('[SchoolPlanner] Failed to parse eventInfoOrder from localStorage, resetting');
+      return defaultInfoOrder;
+    }
   });
   const [infoShown, setInfoShown] = useState(() => {
     const saved = localStorage.getItem('eventInfoShown');
-    return saved ? JSON.parse(saved) : { time: false, location: false, teacher: false };
+    const fallback = { time: false, location: false, teacher: false };
+    if (!saved) return fallback;
+    try {
+      return JSON.parse(saved);
+    } catch {
+      console.error('[SchoolPlanner] Failed to parse eventInfoShown from localStorage, resetting');
+      return fallback;
+    }
   });
 
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
@@ -2210,6 +2250,10 @@ const SchoolPlanner = () => {
       clearInterval(id);
       if (animFrameId !== null) cancelAnimationFrame(animFrameId);
       document.removeEventListener('visibilitychange', onVis);
+      // Without this, once there's no next event to count down to (e.g. the
+      // last event of the day just ended), the tab title stays stuck on the
+      // final countdown string forever instead of reverting to the default.
+      document.title = 'School Planner';
     };
   }, [countdownInTitle, nextEventDate, nextEvent]);
 
@@ -2353,30 +2397,43 @@ const SchoolPlanner = () => {
 
   // Main content routes with Suspense for lazy-loaded components
   // Only show welcome screen if not completed
+  //
+  // Wrapper components so React Router only invokes the (potentially heavy)
+  // render function for whichever route is actually matched/mounted, instead
+  // of every render*() function running on every re-render regardless of the
+  // active page (this was previously a real perf drag on every navigation).
+  const WelcomeRoute = () => renderWelcomeScreen();
+  const HomeRoute = () => renderHome();
+  const CalendarRoute = () => renderWeekView();
+  const MarkbookRoute = () => renderMarkbook();
+  const SettingsRoute = () => renderSettings();
+
   const mainContent = (
-    <Suspense fallback={
-      <div className={`flex items-center justify-center p-8`}>
-        <div className={`${colors.container} ${colors.border} border rounded-xl px-4 py-3`}>Loading…</div>
-      </div>
-    }>
-      <Routes>
-        {welcomeStep !== 'completed' ? (
-          <>
-            <Route path="/" element={<Navigate to="/welcome" replace />} />
-            <Route path="/welcome" element={renderWelcomeScreen()} />
-          </>
-        ) : (
-          <>
-            <Route path="/" element={<Navigate to="/home" replace />} />
-            <Route path="/home" element={renderHome()} />
-            <Route path="/calendar" element={renderWeekView()} />
-            <Route path="/markbook" element={renderMarkbook()} />
-            <Route path="/settings" element={renderSettings()} />
-          </>
-        )}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Suspense>
+    <PageErrorBoundary resetKey={location.pathname}>
+      <Suspense fallback={
+        <div className={`flex items-center justify-center p-8`}>
+          <div className={`${colors.container} ${colors.border} border rounded-xl px-4 py-3`}>Loading…</div>
+        </div>
+      }>
+        <Routes>
+          {welcomeStep !== 'completed' ? (
+            <>
+              <Route path="/" element={<Navigate to="/welcome" replace />} />
+              <Route path="/welcome" element={<WelcomeRoute />} />
+            </>
+          ) : (
+            <>
+              <Route path="/" element={<Navigate to="/home" replace />} />
+              <Route path="/home" element={<HomeRoute />} />
+              <Route path="/calendar" element={<CalendarRoute />} />
+              <Route path="/markbook" element={<MarkbookRoute />} />
+              <Route path="/settings" element={<SettingsRoute />} />
+            </>
+          )}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
+    </PageErrorBoundary>
   );
 
   // Main render logic

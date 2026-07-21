@@ -32,6 +32,25 @@ const EventCard: React.FC<EventCardProps> = ({
   subjects = [],
   forceTall = false
 }) => {
+  // Hooks must run unconditionally on every render, in the same order, for a
+  // given component instance - they can't come after the early returns below.
+  // If the same list slot ever gets a different event classification across
+  // renders (e.g. break placement shifts as the schedule recalculates),
+  // having hooks after a conditional return would make React call a
+  // different number of hooks between renders, which either throws or
+  // silently corrupts this component's state.
+  const [expanded, setExpanded] = React.useState(false);
+  const [showAllInfo, setShowAllInfo] = React.useState(false);
+
+  // Keep content mounted until animation finishes
+  React.useEffect(() => {
+    if (expanded) {
+      setShowAllInfo(true);
+    } else {
+      setShowAllInfo(false); // Remove delay - shrink immediately
+    }
+  }, [expanded]);
+
   // Handle End of Day event
   if (isEndOfDayEvent(event)) {
     return (
@@ -132,19 +151,7 @@ const EventCard: React.FC<EventCardProps> = ({
     return <span className="ml-3 flex items-center font-medium">{field}</span>;
   };
 
-  const [expanded, setExpanded] = React.useState(false);
-  const [showAllInfo, setShowAllInfo] = React.useState(false);
-
   const segmentColor = getEventColour(event.summary);
-
-  // Keep content mounted until animation finishes
-  React.useEffect(() => {
-    if (expanded) {
-      setShowAllInfo(true);
-    } else {
-      setShowAllInfo(false); // Remove delay - shrink immediately
-    }
-  }, [expanded]);
 
   return (
     <div
