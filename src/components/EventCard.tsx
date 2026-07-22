@@ -32,6 +32,26 @@ const EventCard: React.FC<EventCardProps> = ({
   subjects = [],
   forceTall = false
 }) => {
+  // Hooks must run unconditionally, in the same order, on every render of
+  // this component instance. The early returns below (for break / end-of-day
+  // pseudo-events) used to sit before these hooks, which is a real
+  // rules-of-hooks violation: if the same list slot is ever classified
+  // differently between renders (e.g. break placement shifts because the
+  // day's event list changes), React throws "Rendered fewer hooks than
+  // expected" and unmounts the tree. Declaring them here, before any early
+  // return, makes that impossible regardless of how the list changes.
+  const [expanded, setExpanded] = React.useState(false);
+  const [showAllInfo, setShowAllInfo] = React.useState(false);
+
+  // Keep content mounted until animation finishes
+  React.useEffect(() => {
+    if (expanded) {
+      setShowAllInfo(true);
+    } else {
+      setShowAllInfo(false); // Remove delay - shrink immediately
+    }
+  }, [expanded]);
+
   // Handle End of Day event
   if (isEndOfDayEvent(event)) {
     return (
@@ -132,19 +152,7 @@ const EventCard: React.FC<EventCardProps> = ({
     return <span className="ml-3 flex items-center font-medium">{field}</span>;
   };
 
-  const [expanded, setExpanded] = React.useState(false);
-  const [showAllInfo, setShowAllInfo] = React.useState(false);
-
   const segmentColor = getEventColour(event.summary);
-
-  // Keep content mounted until animation finishes
-  React.useEffect(() => {
-    if (expanded) {
-      setShowAllInfo(true);
-    } else {
-      setShowAllInfo(false); // Remove delay - shrink immediately
-    }
-  }, [expanded]);
 
   return (
     <div

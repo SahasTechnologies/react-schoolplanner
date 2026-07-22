@@ -243,7 +243,7 @@ const Settings: React.FC<SettingsProps> = ({
   // Obfuscation helpers (avoid putting sensitive strings in DOM/source as plain text)
   const decodeChars = (arr: number[]) => String.fromCharCode(...arr);
   const PAYID_EMAIL_CHARS = [116,104,97,110,107,121,111,117,64,115,97,104,97,115,46,100,112,100,110,115,46,111,114,103];
-  const CONTACT_EMAIL_CHARS = [115,99,104,111,111,108,64,115,97,104,97,115,46,100,112,100,110,115,46,111,114,103];
+  const CONTACT_EMAIL_CHARS = [115,97,104,97,115,64,115,104,105,109,112,105,46,100,101,118]; // sahas@shimpi.dev
   const PAYEE_NAME_CHARS = [83,65,72,65,83,32,83,72,73,77,80,73];
 
   useEffect(() => {
@@ -357,7 +357,7 @@ const Settings: React.FC<SettingsProps> = ({
         }
       `}</style>
       
-      <div className="mx-auto w-full max-w-2xl xl:max-w-3xl px-4">
+      <div className="mx-auto w-full max-w-2xl xl:max-w-3xl px-4 pt-4">
         <div className="flex items-center gap-3 mb-8">
           <SettingsIcon className={colors.text} size={28} />
           <h2 className={`text-3xl font-semibold ${colors.text}`}>Settings</h2>

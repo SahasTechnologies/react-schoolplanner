@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React from 'react';
 import { Calendar, Home, BarChart3, Clock } from 'lucide-react';
 
 interface SidebarProps {
@@ -10,36 +10,35 @@ interface SidebarProps {
   onCountdownClick: () => void;
 }
 
-// Simple bounce animation component that animates when active
-const BounceButton = ({ 
-  onClick, 
-  icon: Icon, 
-  title, 
+// Sidebar nav button. Previously this used a JS-timed `animate-bounce` on
+// every click, which is Tailwind's large notification-style up-down jump —
+// too much motion for a nav icon, and it fought visually with the page
+// already having changed underneath it. This uses a lightweight CSS-only
+// press/hover feel instead: an immediate scale-down on press (active:) and
+// a subtle scale-up on hover, both handled purely by the browser with no
+// state or setTimeout involved.
+const BounceButton = ({
+  onClick,
+  icon: Icon,
+  title,
   isActivePath,
   accentBg,
   sidebarHover,
   iconActive,
   iconInactive
 }: any) => {
-  const [isBouncing, setIsBouncing] = useState(false);
-  
-  const handleClick = useCallback(() => {
-    setIsBouncing(true);
-    setTimeout(() => setIsBouncing(false), 400); // Duration of bounce
-    onClick();
-  }, [onClick]);
-
   return (
     <button
-      onClick={handleClick}
+      onClick={onClick}
       title={title}
       className={`
-        p-3 rounded-lg transition-all duration-200 mx-auto block relative
-        ${isActivePath ? `${accentBg} ${iconActive}` : `hover:${sidebarHover}`}
-        ${isBouncing ? 'animate-bounce' : ''}
+        p-3 rounded-lg mx-auto block relative
+        transition-[background-color,transform] duration-150 ease-out
+        active:scale-90
+        ${isActivePath ? `${accentBg} ${iconActive}` : `hover:${sidebarHover} hover:scale-110`}
       `}
     >
-      <Icon size={20} className={isActivePath ? iconActive : iconInactive} />
+      <Icon size={20} className={`${isActivePath ? iconActive : iconInactive} transition-colors duration-150`} />
     </button>
   );
 };

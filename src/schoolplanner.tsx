@@ -23,6 +23,7 @@ import { processFile, exportData, exportAllData, defaultColours } from './utils/
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported } from './utils/cacheUtils';
 import { showSuccess, showError, showInfo, removeNotification } from './utils/notificationUtils';
 import NotFound from './components/NotFound';
+import PageErrorBoundary from './components/PageErrorBoundary';
 import { Exam } from './types';
 import { hashPassword, memoizedComparePassword } from './utils/passwordUtils';
 import LinksWidget from './components/LinksWidget';
@@ -38,6 +39,15 @@ import { findNextRepeatingEvent, findEventsByDayToggle } from './utils/eventHelp
 const WeekViewPage = lazy(() => import('./components/WeekViewPage'));
 const MarkbookPage = lazy(() => import('./components/MarkbookPage'));
 const Settings = lazy(() => import('./components/Settings'));
+
+// Preload the chunks for these once the browser is idle so that by the time
+// the user actually clicks a sidebar button, the module is already resolved
+// and Suspense doesn't have to block the navigation on a network fetch.
+const preloadRouteChunks = () => {
+  import('./components/WeekViewPage');
+  import('./components/MarkbookPage');
+  import('./components/Settings');
+};
 
 const SchoolPlanner = () => {
   // Theme state must be defined first since effectiveMode and colors are used throughout
@@ -86,6 +96,15 @@ const SchoolPlanner = () => {
   // Remove currentPage state, use router location instead
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Preload the lazy-loaded page chunks once, shortly after mount, so that
+  // the first click on a sidebar button doesn't have to wait on a network
+  // fetch + module evaluation before the page can actually change.
+  useEffect(() => {
+    const idle: (cb: () => void) => void =
+      (window as any).requestIdleCallback || ((cb: () => void) => setTimeout(cb, 200));
+    idle(preloadRouteChunks);
+  }, []);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   // Re-render bridge for settings that affect week label
   const [weekSettingsVersion, setWeekSettingsVersion] = useState(0);
@@ -742,7 +761,7 @@ const SchoolPlanner = () => {
     const shouldShowTimelineCountdown = showCountdownInTimeline && isViewingToday && !autoSwitchedToNextDay && !showNextDay;
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 pt-4">
         <div className="flex justify-end">
           {/* Offline indicator in top right */}
           <div ref={(el) => {
@@ -942,45 +961,63 @@ const SchoolPlanner = () => {
                     ).getTime() > today.getTime()
                   );
 
-                  // Only show countdown if: viewing future day, countdown is enabled, and there are events
-                  if (isViewingFutureDay && showCountdownInTimeline && timelineEvents.length > 0 && nextEvent && nextEventDate) {
-                    const displayColor = getEventColour(nextEvent.summary);
-                    const cleanedLoc = (nextEvent.location || '').replace(/^Room:\s*/i, '').trim();
+                  if (!isViewingFutureDay || !showCountdownInTimeline || timelineEvents.length === 0 || !selectedScheduleDate) {
+                    return null;
+                  }
 
-                    return (
-                      <div className="mb-4 relative z-10 w-full">
-                        <div className={`mb-2 text-base font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'} pl-0`}>
-                          Upcoming
-                        </div>
-                        <div className={`rounded-2xl px-4 py-3 ${colors.container} border ${colors.border} shadow-md`}>
-                          <div className="flex items-center justify-between gap-4">
-                            <div className="flex items-center gap-2 text-base">
-                              <span className={`${colors.containerText}`}>to</span>
-                              <span className="font-semibold" style={{ color: displayColor }}>
-                                {normalizeSubjectName(nextEvent.summary, autoNamingEnabled)}
-                              </span>
-                              {cleanedLoc ? (
-                                <span className={`${colors.containerText}`}>in {cleanedLoc}</span>
-                              ) : null}
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <span className="text-2xl md:text-3xl font-semibold" style={{ color: displayColor }}>
-                                {formatCountdownForTab(timeLeft || 0)}
-                              </span>
-                              <button
-                                onClick={openCountdownFullscreen}
-                                className={`p-2 rounded-md hover:opacity-80 transition-colors ${effectiveMode === 'light' ? 'text-black' : 'text-white'} opacity-80`}
-                                title="Fullscreen countdown"
-                              >
-                                <Maximize size={18} />
-                              </button>
-                            </div>
+                  // Count down to the first event of the day actually on screen, not
+                  // the globally-next event. nextEvent/nextEventDate/timeLeft reflect
+                  // "whatever happens soonest from right now" — if today's classes
+                  // aren't finished yet, that's still one of today's events, which
+                  // would show as the countdown here even though a future day (e.g.
+                  // tomorrow) is what's displayed. Reconstructing the first event's
+                  // start on selectedScheduleDate keeps the countdown tied to the day
+                  // the person is actually looking at.
+                  const firstItem = timelineEvents[0];
+                  if (!firstItem) return null;
+                  const firstEventStart = new Date(selectedScheduleDate);
+                  firstEventStart.setHours(
+                    firstItem.dtstart.getHours(),
+                    firstItem.dtstart.getMinutes(),
+                    firstItem.dtstart.getSeconds() || 0,
+                    0
+                  );
+                  const msUntilFirstEvent = Math.max(0, firstEventStart.getTime() - nowTs);
+                  const displayColor = getEventColour(firstItem.summary);
+                  const cleanedLoc = (firstItem.location || '').replace(/^Room:\s*/i, '').trim();
+
+                  return (
+                    <div className="mb-4 relative z-10 w-full">
+                      <div className={`mb-2 text-base font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'} pl-0`}>
+                        Upcoming
+                      </div>
+                      <div className={`rounded-2xl px-4 py-3 ${colors.container} border ${colors.border} shadow-md`}>
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-2 text-base">
+                            <span className={`${colors.containerText}`}>to</span>
+                            <span className="font-semibold" style={{ color: displayColor }}>
+                              {normalizeSubjectName(firstItem.summary, autoNamingEnabled)}
+                            </span>
+                            {cleanedLoc ? (
+                              <span className={`${colors.containerText}`}>in {cleanedLoc}</span>
+                            ) : null}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-2xl md:text-3xl font-semibold" style={{ color: displayColor }}>
+                              {formatCountdownForTab(msUntilFirstEvent)}
+                            </span>
+                            <button
+                              onClick={openCountdownFullscreen}
+                              className={`p-2 rounded-md hover:opacity-80 transition-colors ${effectiveMode === 'light' ? 'text-black' : 'text-white'} opacity-80`}
+                              title="Fullscreen countdown"
+                            >
+                              <Maximize size={18} />
+                            </button>
                           </div>
                         </div>
                       </div>
-                    );
-                  }
-                  return null;
+                    </div>
+                  );
                 })()}
 
                 {/* Event cards */}
@@ -1604,15 +1641,7 @@ const SchoolPlanner = () => {
         ? new Date(selectedScheduleDate.getFullYear(), selectedScheduleDate.getMonth(), selectedScheduleDate.getDate()).getTime() ===
         new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
         : true;
-      const countdownEnabled = (() => {
-        try {
-          const saved = localStorage.getItem('showCountdownInTimeline');
-          return saved === null ? true : saved === 'true';
-        } catch {
-          return true;
-        }
-      })();
-      if (!forceShowActualToday && !countdownEnabled && isSelectedDateToday && todayDow >= 1 && todayDow <= 5 && events.length > 0) {
+      if (!forceShowActualToday && isSelectedDateToday && todayDow >= 1 && todayDow <= 5 && events.length > 0) {
         const lastEvent = events[events.length - 1];
         if (lastEvent.dtend) {
           const lastEventEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -2354,29 +2383,31 @@ const SchoolPlanner = () => {
   // Main content routes with Suspense for lazy-loaded components
   // Only show welcome screen if not completed
   const mainContent = (
-    <Suspense fallback={
-      <div className={`flex items-center justify-center p-8`}>
-        <div className={`${colors.container} ${colors.border} border rounded-xl px-4 py-3`}>Loading…</div>
-      </div>
-    }>
-      <Routes>
-        {welcomeStep !== 'completed' ? (
-          <>
-            <Route path="/" element={<Navigate to="/welcome" replace />} />
-            <Route path="/welcome" element={renderWelcomeScreen()} />
-          </>
-        ) : (
-          <>
-            <Route path="/" element={<Navigate to="/home" replace />} />
-            <Route path="/home" element={renderHome()} />
-            <Route path="/calendar" element={renderWeekView()} />
-            <Route path="/markbook" element={renderMarkbook()} />
-            <Route path="/settings" element={renderSettings()} />
-          </>
-        )}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Suspense>
+    <PageErrorBoundary resetKey={location.pathname}>
+      <Suspense fallback={
+        <div className={`flex items-center justify-center p-8`}>
+          <div className={`${colors.container} ${colors.border} border rounded-xl px-4 py-3`}>Loading…</div>
+        </div>
+      }>
+        <Routes>
+          {welcomeStep !== 'completed' ? (
+            <>
+              <Route path="/" element={<Navigate to="/welcome" replace />} />
+              <Route path="/welcome" element={renderWelcomeScreen()} />
+            </>
+          ) : (
+            <>
+              <Route path="/" element={<Navigate to="/home" replace />} />
+              <Route path="/home" element={renderHome()} />
+              <Route path="/calendar" element={renderWeekView()} />
+              <Route path="/markbook" element={renderMarkbook()} />
+              <Route path="/settings" element={renderSettings()} />
+            </>
+          )}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
+    </PageErrorBoundary>
   );
 
   // Main render logic

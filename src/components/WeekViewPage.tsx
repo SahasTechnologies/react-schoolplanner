@@ -31,24 +31,36 @@ export default function WeekViewPage({
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
   const dayEvents: CalendarEvent[][] = [[], [], [], [], []];
 
-  if (weekData) {
-    weekData.events.forEach((event: CalendarEvent) => {
-      // Use the event's local date directly to determine the weekday
-      const eventDate = new Date(event.dtstart);
-      if (isNaN(eventDate.getTime())) {
-        return;
-      }
-      const dayOfWeek = eventDate.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  // Defensive: weekData.events should always be an array of events with
+  // dtstart/dtend as Date objects, but guard against legacy/corrupted
+  // localStorage data (e.g. a missing events array, or dates that didn't
+  // get rehydrated into Date instances) so a single bad entry can't crash
+  // the whole page.
+  const rawEvents = Array.isArray(weekData.events) ? weekData.events : [];
 
-      // Fix: Correctly map Sunday (0) to -1 and Saturday (6) to 5
-      const dayIndex = dayOfWeek === 0 ? -1 : dayOfWeek - 1;
+  rawEvents.forEach((event: CalendarEvent) => {
+    if (!event || !event.dtstart) return;
+    // Use the event's local date directly to determine the weekday
+    const eventDate = event.dtstart instanceof Date ? event.dtstart : new Date(event.dtstart);
+    if (isNaN(eventDate.getTime())) {
+      return;
+    }
+    const dayOfWeek = eventDate.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
 
-      // Only skip weekends, allow all weekdays (indexes 0-4)
-      if (dayIndex >= 0 && dayIndex < 5) {
-        dayEvents[dayIndex].push(event);
-      }
-    });
-  }
+    // Fix: Correctly map Sunday (0) to -1 and Saturday (6) to 5
+    const dayIndex = dayOfWeek === 0 ? -1 : dayOfWeek - 1;
+
+    // Only skip weekends, allow all weekdays (indexes 0-4)
+    if (dayIndex >= 0 && dayIndex < 5) {
+      // Normalize dtstart/dtend to real Date instances in case they came
+      // through as strings, so downstream sorting/formatting never throws.
+      dayEvents[dayIndex].push({
+        ...event,
+        dtstart: eventDate,
+        dtend: event.dtend ? (event.dtend instanceof Date ? event.dtend : new Date(event.dtend)) : event.dtend,
+      });
+    }
+  });
 
   // Sort and insert breaks
   const dayEventsWithBreaks = dayEvents.map(dayList => {

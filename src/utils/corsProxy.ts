@@ -96,11 +96,22 @@ export function buildProxyUrl(proxy: ProxyEntry, targetUrl: string): string {
   return proxy.prefix + encodeURIComponent(targetUrl);
 }
 
-export async function fetchTextViaCors(targetUrl: string, init: RequestInit = {}, timeoutMs = 8000): Promise<string> {
+// Per-request timeout, used unless the caller passes a different one.
+const DEFAULT_TIMEOUT_MS = 8000;
+// Hard ceiling on the whole function, regardless of how many proxies exist.
+// Previously this had no cap: ~20 proxies x 8s sequential timeouts meant a
+// single call could legitimately take minutes if proxies were down. That
+// cascaded further in fetchWordOfTheDay, which tries several sources each
+// calling this function, compounding the delay well past a minute.
+const OVERALL_BUDGET_MS = 15000;
+
+export async function fetchTextViaCors(targetUrl: string, init: RequestInit = {}, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<string> {
   const hostname = getHost(targetUrl);
   const proxies = reorderByLastGood(PROXIES, hostname);
+  const deadline = Date.now() + OVERALL_BUDGET_MS;
 
   for (const p of proxies) {
+    if (Date.now() >= deadline) break;
     try {
       const url = buildProxyUrl(p, targetUrl);
       const res = await fetchWithTimeout(url, init, timeoutMs);
@@ -126,7 +137,7 @@ export async function fetchTextViaCors(targetUrl: string, init: RequestInit = {}
   throw new Error('All CORS proxies failed');
 }
 
-export async function fetchJsonViaCors<T = any>(targetUrl: string, init: RequestInit = {}, timeoutMs = 8000): Promise<T> {
+export async function fetchJsonViaCors<T = any>(targetUrl: string, init: RequestInit = {}, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<T> {
   const raw = await fetchTextViaCors(targetUrl, init, timeoutMs);
   try {
     return JSON.parse(raw) as T;

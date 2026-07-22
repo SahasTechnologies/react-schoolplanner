@@ -191,11 +191,26 @@ export default function MarkbookPage({
       });
     });
     
-    // Now add the 'name' field for each point
-    return allExamsByIndex.map((dataPoint, index) => ({
-      name: `Exam ${index + 1}`,
-      ...dataPoint
-    }));
+    // Forward-fill each subject's value across every index so its line
+    // always reaches the right edge of the graph. Without this, a subject
+    // with fewer recorded exams than others simply stops partway through
+    // (Recharts doesn't extrapolate past a line's last real data point).
+    const lastKnown: { [key: string]: number } = {};
+    return allExamsByIndex.map((dataPoint, index) => {
+      const filled: { [key: string]: number } = {};
+      subjects.forEach(subject => {
+        if (dataPoint && dataPoint[subject.name] !== undefined) {
+          lastKnown[subject.name] = dataPoint[subject.name];
+        }
+        if (lastKnown[subject.name] !== undefined) {
+          filled[subject.name] = lastKnown[subject.name];
+        }
+      });
+      return {
+        name: `Exam ${index + 1}`,
+        ...filled,
+      };
+    });
   }, [subjects, examsBySubject]);
 
   const [showExportModal, setShowExportModal] = React.useState(false);
@@ -223,51 +238,7 @@ export default function MarkbookPage({
         )}
       </div>
 
-      {/* Line Chart of all marks */}
-      {!(markbookPasswordEnabled && isMarkbookLocked) && chartData.length > 0 && (
-        <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
-          <h3 className={`text-xl font-semibold mb-4 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Subject Performance Over Time</h3>
-          <ResponsiveContainer width="100%" height={400}>
-            <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={effectiveMode === 'light' ? '#d1d5db' : '#374151'} />
-              <XAxis 
-                dataKey="name" 
-                stroke={effectiveMode === 'light' ? '#111827' : '#f3f4f6'} 
-              />
-              <YAxis 
-                domain={[0, 100]} 
-                stroke={effectiveMode === 'light' ? '#111827' : '#f3f4f6'} 
-                label={{ value: 'Percentage (%)', angle: -90, position: 'insideLeft', style: { fill: effectiveMode === 'light' ? '#111827' : '#f3f4f6' } }} 
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: effectiveMode === 'light' ? '#f9fafb' : '#1f2937', 
-                  border: `1px solid ${effectiveMode === 'light' ? '#e5e7eb' : '#374151'}`,
-                  borderRadius: '0.5rem'
-                }} 
-                labelStyle={{ color: effectiveMode === 'light' ? '#111827' : '#f3f4f6' }} 
-                itemStyle={{ color: effectiveMode === 'light' ? '#111827' : '#f3f4f6' }}
-              />
-              <Legend 
-                wrapperStyle={{ color: effectiveMode === 'light' ? '#111827' : '#f3f4f6' }} 
-              />
-              {subjects.filter(subject => 
-                (examsBySubject[subject.id] || []).some(e => e.mark !== null && e.total !== null && e.total > 0)
-              ).map(subject => (
-                <Line 
-                  key={subject.id} 
-                  type="monotone" 
-                  dataKey={subject.name} 
-                  stroke={subject.colour} 
-                  strokeWidth={3} 
-                  dot={{ r: 4, fill: subject.colour }} 
-                  activeDot={{ r: 6, strokeWidth: 2 }}
-                />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
+      {/* Line Chart of all marks moved into the password-protected right column below */}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-[calc(100vh-220px)]">
         {/* Left: Subjects list */}
@@ -311,9 +282,56 @@ export default function MarkbookPage({
           </div>
         </div>
 
-        {/* Right: Exams panel */}
-        <div className={`${colors.container} rounded-lg ${colors.border} border p-6 flex flex-col`}>
-          {examPanelContent}
+        {/* Right: performance chart (when unlocked) + exams panel, all inside the password-protected area */}
+        <div className="flex flex-col gap-8">
+          {!(markbookPasswordEnabled && isMarkbookLocked) && chartData.length > 0 && (
+            <div className={`${colors.container} rounded-lg ${colors.border} border p-6`}>
+              <h3 className={`text-xl font-semibold mb-4 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Subject Performance Over Time</h3>
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={effectiveMode === 'light' ? '#d1d5db' : '#374151'} />
+                  <XAxis 
+                    dataKey="name" 
+                    stroke={effectiveMode === 'light' ? '#111827' : '#f3f4f6'} 
+                  />
+                  <YAxis 
+                    domain={[0, 100]} 
+                    stroke={effectiveMode === 'light' ? '#111827' : '#f3f4f6'} 
+                    label={{ value: 'Percentage (%)', angle: -90, position: 'insideLeft', style: { fill: effectiveMode === 'light' ? '#111827' : '#f3f4f6' } }} 
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: effectiveMode === 'light' ? '#f9fafb' : '#1f2937', 
+                      border: `1px solid ${effectiveMode === 'light' ? '#e5e7eb' : '#374151'}`,
+                      borderRadius: '0.5rem'
+                    }} 
+                    labelStyle={{ color: effectiveMode === 'light' ? '#111827' : '#f3f4f6' }} 
+                    itemStyle={{ color: effectiveMode === 'light' ? '#111827' : '#f3f4f6' }}
+                  />
+                  <Legend 
+                    wrapperStyle={{ color: effectiveMode === 'light' ? '#111827' : '#f3f4f6' }} 
+                  />
+                  {subjects.filter(subject => 
+                    (examsBySubject[subject.id] || []).some(e => e.mark !== null && e.total !== null && e.total > 0)
+                  ).map(subject => (
+                    <Line 
+                      key={subject.id} 
+                      type="monotone" 
+                      dataKey={subject.name} 
+                      stroke={subject.colour} 
+                      strokeWidth={3} 
+                      dot={{ r: 4, fill: subject.colour }} 
+                      activeDot={{ r: 6, strokeWidth: 2 }}
+                      connectNulls
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+          <div className={`${colors.container} rounded-lg ${colors.border} border p-6 flex flex-col flex-1`}>
+            {examPanelContent}
+          </div>
         </div>
       </div>
 
