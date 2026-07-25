@@ -59,13 +59,13 @@ export default function CountdownBox({
     <div className={`${colors.container} rounded-lg ${colors.border} border p-6 flex flex-col items-center justify-center h-fit`}>
       <div className="flex items-center justify-between w-full mb-2">
         <div className="flex items-center gap-2">
-          <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
-          <span className={`text-lg font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Next Event Countdown</span>
+          <Calendar className={colors.containerText} size={20} />
+          <span className={`text-lg font-semibold ${colors.containerText}`}>Next Event Countdown</span>
         </div>
         {onFullscreen && (
           <button
             onClick={onFullscreen}
-            className={`p-1 rounded hover:bg-opacity-20 hover:bg-gray-500 transition-colors ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}
+            className={`p-1 rounded hover:bg-opacity-20 hover:bg-gray-500 transition-colors ${colors.containerText}`}
             title="Fullscreen"
           >
             <Maximize size={18} />
@@ -74,7 +74,7 @@ export default function CountdownBox({
       </div>
       {searching ? (
         <div className="flex flex-col items-center justify-center py-6">
-          <LoaderCircle className={`animate-spin mb-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`} size={32} />
+          <LoaderCircle className={`animate-spin mb-2 ${colors.containerText}`} size={32} />
           <span className={`${effectiveMode === 'light' ? 'text-black' : 'text-gray-400'}`}>Searching...</span>
         </div>
       ) : nextEvent && nextEventDate ? (

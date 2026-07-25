@@ -13,30 +13,41 @@ interface SubjectCardProps {
 }
 
 const SubjectCard: React.FC<SubjectCardProps> = ({ subject, effectiveMode, colors, onEdit, onSelect }) => (
-  <div
-    className={`${colors.container} rounded-lg ${colors.border} border p-4 cursor-pointer`} // Make cursor pointer
-    onClick={() => onSelect && onSelect(subject)} // Trigger onSelect when provided
-  >
-    <div className="flex items-center justify-between">
+  <div className="flex items-stretch gap-2">
+    <div
+      className={`flex-1 ${colors.container} rounded-l-2xl rounded-r-lg ${colors.border} border p-4 cursor-pointer`}
+      onClick={() => onSelect && onSelect(subject)}
+    >
       <div className="flex items-center gap-3">
         {getSubjectIcon(subject, 20, effectiveMode)}
         <div
           className="w-4 h-4 rounded-full"
           style={{ backgroundColor: hexToRgba(subject.colour, 0.95) }}
         />
-        <span className={`font-medium capitalize ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{subject.name}</span>
+        <span className={`font-medium capitalize ${colors.containerText}`}>{subject.name}</span>
       </div>
-      <button
-        onClick={(e) => {
-          e.stopPropagation(); // Prevent parent click
-          onEdit(subject);
-        }}
-        className="text-gray-400 hover:text-white transition-colors"
-      >
-        <Edit2 size={16} />
-      </button>
     </div>
+    <EditButton onEdit={() => onEdit(subject)} colors={colors} />
   </div>
 );
+
+// Separate component so the springy press animation has its own local state
+// without re-rendering (or being reset by) the rest of the subject card.
+const EditButton: React.FC<{ onEdit: () => void; colors: any }> = ({ onEdit, colors }) => {
+  const [isPopping, setIsPopping] = React.useState(false);
+  return (
+    <button
+      onClick={() => {
+        setIsPopping(true);
+        onEdit();
+      }}
+      onAnimationEnd={() => setIsPopping(false)}
+      className={`${colors.container} ${colors.border} border rounded-r-2xl rounded-l-lg px-3 flex items-center justify-center text-gray-400 hover:text-white active:scale-90 transition-transform duration-150 ${isPopping ? 'animate-edit-pop' : ''}`}
+      title="Edit subject"
+    >
+      <Edit2 size={16} />
+    </button>
+  );
+};
 
 export default SubjectCard; 

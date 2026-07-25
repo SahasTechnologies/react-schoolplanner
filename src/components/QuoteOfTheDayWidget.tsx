@@ -162,7 +162,7 @@ export default function QuoteOfTheDayWidget({
       <div className="relative w-full min-h-[140px] flex items-center justify-center">
         {loading && (
           <div className="absolute inset-0 flex justify-center items-center">
-            <LoaderCircle className={`animate-spin ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`} size={32} />
+            <LoaderCircle className={`animate-spin ${colors.containerText}`} size={32} />
           </div>
         )}
         {error && !loading && (
@@ -176,15 +176,15 @@ export default function QuoteOfTheDayWidget({
         {quoteData && !loading && (
           <div className="w-full text-center space-y-3 py-2">
             {/* Quote */}
-            <div className={`text-base leading-relaxed px-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
+            <div className={`text-base leading-relaxed px-2 ${colors.containerText}`}>
               "{quoteData.quote}"
             </div>
             {/* Author */}
-            <div className={`text-base text-right px-2 opacity-70 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
+            <div className={`text-base text-right px-2 opacity-70 ${colors.containerText}`}>
               - {quoteData.author}
             </div>
             {blockedNote && (
-              <div className={`text-xs text-center opacity-60 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{blockedNote}</div>
+              <div className={`text-xs text-center opacity-60 ${colors.containerText}`}>{blockedNote}</div>
             )}
           </div>
         )}

@@ -1,15 +1,10 @@
-// Cloudflare Pages Function for sending feedback emails via Maileroo
-// Endpoint: POST /api/feedback
-
 export async function onRequestPost(context) {
   const { request, env } = context;
-  
+
   try {
-    // Parse the request body
     const body = await request.json();
     const { rating, howToTen, anythingElse, wantsContact, contactEmail, userAgent, timestamp } = body;
 
-    // Validate required fields
     if (rating === undefined || rating === null) {
       return new Response(JSON.stringify({ error: 'Rating is required' }), {
         status: 400,
@@ -17,9 +12,8 @@ export async function onRequestPost(context) {
       });
     }
 
-    // Construct email content
     const subject = `SchoolPlanner Feedback - Rating: ${rating}/10`;
-    
+
     let htmlContent = `
       <h2>New SchoolPlanner Feedback</h2>
       <table style="border-collapse: collapse; width: 100%; max-width: 600px;">
@@ -74,9 +68,8 @@ export async function onRequestPost(context) {
 
     htmlContent += `</table>`;
 
-    // Send email via Maileroo
     const mailerooApiKey = env.MAILEROO_API_KEY;
-    
+
     if (!mailerooApiKey) {
       return new Response(JSON.stringify({ error: 'Maileroo API key not configured' }), {
         status: 500,

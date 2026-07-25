@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { ThemeKey, getColors } from './utils/themeUtils';
+import { ThemeKey, getColors, getColorValues, CustomThemeColors, loadCustomThemeColors, injectCustomThemeStyles, injectSidebarHoverStyle } from './utils/themeUtils';
 import { normalizeSubjectName, getSubjectIcon } from './utils/subjectUtils';
 import { CalendarEvent, WeekData, insertBreaksBetweenEvents, isBreakEvent } from './utils/calendarUtils';
 import TodayScheduleTimeline from './components/TodayScheduleTimeline';
@@ -54,7 +54,7 @@ const SchoolPlanner = () => {
   const [theme, setTheme] = useState<ThemeKey>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('theme');
-      if (saved && ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink', 'grey'].includes(saved)) {
+      if (saved && ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink', 'grey', 'custom'].includes(saved)) {
         return saved as ThemeKey;
       }
     }
@@ -74,6 +74,17 @@ const SchoolPlanner = () => {
     }
     return 'system';
   });
+  const [customThemeColors, setCustomThemeColors] = useState<CustomThemeColors>(() => loadCustomThemeColors());
+
+  // Keep the custom theme's injected stylesheet in sync whenever the
+  // person picks new colours (see injectCustomThemeStyles for why this is
+  // a plain stylesheet rather than Tailwind classes).
+  React.useEffect(() => {
+    injectCustomThemeStyles(customThemeColors);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('customThemeColors', JSON.stringify(customThemeColors));
+    }
+  }, [customThemeColors]);
 
   // System color scheme detection
   const getSystemMode = () => {
@@ -85,6 +96,12 @@ const SchoolPlanner = () => {
 
   // Compute the effective mode
   const effectiveMode: 'light' | 'dark' = themeMode === 'system' ? getSystemMode() : themeMode;
+
+  // Tint the sidebar's hover state with whichever accent is actually active.
+  React.useEffect(() => {
+    const accentHex = theme === 'custom' ? customThemeColors.accent : getColorValues(theme, themeType, effectiveMode).buttonAccent;
+    injectSidebarHoverStyle(accentHex);
+  }, [theme, themeType, effectiveMode, customThemeColors]);
 
   // Helper to get the correct color set for the current theme and type
   const colors = getColors(theme, themeType, effectiveMode);
@@ -761,9 +778,12 @@ const SchoolPlanner = () => {
     const shouldShowTimelineCountdown = showCountdownInTimeline && isViewingToday && !autoSwitchedToNextDay && !showNextDay;
 
     return (
-      <div className="space-y-6 pt-4">
-        <div className="flex justify-end">
-          {/* Offline indicator in top right */}
+      <div className="space-y-6">
+        {/* Header block: offline indicator + greeting, grouped together as
+            the space-y container's first child with no space-y of its own,
+            so the greeting's top offset is exactly pt-4 -- matching
+            Calendar/Markbook/Settings -- with nothing else adding to it. */}
+        <div className="relative pt-4 mb-4">
           <div ref={(el) => {
             if (el) {
               el.innerHTML = '';
@@ -775,15 +795,14 @@ const SchoolPlanner = () => {
               });
               el.appendChild(indicator);
             }
-          }} />
-        </div>
-        {/* Greeting + Week badge */
-        }
-        <div className="mt-0 mb-4">
-          <div className="flex items-center justify-between gap-4">
-            <h1 className={`font-bold leading-snug tracking-tight ${effectiveMode === 'light' ? 'text-black' : 'text-white'} text-2xl sm:text-3xl md:text-4xl whitespace-nowrap overflow-hidden text-ellipsis`}>
-              {`${getGreeting(userName)}.`}
-            </h1>
+          }} className="absolute top-4 right-0 z-10" />
+          {/* Greeting + Week badge */
+          }
+          <div>
+            <div className="flex items-center justify-between gap-4">
+              <h1 className={`font-bold leading-normal tracking-tight ${colors.text} text-2xl sm:text-3xl md:text-4xl whitespace-nowrap overflow-hidden text-ellipsis py-1`}>
+                {`${getGreeting(userName)}.`}
+              </h1>
             {weekBadgeText && (
               <div className="relative group">
                 <span className={`inline-flex items-center px-4 py-1.5 rounded-xl border ${colors.border} ${colors.container} ${colors.containerText} text-base sm:text-lg font-semibold whitespace-nowrap cursor-pointer transition-all`}>{weekBadgeText}</span>
@@ -886,13 +905,14 @@ const SchoolPlanner = () => {
             )}
           </div>
         </div>
+        </div>
         {/* Days till school widget moved into right column (half width) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
           <div className={`${colors.container} rounded-lg ${colors.border} border p-6 col-span-1`}>
             <div className="flex items-center mb-4">
               <div className="flex items-center gap-2">
-                <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
-                <h3 className={`text-lg font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
+                <Calendar className={colors.containerText} size={20} />
+                <h3 className={`text-lg font-medium ${colors.containerText}`}>
                   {dayLabel || 'No Schedule'}
                 </h3>
                 <button
@@ -903,7 +923,7 @@ const SchoolPlanner = () => {
                 >
                   <ChevronsUpDown
                     size={18}
-                    className={`${effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} hover:${effectiveMode === 'light' ? 'text-black' : 'text-white'} transition-colors`}
+                    className={`${effectiveMode === 'light' ? 'text-gray-600' : 'text-gray-400'} hover:${colors.containerText} transition-colors`}
                   />
                 </button>
               </div>
@@ -988,7 +1008,7 @@ const SchoolPlanner = () => {
 
                   return (
                     <div className="mb-4 relative z-10 w-full">
-                      <div className={`mb-2 text-base font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'} pl-0`}>
+                      <div className={`mb-2 text-base font-semibold ${colors.containerText} pl-0`}>
                         Upcoming
                       </div>
                       <div className={`rounded-2xl px-4 py-3 ${colors.container} border ${colors.border} shadow-md`}>
@@ -1008,7 +1028,7 @@ const SchoolPlanner = () => {
                             </span>
                             <button
                               onClick={openCountdownFullscreen}
-                              className={`p-2 rounded-md hover:opacity-80 transition-colors ${effectiveMode === 'light' ? 'text-black' : 'text-white'} opacity-80`}
+                              className={`p-2 rounded-md hover:opacity-80 transition-colors ${colors.containerText} opacity-80`}
                               title="Fullscreen countdown"
                             >
                               <Maximize size={18} />
@@ -1078,7 +1098,7 @@ const SchoolPlanner = () => {
                       <div key={idx} className="relative z-10 w-full">
                         {/* 'Now' heading above the current event - NOT included in gradient measurements */}
                         {isCurrentEvent && (
-                          <div className={`mb-2 text-base font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'} pl-0`}>
+                          <div className={`mb-2 text-base font-semibold ${colors.containerText} pl-0`}>
                             Now
                           </div>
                         )}
@@ -1137,7 +1157,7 @@ const SchoolPlanner = () => {
                                   </span>
                                   <button
                                     onClick={openCountdownFullscreen}
-                                    className={`p-2 rounded-md hover:opacity-80 transition-colors ${effectiveMode === 'light' ? 'text-black' : 'text-white'} opacity-80`}
+                                    className={`p-2 rounded-md hover:opacity-80 transition-colors ${colors.containerText} opacity-80`}
                                     title="Fullscreen countdown"
                                   >
                                     <Maximize size={18} />
@@ -1217,12 +1237,12 @@ const SchoolPlanner = () => {
               <div className={`${colors.container} rounded-lg ${colors.border} border p-6 flex flex-col items-center justify-center h-fit`}>
                 <div className="flex items-center justify-between w-full mb-2">
                   <div className="flex items-center gap-2">
-                    <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={20} />
-                    <span className={`text-lg font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Days till school</span>
+                    <Calendar className={colors.containerText} size={20} />
+                    <span className={`text-lg font-semibold ${colors.containerText}`}>Days till school</span>
                   </div>
                   <button
                     onClick={openCountdownFullscreen}
-                    className={`p-1 rounded hover:bg-opacity-20 hover:bg-gray-500 transition-colors ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}
+                    className={`p-1 rounded hover:bg-opacity-20 hover:bg-gray-500 transition-colors ${colors.containerText}`}
                     title="Fullscreen"
                   >
                     <Maximize size={18} />
@@ -1241,7 +1261,7 @@ const SchoolPlanner = () => {
                   {daysTillSchool.color ? (
                     <ColoredSubjectIcon summary={daysTillSchool.event} color={daysTillSchool.color} />
                   ) : (
-                    <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={24} />
+                    <Calendar className={colors.containerText} size={24} />
                   )}
                   <span className="text-base font-medium" style={{ color: daysTillSchool.color || (effectiveMode === 'light' ? '#000000' : '#ffffff') }}>{daysTillSchool.event}</span>
                 </div>
@@ -2468,6 +2488,8 @@ const SchoolPlanner = () => {
           themeMode={themeMode}
           setThemeMode={setThemeMode}
           handleThemeChange={handleThemeChange}
+          customThemeColors={customThemeColors}
+          setCustomThemeColors={setCustomThemeColors}
           effectiveMode={effectiveMode}
           colors={colors}
         />
@@ -2573,25 +2595,25 @@ const SchoolPlanner = () => {
       <div className={`lg:hidden fixed bottom-0 left-0 right-0 ${colors.container} ${colors.border} border-t z-40`}>
         <div className="flex justify-around items-center h-14">
           <button onClick={() => navigate('/home')} className="flex flex-col items-center text-xs" title="Home">
-            <Home size={20} className={location.pathname === '/home' ? 'text-blue-500' : (effectiveMode === 'light' ? 'text-black' : 'text-white')} />
-            <span className={`${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Home</span>
+            <Home size={20} className={location.pathname === '/home' ? 'text-blue-500' : (colors.containerText)} />
+            <span className={`${colors.containerText}`}>Home</span>
           </button>
           <button onClick={() => navigate('/calendar')} className="flex flex-col items-center text-xs" title="Calendar">
-            <Calendar size={20} className={location.pathname === '/calendar' ? 'text-blue-500' : (effectiveMode === 'light' ? 'text-black' : 'text-white')} />
-            <span className={`${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Calendar</span>
+            <Calendar size={20} className={location.pathname === '/calendar' ? 'text-blue-500' : (colors.containerText)} />
+            <span className={`${colors.containerText}`}>Calendar</span>
           </button>
           <button onClick={() => navigate('/markbook')} className="flex flex-col items-center text-xs" title="Markbook">
-            <BarChart3 size={20} className={location.pathname === '/markbook' ? 'text-blue-500' : (effectiveMode === 'light' ? 'text-black' : 'text-white')} />
-            <span className={`${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Markbook</span>
+            <BarChart3 size={20} className={location.pathname === '/markbook' ? 'text-blue-500' : (colors.containerText)} />
+            <span className={`${colors.containerText}`}>Markbook</span>
           </button>
           <button onClick={() => navigate('/settings')} className="flex flex-col items-center text-xs" title="Settings">
-            <SettingsIcon size={20} className={location.pathname === '/settings' ? 'text-blue-500' : (effectiveMode === 'light' ? 'text-black' : 'text-white')} />
-            <span className={`${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Settings</span>
+            <SettingsIcon size={20} className={location.pathname === '/settings' ? 'text-blue-500' : (colors.containerText)} />
+            <span className={`${colors.containerText}`}>Settings</span>
           </button>
           {showCountdownInSidebar && (
             <button onClick={openCountdownFullscreen} className="flex flex-col items-center text-xs" title="Countdown">
-              <Clock size={20} className={effectiveMode === 'light' ? 'text-black' : 'text-white'} />
-              <span className={`${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Countdown</span>
+              <Clock size={20} className={colors.containerText} />
+              <span className={`${colors.containerText}`}>Countdown</span>
             </button>
           )}
         </div>

@@ -2,14 +2,36 @@ import { parseICS, groupAllEventsIntoActualWeeks, WeekData } from './calendarUti
 import { normalizeSubjectName, exportSchoolData, importSchoolData } from './subjectUtils';
 import { Subject } from '../types';
 
-// Default colours for the palette
-export const defaultColours = [
-  '#7C3AED', '#0891B2', '#DC2626', '#D97706', '#059669',
-  '#047857', '#EA580C', '#2563EB', '#DB2777', '#475569',
-  '#8B5CF6', '#06B6D4', '#EF4444', '#F59E0B', '#10B981',
-  '#14B8A6', '#F97316', '#3B82F6', '#EC4899', '#64748B',
-  '#6D28D9', '#0E7490', '#B91C1C', '#B45309', '#065F46'
-];
+// Subject colour palette, grouped into three intensity levels so the person
+// can pick the vibe that suits them, each still ordered in rainbow (hue)
+// order with a neutral grey appended at the end.
+export const colourPaletteGroups: { vibrant: string[]; normal: string[]; dark: string[] } = {
+  vibrant: [
+    '#F42525', '#F46A25', '#F49D25', '#F4D125', '#D1F425',
+    '#7BF425', '#25F425', '#25F46A', '#25F4AF', '#25F4E2',
+    '#25C0F4', '#2590F4', '#2559F4', '#3625F4', '#7B25F4',
+    '#C025F4', '#F425AF',
+    '#7B8C9D',
+  ],
+  normal: [
+    '#CE3B3B', '#CE6C3B', '#CE913B', '#CEB63B', '#B6CE3B',
+    '#78CE3B', '#3BCE3B', '#3BCE6C', '#3BCE9D', '#3BCEC2',
+    '#3BA9CE', '#3989D3', '#3B60CE', '#473BCE', '#783BCE',
+    '#A93BCE', '#CE3B9D',
+    '#6A737C',
+  ],
+  dark: [
+    '#772222', '#773E22', '#775422', '#776922', '#697722',
+    '#457722', '#227722', '#22773E', '#22775B', '#227770',
+    '#226277', '#224E77', '#223777', '#292277', '#452277',
+    '#622277', '#77225B',
+    '#394046',
+  ],
+};
+
+// Kept for backward compatibility with existing auto-assignment code that
+// just wants a reasonable default set (the muted/normal group).
+export const defaultColours = colourPaletteGroups.normal;
 
 // Generate unique colour that hasn't been used yet
 export const generateUniqueColour = (usedColours: Set<string>): string => {

@@ -70,15 +70,15 @@ export default function WeekViewPage({
 
   return (
     <div className="space-y-8 pt-4">
-      <div className={`flex items-center gap-3 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
-        <Calendar className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={28} />
-        <h2 className={`text-3xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Weekly Schedule</h2>
+      <div className={`flex items-center gap-3 ${colors.containerText}`}>
+        <Calendar className={colors.containerText} size={28} />
+        <h2 className={`text-3xl font-semibold ${colors.containerText}`}>Weekly Schedule</h2>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         {days.map((day, index) => (
           <div key={day} className={`${colors.container} rounded-lg ${colors.border} border`}>
             <div className={`p-5 border-b ${colors.border}`}>
-              <h3 className={`font-semibold text-center ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{day}</h3>
+              <h3 className={`font-semibold text-center ${colors.containerText}`}>{day}</h3>
             </div>
             <div className="p-4 space-y-4 min-h-[400px]">
               {dayEventsWithBreaks[index].length === 0 ? (

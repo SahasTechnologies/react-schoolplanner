@@ -23,7 +23,6 @@ const BounceButton = ({
   title,
   isActivePath,
   accentBg,
-  sidebarHover,
   iconActive,
   iconInactive
 }: any) => {
@@ -35,7 +34,7 @@ const BounceButton = ({
         p-3 rounded-lg mx-auto block relative
         transition-[background-color,transform] duration-150 ease-out
         active:scale-90
-        ${isActivePath ? `${accentBg} ${iconActive}` : `hover:${sidebarHover} hover:scale-110`}
+        ${isActivePath ? `${accentBg} ${iconActive}` : 'sidebar-hover-accent hover:scale-110'}
       `}
     >
       <Icon size={20} className={`${isActivePath ? iconActive : iconInactive} transition-colors duration-150`} />
@@ -47,8 +46,6 @@ const Sidebar: React.FC<SidebarProps> = ({ navigate, location, colors, SettingsI
   // Determine overlay for hover based on mode
   // Use theme accent for active and hover backgrounds
   const accentBg = colors.buttonAccent;
-  // Use the new sidebarHover color for hover effect
-  const sidebarHover = colors.sidebarHover;
   const iconInactive = colors.effectiveMode === 'dark' ? 'text-gray-400' : colors.text;
   const iconActive = 'text-white';
 
@@ -62,7 +59,6 @@ const Sidebar: React.FC<SidebarProps> = ({ navigate, location, colors, SettingsI
           pathname={location.pathname}
           isActivePath={location.pathname === '/home'}
           accentBg={accentBg}
-          sidebarHover={sidebarHover}
           iconActive={iconActive}
           iconInactive={iconInactive}
           icon={Home}
@@ -74,7 +70,6 @@ const Sidebar: React.FC<SidebarProps> = ({ navigate, location, colors, SettingsI
           pathname={location.pathname}
           isActivePath={location.pathname === '/calendar'}
           accentBg={accentBg}
-          sidebarHover={sidebarHover}
           iconActive={iconActive}
           iconInactive={iconInactive}
           icon={Calendar}
@@ -86,7 +81,6 @@ const Sidebar: React.FC<SidebarProps> = ({ navigate, location, colors, SettingsI
           pathname={location.pathname}
           isActivePath={location.pathname === '/markbook'}
           accentBg={accentBg}
-          sidebarHover={sidebarHover}
           iconActive={iconActive}
           iconInactive={iconInactive}
           icon={BarChart3}
@@ -98,7 +92,6 @@ const Sidebar: React.FC<SidebarProps> = ({ navigate, location, colors, SettingsI
           pathname={location.pathname}
           isActivePath={location.pathname === '/settings'}
           accentBg={accentBg}
-          sidebarHover={sidebarHover}
           iconActive={iconActive}
           iconInactive={iconInactive}
           icon={SettingsIcon}
@@ -113,7 +106,6 @@ const Sidebar: React.FC<SidebarProps> = ({ navigate, location, colors, SettingsI
             pathname={location.pathname}
             isActivePath={location.pathname === '/countdown'}
             accentBg={accentBg}
-            sidebarHover={sidebarHover}
             iconActive={iconActive}
             iconInactive={iconInactive}
             icon={Clock}

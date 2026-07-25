@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Edit2, Calculator, FlaskConical, Palette, Music, Globe, Dumbbell, Languages, 
   Code2, Brain, Mic2, Users, Heart, Star, Zap, Rocket, 
@@ -7,6 +8,7 @@ import {
   School, Laptop, Smartphone, Book
 } from 'lucide-react';
 import { Subject } from '../types';
+import { colourPaletteGroups } from '../utils/fileUtils';
 
 interface SubjectEditModalProps {
   showSubjectEditModal: boolean;
@@ -36,10 +38,29 @@ const SubjectEditModal: React.FC<SubjectEditModalProps> = ({
   saveSubjectEdit,
   cancelSubjectEdit,
   effectiveMode,
-  colors,
-  defaultColours
+  colors
 }) => {
   const customColourInputRef = useRef<HTMLInputElement>(null);
+  const allPaletteColours = [
+    ...colourPaletteGroups.vibrant,
+    ...colourPaletteGroups.normal,
+    ...colourPaletteGroups.dark,
+  ];
+  const groupContaining = (colour: string): 'vibrant' | 'normal' | 'dark' => {
+    if (colourPaletteGroups.vibrant.includes(colour)) return 'vibrant';
+    if (colourPaletteGroups.dark.includes(colour)) return 'dark';
+    return 'normal';
+  };
+  const [paletteGroup, setPaletteGroup] = React.useState<'vibrant' | 'normal' | 'dark'>(() => groupContaining(editColour));
+  React.useEffect(() => {
+    if (selectedSubjectForEdit) {
+      setPaletteGroup(groupContaining(editColour));
+    }
+    // Only re-sync when a different subject is opened for editing, not on
+    // every keystroke/colour pick within the same edit session.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSubjectForEdit?.id]);
+  const activeColours = colourPaletteGroups[paletteGroup];
 
   // Available icon options - showing most popular ones first
   const iconOptions = [
@@ -84,7 +105,7 @@ const SubjectEditModal: React.FC<SubjectEditModalProps> = ({
     return null;
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" style={{ zIndex: 9999 }}>
       <style>{`
         .hide-scrollbar::-webkit-scrollbar {
@@ -97,11 +118,11 @@ const SubjectEditModal: React.FC<SubjectEditModalProps> = ({
       `}</style>
       <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md max-h-[90vh] overflow-y-auto hide-scrollbar`} style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         <div className="flex items-center gap-3 mb-4">
-          <Edit2 className={effectiveMode === 'light' ? 'text-black' : 'text-white'} size={28} />
-          <h3 className={`text-3xl font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Edit Subject</h3>
+          <Edit2 className={colors.containerText} size={28} />
+          <h3 className={`text-3xl font-semibold ${colors.containerText}`}>Edit Subject</h3>
         </div>
         <p className={`text-gray-400 text-sm mb-4 ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>
-          Original Name: <span className={`font-medium ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
+          Original Name: <span className={`font-medium ${colors.containerText}`}>
             {selectedSubjectForEdit.originalName || selectedSubjectForEdit.name}
           </span>
         </p>
@@ -126,8 +147,25 @@ const SubjectEditModal: React.FC<SubjectEditModalProps> = ({
             <label htmlFor="subjectColour" className={`block ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-300'} text-sm font-medium mb-2`}>
               Subject Colour
             </label>
+            {/* Palette group tabs */}
+            <div className="flex gap-2 mb-3">
+              {(['vibrant', 'normal', 'dark'] as const).map((group) => (
+                <button
+                  key={group}
+                  type="button"
+                  onClick={() => setPaletteGroup(group)}
+                  className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium capitalize transition-all duration-150 active:scale-95 ${
+                    paletteGroup === group
+                      ? `${colors.buttonAccent} ${colors.buttonText}`
+                      : `${colors.buttonSecondary} ${colors.buttonSecondaryHover}`
+                  }`}
+                >
+                  {group}
+                </button>
+              ))}
+            </div>
             <div className="grid grid-cols-6 gap-2 mb-4">
-              {defaultColours.map((colour, index) => (
+              {activeColours.map((colour, index) => (
                 <button
                   key={index}
                   className={`w-8 h-8 rounded-full border-2 ${editColour === colour ? 'border-blue-400' : 'border-gray-600'} transition-all duration-200 hover:scale-110`}
@@ -138,7 +176,7 @@ const SubjectEditModal: React.FC<SubjectEditModalProps> = ({
               ))}
               {/* Custom Colour Button */}
               <button
-                className={`w-8 h-8 rounded-full border-2 ${editColour && !defaultColours.includes(editColour) ? 'border-blue-400' : 'border-gray-600'} flex items-center justify-center transition-all duration-200 hover:scale-110`}
+                className={`w-8 h-8 rounded-full border-2 ${editColour && !allPaletteColours.includes(editColour) ? 'border-blue-400' : 'border-gray-600'} flex items-center justify-center transition-all duration-200 hover:scale-110`}
                 style={{ background: 'linear-gradient(to right, #FF0000, #FF7F00, #FFFF00, #00FF00, #0000FF, #4B0082, #9400D3)' }}
                 onClick={() => customColourInputRef.current?.click()}
                 title="Choose Custom Colour"
@@ -154,7 +192,7 @@ const SubjectEditModal: React.FC<SubjectEditModalProps> = ({
               />
             </div>
             {/* Display currently selected custom colour if it's not in default palette */}
-            {!defaultColours.includes(editColour) && (
+            {!allPaletteColours.includes(editColour) && (
               <div className="flex items-center gap-2 text-gray-300 text-sm mt-2">
                 Selected: <div className="w-5 h-5 rounded-full border border-gray-600" style={{ backgroundColor: editColour }}></div> {editColour}
               </div>
@@ -179,7 +217,7 @@ const SubjectEditModal: React.FC<SubjectEditModalProps> = ({
                   >
                     <IconComponent 
                       size={18} 
-                      className={effectiveMode === 'light' ? 'text-black' : 'text-white'} 
+                      className={colors.containerText} 
                     />
                   </button>
                 );
@@ -210,7 +248,8 @@ const SubjectEditModal: React.FC<SubjectEditModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

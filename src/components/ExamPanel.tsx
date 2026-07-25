@@ -12,6 +12,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   BarChart,
   Bar,
 } from 'recharts';
@@ -24,12 +25,13 @@ interface ExamPanelProps {
   onUpdateExam: (examId: string, field: keyof Exam, value: string) => void;
   onRemoveExam: (examId: string) => void;
   effectiveMode: 'light' | 'dark';
+  colors: any;
   allSubjects: Subject[];
   examsBySubject: Record<string, Exam[]>;
   onBack: () => void;
 }
 
-const ExamPanel: React.FC<ExamPanelProps> = ({ subject, exams, onAddExam, onUpdateExam, onRemoveExam, effectiveMode, allSubjects, examsBySubject, onBack }) => {
+const ExamPanel: React.FC<ExamPanelProps> = ({ subject, exams, onAddExam, onUpdateExam, onRemoveExam, effectiveMode, colors, allSubjects, examsBySubject, onBack }) => {
 
   /* --------------------------------------------------
    *  Helper functions shared by both views
@@ -97,6 +99,103 @@ const ExamPanel: React.FC<ExamPanelProps> = ({ subject, exams, onAddExam, onUpda
           </ResponsiveContainer>
         )}
 
+        {/* All-exams performance over time, one line per subject.
+            Each subject's exams are placed on a shared 0-100 "progress"
+            axis based on that subject's own exam count (first exam at 0,
+            most recent at 100). That way every line spans the full width
+            of the graph and reflects that subject's real trend, instead
+            of two subjects with different exam counts being forced onto
+            the same exam-index labels (which either flattens a shorter
+            line out or stops it short partway through). */}
+        {(() => {
+          const seriesInfo = allSubjects
+            .map((s) => {
+              const values = (examsBySubject[s.id] || [])
+                .map(getPercent)
+                .filter((p): p is number => p !== null);
+              if (values.length === 0) return null;
+              return { subject: s, values };
+            })
+            .filter(Boolean) as { subject: Subject; values: number[] }[];
+
+          if (seriesInfo.length === 0) return null;
+
+          // Build a shared set of 0-100 "progress" checkpoints from every
+          // subject's own points (first exam at 0, latest at 100, evenly
+          // spaced by that subject's own exam count), then one row per
+          // checkpoint with each subject's value filled in only where it
+          // actually has a point there. Every line then draws off the
+          // SAME dataset with connectNulls (skipping straight through the
+          // gaps to that subject's next real point), which is what lets
+          // Recharts hover/tooltip correctly report which exam a point is
+          // -- per-Line data overrides with different-length arrays make
+          // Recharts reuse one shared hover index across all lines, which
+          // is what caused a 2-exam subject's last point to be mislabelled
+          // "Exam 4" when hovering near a 4-exam subject's last point.
+          const progressOf = (i: number, count: number) => (count === 1 ? 0 : (i / (count - 1)) * 100);
+          const progressSet = new Set<number>();
+          seriesInfo.forEach(({ values }) => {
+            values.forEach((_, i) => progressSet.add(progressOf(i, values.length)));
+          });
+          const progresses = Array.from(progressSet).sort((a, b) => a - b);
+
+          const rows = progresses.map((progress) => {
+            const row: Record<string, number | undefined> = { progress };
+            seriesInfo.forEach(({ subject, values }) => {
+              values.forEach((pct, i) => {
+                if (Math.abs(progressOf(i, values.length) - progress) < 1e-6) {
+                  row[subject.name] = pct;
+                  row[`${subject.name}__exam`] = i + 1;
+                }
+              });
+            });
+            return row;
+          });
+
+          return (
+            <div>
+              <h4 className={`text-sm font-medium mb-2 opacity-80 ${colors.containerText}`}>
+                Performance Over Time
+              </h4>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={rows} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={effectiveMode === 'light' ? '#e5e7eb' : '#374151'} />
+                  <XAxis
+                    dataKey="progress"
+                    type="number"
+                    domain={[0, 100]}
+                    tick={false}
+                    axisLine={{ stroke: axisColor }}
+                  />
+                  <YAxis domain={[0, 100]} stroke={axisColor} tickFormatter={(v: number) => `${v}%`} />
+                  <Tooltip
+                    formatter={(value: any, name: any, item: any) => {
+                      const examNum = item?.payload?.[`${name}__exam`];
+                      return [`${Number(value).toFixed(1)}%`, examNum ? `${name} (Exam ${examNum})` : name];
+                    }}
+                    labelFormatter={() => ''}
+                    contentStyle={{ backgroundColor: effectiveMode === 'light' ? '#ffffff' : '#1f2937', borderRadius: '8px', borderColor: effectiveMode === 'light' ? '#e5e7eb' : '#374151', color: axisColor }}
+                  />
+                  <Legend wrapperStyle={{ color: axisColor }} />
+                  {seriesInfo.map(({ subject }) => (
+                    <Line
+                      key={subject.id}
+                      type="monotone"
+                      dataKey={subject.name}
+                      name={subject.name}
+                      stroke={subject.colour || '#3b82f6'}
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                      connectNulls
+                      isAnimationActive={false}
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          );
+        })()}
+
         {/* Grade distribution summary */}
         <div className="grid grid-cols-5 gap-2 text-sm mt-4">
           {(['A','B','C','D','E'] as const).map((g)=> (
@@ -117,7 +216,7 @@ const ExamPanel: React.FC<ExamPanelProps> = ({ subject, exams, onAddExam, onUpda
   const SubjectHeading: React.FC = () => (
     <div className="flex items-center justify-center gap-2">
       {getSubjectIcon(subject, 24, effectiveMode)}
-      <h2 className={`text-2xl font-semibold mb-2 text-center ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{subject.name}</h2>
+      <h2 className={`text-2xl font-semibold mb-2 text-center ${colors.containerText}`}>{subject.name}</h2>
     </div>
   );
 

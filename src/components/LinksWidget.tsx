@@ -565,7 +565,7 @@ export default function LinksWidget({ effectiveMode, colors }: LinksWidgetProps)
                               title={opt.label}
                               className={`w-10 h-10 rounded-lg border-2 ${editIcon === opt.name ? 'border-blue-400 bg-blue-500/20' : 'border-gray-600 hover:border-gray-500'} flex items-center justify-center transition-all duration-200`}
                             >
-                              <IconComp size={18} className={effectiveMode === 'light' ? 'text-black' : 'text-white'} />
+                              <IconComp size={18} className={colors.containerText} />
                             </button>
                           );
                         })}

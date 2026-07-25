@@ -91,8 +91,8 @@ const EventDetailsOverlay: React.FC<EventDetailsOverlayProps> = ({ event, onClos
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className={`text-2xl font-bold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Details</h2>
-          <button onClick={onClose} className={`text-2xl opacity-70 hover:opacity-100 transition ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}><X /></button>
+          <h2 className={`text-2xl font-bold ${colors.containerText}`}>Details</h2>
+          <button onClick={onClose} className={`text-2xl opacity-70 hover:opacity-100 transition ${colors.containerText}`}><X /></button>
         </div>
         <div className="rounded-2xl mb-4 p-4 flex items-center justify-between" style={{ background: subjectColor }}>
           <span className="text-2xl font-bold flex items-center" style={{ fontSize: '1.5rem' }}>
@@ -100,10 +100,10 @@ const EventDetailsOverlay: React.FC<EventDetailsOverlayProps> = ({ event, onClos
           </span>
           <span style={{ opacity: 0.35, display: 'flex', alignItems: 'center' }}>{subjectIcon}</span>
         </div>
-        <div className={`mb-6 p-4 rounded-2xl ${colors.background} ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}> 
+        <div className={`mb-6 p-4 rounded-2xl ${colors.background} ${colors.containerText}`}> 
           {infoFields.map(f => f.node && React.cloneElement(f.node, { className: (f.node.props.className || '') + (effectiveMode === 'light' ? ' text-black' : ' text-white') }))}
         </div>
-        <div className={`mb-2 mt-2 text-lg font-semibold ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>Note</div>
+        <div className={`mb-2 mt-2 text-lg font-semibold ${colors.containerText}`}>Note</div>
         <textarea
           className={`w-full min-h-[100px] rounded-lg p-3 resize-vertical focus:outline-none focus:ring-2 focus:ring-blue-500 ${effectiveMode === 'light' ? 'bg-gray-100 text-black border-gray-300' : 'bg-gray-700 text-white border-gray-600'}`}
           value={note}

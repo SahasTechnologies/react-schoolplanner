@@ -133,7 +133,7 @@ export default function WordOfTheDayWidget({
       <div className="relative w-full min-h-[140px] flex items-center justify-center">
         {loading && (
           <div className="absolute inset-0 flex justify-center items-center">
-            <LoaderCircle className={`animate-spin ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`} size={32} />
+            <LoaderCircle className={`animate-spin ${colors.containerText}`} size={32} />
           </div>
         )}
         {error && !loading && (
@@ -147,7 +147,7 @@ export default function WordOfTheDayWidget({
         {wordData && !loading && (
           <div className="w-full text-center space-y-2 py-2">
             {/* Word */}
-            <div className={`font-bold text-2xl ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
+            <div className={`font-bold text-2xl ${colors.containerText}`}>
               {wordData.word}
             </div>
             {/* Type and Pronunciation - only show if meaningful data exists */}
@@ -157,7 +157,7 @@ export default function WordOfTheDayWidget({
               
               if (hasType || hasPronunciation) {
                 return (
-                  <div className={`text-base opacity-70 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
+                  <div className={`text-base opacity-70 ${colors.containerText}`}>
                     {hasType && wordData.type}
                     {hasType && hasPronunciation && ' | '}
                     {hasPronunciation && wordData.pronunciation}
@@ -167,12 +167,12 @@ export default function WordOfTheDayWidget({
               return null;
             })()}
             {/* Definition */}
-            <div className={`text-base leading-relaxed px-2 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>
+            <div className={`text-base leading-relaxed px-2 ${colors.containerText}`}>
               {wordData.definition}
             </div>
             {/* Blocked note when fallback used */}
             {blockedNote && (
-              <div className={`text-xs opacity-60 ${effectiveMode === 'light' ? 'text-black' : 'text-white'}`}>{blockedNote}</div>
+              <div className={`text-xs opacity-60 ${colors.containerText}`}>{blockedNote}</div>
             )}
           </div>
         )}

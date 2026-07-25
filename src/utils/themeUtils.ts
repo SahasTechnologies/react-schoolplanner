@@ -1,4 +1,120 @@
-export type ThemeKey = 'red' | 'orange' | 'yellow' | 'green' | 'blue' | 'purple' | 'pink' | 'grey';
+export type ThemeKey = 'red' | 'orange' | 'yellow' | 'green' | 'blue' | 'purple' | 'pink' | 'grey' | 'custom';
+
+export interface CustomThemeColors {
+  accent: string;
+  background: string;
+  container: string;
+  border: string;
+}
+
+export const defaultCustomThemeColors: CustomThemeColors = {
+  accent: '#3b82f6',
+  background: '#0f172a',
+  container: '#1e293b',
+  border: '#334155',
+};
+
+export const SIDEBAR_HOVER_STYLE_ID = 'sidebar-hover-accent-style';
+
+function hexToRgbaLocal(hex: string, alpha: number): string {
+  const clean = hex.replace('#', '');
+  const full = clean.length === 3 ? clean.split('').map((c) => c + c).join('') : clean;
+  const r = parseInt(full.substring(0, 2), 16);
+  const g = parseInt(full.substring(2, 4), 16);
+  const b = parseInt(full.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+// Tints the sidebar's hover state with the active theme's own accent colour
+// (at low opacity) instead of a flat grey, and adapts automatically whether
+// that accent comes from one of the built-in themes or a custom one -- same
+// non-Tailwind-stylesheet technique as injectCustomThemeStyles, since this
+// also needs to reflect a colour that isn't known until runtime.
+export function injectSidebarHoverStyle(accentHex: string) {
+  if (typeof document === 'undefined') return;
+  const css = `
+    .sidebar-hover-accent:hover { background-color: ${hexToRgbaLocal(accentHex, 0.14)} !important; }
+    .sidebar-hover-accent:active { background-color: ${hexToRgbaLocal(accentHex, 0.22)} !important; }
+  `;
+  let styleEl = document.getElementById(SIDEBAR_HOVER_STYLE_ID) as HTMLStyleElement | null;
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = SIDEBAR_HOVER_STYLE_ID;
+    document.head.appendChild(styleEl);
+  }
+  styleEl.textContent = css;
+}
+
+export const CUSTOM_THEME_STYLE_ID = 'custom-theme-style';
+
+// Simple relative-luminance check so text placed on the user's chosen
+// accent colour stays readable no matter which hue they pick.
+export function getReadableTextColor(hex: string): '#000000' | '#ffffff' {
+  const clean = hex.replace('#', '');
+  const full = clean.length === 3 ? clean.split('').map((c) => c + c).join('') : clean;
+  const r = parseInt(full.substring(0, 2), 16) / 255;
+  const g = parseInt(full.substring(2, 4), 16) / 255;
+  const b = parseInt(full.substring(4, 6), 16) / 255;
+  const lin = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+  const luminance = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  return luminance > 0.5 ? '#000000' : '#ffffff';
+}
+
+// Darken (negative percent) or lighten (positive percent) a hex colour, used
+// for the custom accent's hover state.
+function shade(hex: string, percent: number): string {
+  const clean = hex.replace('#', '');
+  const full = clean.length === 3 ? clean.split('').map((c) => c + c).join('') : clean;
+  const num = parseInt(full, 16);
+  let r = (num >> 16) + Math.round(255 * percent);
+  let g = ((num >> 8) & 0x00ff) + Math.round(255 * percent);
+  let b = (num & 0x0000ff) + Math.round(255 * percent);
+  r = Math.max(0, Math.min(255, r));
+  g = Math.max(0, Math.min(255, g));
+  b = Math.max(0, Math.min(255, b));
+  return `#${((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1)}`;
+}
+
+export function loadCustomThemeColors(): CustomThemeColors {
+  if (typeof window === 'undefined') return defaultCustomThemeColors;
+  try {
+    const saved = localStorage.getItem('customThemeColors');
+    if (saved) {
+      return { ...defaultCustomThemeColors, ...JSON.parse(saved) };
+    }
+  } catch {
+    // ignore, fall back to defaults
+  }
+  return defaultCustomThemeColors;
+}
+
+// Every other theme works by handing components a Tailwind class-name
+// string (colors.background, colors.buttonAccent, etc) which they drop
+// straight into className -- and Tailwind's JIT compiler can only generate
+// CSS for classes it can see at build time, so it can never generate a class
+// for a hex value someone picks at runtime. Writing a small plain (non-
+// Tailwind) stylesheet with fixed class names sidesteps that: every existing
+// component keeps working completely unchanged, it just receives
+// 'custom-theme-bg' instead of 'bg-blue-950' when a custom theme is active.
+export function injectCustomThemeStyles(customColors: CustomThemeColors) {
+  if (typeof document === 'undefined') return;
+  const hoverAccent = shade(customColors.accent, -0.12);
+  const css = `
+    .custom-theme-bg { background-color: ${customColors.background} !important; }
+    .custom-theme-container { background-color: ${customColors.container} !important; }
+    .custom-theme-border { border-color: ${customColors.border} !important; }
+    .custom-theme-accent { background-color: ${customColors.accent} !important; color: ${getReadableTextColor(customColors.accent)} !important; }
+    .custom-theme-accent-hover:hover { background-color: ${hoverAccent} !important; }
+    .custom-theme-accent-text { color: ${customColors.accent} !important; }
+  `;
+  let styleEl = document.getElementById(CUSTOM_THEME_STYLE_ID) as HTMLStyleElement | null;
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = CUSTOM_THEME_STYLE_ID;
+    document.head.appendChild(styleEl);
+  }
+  styleEl.textContent = css;
+}
 
 // Define color variables for both normal (muted) and extreme (bright) for each theme, for both dark and light modes
 export const colorVars = {
@@ -246,6 +362,19 @@ export const colorVars = {
 
 // Helper function to get actual color hex values for inline styles
 export const getColorValues = (theme: ThemeKey, themeType: 'normal' | 'extreme', effectiveMode: 'light' | 'dark') => {
+  if (theme === 'custom') {
+    const custom = loadCustomThemeColors();
+    return {
+      background: custom.background,
+      container: custom.container,
+      border: custom.border,
+      accent: custom.accent,
+      text: effectiveMode === 'light' ? '#000000' : '#ffffff',
+      textSecondary: effectiveMode === 'light' ? 'rgba(0, 0, 0, 0.6)' : 'rgba(255, 255, 255, 0.7)',
+      buttonText: getReadableTextColor(custom.accent),
+      buttonAccent: custom.accent,
+    };
+  }
   // Map of actual color values
   const colorValues = {
     red: {
@@ -358,13 +487,43 @@ export const getColorValues = (theme: ThemeKey, themeType: 'normal' | 'extreme',
 
 // Helper function to get colors for a specific theme and type
 export const getColors = (theme: ThemeKey, themeType: 'normal' | 'extreme', effectiveMode: 'light' | 'dark') => {
+  if (theme === 'custom') {
+    const custom = loadCustomThemeColors();
+    const buttonTextIsDark = getReadableTextColor(custom.accent) === '#000000';
+    const isBackgroundDark = getReadableTextColor(custom.background) === '#ffffff';
+    const isContainerDark = getReadableTextColor(custom.container) === '#ffffff';
+    return {
+      background: 'custom-theme-bg',
+      container: 'custom-theme-container',
+      border: 'custom-theme-border',
+      swatch: 'custom-theme-container',
+      spin: isBackgroundDark ? 'border-gray-400' : 'border-gray-600',
+      button: isBackgroundDark ? 'bg-white/10 hover:bg-white/20' : 'bg-gray-900 hover:bg-gray-800',
+      buttonText: buttonTextIsDark ? 'text-black' : 'text-white',
+      buttonAccent: 'custom-theme-accent',
+      buttonAccentHover: 'custom-theme-accent-hover',
+      text: isBackgroundDark ? 'text-white' : 'text-black',
+      containerText: isContainerDark ? 'text-white' : 'text-black',
+      accentText: 'custom-theme-accent-text',
+      sidebarHover: isContainerDark ? 'bg-white/10' : 'bg-gray-200',
+      input: isContainerDark ? 'bg-white/10 text-white' : 'bg-white/30 backdrop-blur-sm text-black',
+      inputBorder: isContainerDark ? 'border border-white/20' : 'border border-black/10',
+      placeholder: isContainerDark ? 'placeholder-white/60' : 'placeholder-black/50',
+      textSecondary: isContainerDark ? 'text-white/70' : 'text-black/60',
+      buttonSecondary: isContainerDark ? 'bg-white/10 text-white' : 'bg-black/5 text-black',
+      buttonSecondaryHover: isContainerDark ? 'hover:bg-white/20' : 'hover:bg-black/10',
+      softBorder: isContainerDark ? 'border-white/15' : 'border-black/10',
+      containerOverlay: isContainerDark ? 'bg-white/5' : 'bg-black/5',
+      accent: 'custom-theme-accent-text',
+    };
+  }
   const colors = colorVars[theme][effectiveMode][themeType];
   // Button and buttonText colors for theme-aware buttons
   let button, buttonText, buttonAccent, buttonAccentHover, text, containerText, accentText, sidebarHover;
   // Additional tokens used by components
   let input, inputBorder, placeholder, textSecondary, buttonSecondary, buttonSecondaryHover, softBorder, containerOverlay, accent;
   // Accent ring color mapping for focus states
-  const accentRingMap: Record<ThemeKey, string> = {
+  const accentRingMap: Record<Exclude<ThemeKey, 'custom'>, string> = {
     red: 'ring-red-500',
     orange: 'ring-orange-500',
     yellow: 'ring-yellow-500',
@@ -390,7 +549,7 @@ export const getColors = (theme: ThemeKey, themeType: 'normal' | 'extreme', effe
     containerOverlay = 'bg-black/5'; // make elevated surfaces slightly darker to stand out
     accent = accentRingMap[theme];
     // Theme-accented button backgrounds for light mode
-    const accentMap: Record<ThemeKey, [string, string, string]> = {
+    const accentMap: Record<Exclude<ThemeKey, 'custom'>, [string, string, string]> = {
       red:    ['bg-red-600', 'hover:bg-red-700', 'text-red-600'],
       orange: ['bg-orange-500', 'hover:bg-orange-600', 'text-orange-600'],
       yellow: ['bg-yellow-500', 'hover:bg-yellow-600', 'text-yellow-600'],
@@ -418,7 +577,7 @@ export const getColors = (theme: ThemeKey, themeType: 'normal' | 'extreme', effe
     containerOverlay = 'bg-white/5'; // make elevated surfaces slightly lighter to stand out
     accent = accentRingMap[theme];
     // Theme-accented button backgrounds for dark mode
-    const accentMap: Record<ThemeKey, [string, string, string]> = {
+    const accentMap: Record<Exclude<ThemeKey, 'custom'>, [string, string, string]> = {
       red:    ['bg-red-500', 'hover:bg-red-600', 'text-red-400'],
       orange: ['bg-orange-400', 'hover:bg-orange-500', 'text-orange-300'],
       yellow: ['bg-yellow-400', 'hover:bg-yellow-500', 'text-yellow-300'],

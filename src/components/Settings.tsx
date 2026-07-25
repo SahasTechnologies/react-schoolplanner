@@ -1565,21 +1565,21 @@ const Settings: React.FC<SettingsProps> = ({
             <div className="flex gap-2">
               <button
                 onClick={() => setThemeMode('light')}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${themeMode === 'light' ? `${colors.buttonAccent} ${colors.buttonText}` : (effectiveMode === 'light' ? 'bg-gray-100 hover:bg-gray-200 text-black border border-gray-300' : `${colors.button} ${colors.buttonHover} ${colors.buttonText}`)}`}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${themeMode === 'light' ? `${colors.buttonAccent} ${colors.buttonText}` : `${colors.buttonSecondary} ${colors.buttonSecondaryHover}`}`}
               >
                 <Sun size={18} />
                 Light
               </button>
               <button
                 onClick={() => setThemeMode('dark')}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${themeMode === 'dark' ? `${colors.buttonAccent} ${colors.buttonText}` : (effectiveMode === 'light' ? 'bg-gray-100 hover:bg-gray-200 text-black border border-gray-300' : `${colors.button} ${colors.buttonHover} ${colors.buttonText}`)}`}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${themeMode === 'dark' ? `${colors.buttonAccent} ${colors.buttonText}` : `${colors.buttonSecondary} ${colors.buttonSecondaryHover}`}`}
               >
                 <Moon size={18} />
                 Dark
               </button>
               <button
                 onClick={() => setThemeMode('system')}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${themeMode === 'system' ? `${colors.buttonAccent} ${colors.buttonText}` : (effectiveMode === 'light' ? 'bg-gray-100 hover:bg-gray-200 text-black border border-gray-300' : `${colors.button} ${colors.buttonHover} ${colors.buttonText}`)}`}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${themeMode === 'system' ? `${colors.buttonAccent} ${colors.buttonText}` : `${colors.buttonSecondary} ${colors.buttonSecondaryHover}`}`}
               >
                 <Monitor size={18} />
                 System
