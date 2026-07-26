@@ -1,8 +1,11 @@
 // Service Worker for School Planner
-const CACHE_NAME = 'school-planner-v4';
+const CACHE_NAME = 'school-planner-v5';
 const OFFLINE_FALLBACK_PAGE = '/index.html';
 
-// Pre-cache the application shell (keep this minimal; Vite assets are cached at runtime)
+// Pre-cache the application shell. The actual JS/CSS/font bundle has
+// content-hashed filenames that change every build, so they can't be
+// listed here -- discoverAndCacheAssets() below finds them by parsing
+// index.html at runtime instead.
 const urlsToCache = [
   '/',
   '/index.html',
@@ -12,6 +15,49 @@ const urlsToCache = [
   '/license.md',
 ];
 
+// Parses the current index.html for every same-origin script/link/font
+// reference (the real Vite output bundle) and caches each one. This is
+// what makes "Update Cache" (and the initial install) actually leave the
+// app usable offline -- previously that only re-primed the 5-file shell
+// list above and never touched the real JS/CSS bundle, so unless a
+// person happened to keep browsing online long enough for those to be
+// cached opportunistically by the fetch handler below, going offline
+// left the app with nothing to load.
+async function discoverAndCacheAssets(cache) {
+  try {
+    const indexResp = await fetch('/index.html', { cache: 'no-store' });
+    if (!indexResp || !indexResp.ok) return;
+    const html = await indexResp.clone().text();
+    cache.put('/index.html', indexResp);
+
+    const urls = new Set();
+    const attrRegex = /(?:src|href)=["']([^"']+)["']/g;
+    let match;
+    while ((match = attrRegex.exec(html)) !== null) {
+      const url = match[1];
+      // Only same-origin, real files (skip external links, anchors, data URIs)
+      if (url.startsWith('/') && !url.startsWith('//') && !url.startsWith('data:')) {
+        urls.add(url);
+      }
+    }
+
+    await Promise.all(
+      Array.from(urls).map(async (url) => {
+        try {
+          const resp = await fetch(url);
+          if (resp && resp.status === 200) {
+            await cache.put(url, resp);
+          }
+        } catch (_) {
+          // ignore individual asset failures, best-effort
+        }
+      })
+    );
+  } catch (_) {
+    // ignore, best-effort
+  }
+}
+
 // Install: cache shell and activate immediately
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -19,6 +65,7 @@ self.addEventListener('install', (event) => {
       try {
         const cache = await caches.open(CACHE_NAME);
         await cache.addAll(urlsToCache);
+        await discoverAndCacheAssets(cache);
       } catch (_) {}
       await self.skipWaiting();
     })()
@@ -165,5 +212,6 @@ async function updateCache() {
         }
       } catch (_) {}
     }
+    await discoverAndCacheAssets(cache);
   } catch (_) {}
 }

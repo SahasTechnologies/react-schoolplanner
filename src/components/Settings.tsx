@@ -47,6 +47,7 @@ import {
 import { ThemeKey } from '../utils/themeUtils';
 import { isServiceWorkerSupported, forceCacheUpdate } from '../utils/cacheUtils';
 import { showSuccess, showError } from '../utils/notificationUtils';
+import { decryptWithPassword } from '../utils/markbookCrypto';
 import { fetchNswTerms, cacheNswTerms } from '../utils/nswTermUtils';
 import bcrypt from 'bcryptjs';
 import ReactMarkdown from 'react-markdown';
@@ -74,6 +75,8 @@ interface SettingsProps {
   clearData: () => void;
   autoNamingEnabled: boolean;
   setAutoNamingEnabled: (enabled: boolean) => void;
+  examsBySubject: Record<string, any[]>;
+  setExamsBySubject: (value: Record<string, any[]>) => void;
   showThemeModal: boolean;
   setShowThemeModal: (show: boolean) => void;
   theme: ThemeKey;
@@ -131,6 +134,7 @@ const Settings: React.FC<SettingsProps> = ({
   clearData,
   autoNamingEnabled,
   setAutoNamingEnabled,
+  setExamsBySubject,
   setShowThemeModal,
   theme,
   themeType,
@@ -279,6 +283,10 @@ const Settings: React.FC<SettingsProps> = ({
   const [showMarkbookSettings, setShowMarkbookSettings] = useState(false);
   const [markbookPasswordVerification, setMarkbookPasswordVerification] = useState('');
   const [showMarkbookPasswordVerification, setShowMarkbookPasswordVerification] = useState(false);
+  const [showInlineCreatePassword, setShowInlineCreatePassword] = useState(false);
+  const [inlinePassword, setInlinePassword] = useState('');
+  const [inlineConfirmPassword, setInlineConfirmPassword] = useState('');
+  const [changePasswordConfirm, setChangePasswordConfirm] = useState('');
   const [quoteProvider, setQuoteProvider] = useState(() => {
     const stored = localStorage.getItem('quoteProvider');
     // Migrate deprecated values
@@ -1312,10 +1320,92 @@ const Settings: React.FC<SettingsProps> = ({
                   </div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" checked={markbookPasswordEnabled} onChange={(e) => { setMarkbookPasswordEnabled(e.target.checked); if (!e.target.checked) setMarkbookPassword(''); }} className="sr-only peer" />
+                  <input
+                    type="checkbox"
+                    checked={markbookPasswordEnabled}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        // Don't actually enable protection yet -- reveal the
+                        // inline password-creation panel below instead. The
+                        // toggle only really switches on once a password has
+                        // been confirmed and set (see the panel's Save
+                        // button), so clicking off/cancelling never leaves
+                        // protection "on" with no password behind it.
+                        setShowInlineCreatePassword(true);
+                        setInlinePassword('');
+                        setInlineConfirmPassword('');
+                      } else {
+                        setMarkbookPasswordEnabled(false);
+                      }
+                    }}
+                    className="sr-only peer"
+                  />
                   <div className={`w-14 h-7 rounded-full relative transition-colors ${markbookPasswordEnabled ? colors.buttonAccent : 'bg-gray-500'} peer-focus:outline-none peer-checked:after:translate-x-7 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-white/20 after:rounded-full after:h-6 after:w-6 after:transition-all`}></div>
                 </label>
               </div>
+
+              {showInlineCreatePassword && !markbookPasswordEnabled && (
+                <div className={`${colors.container} ${colors.border} border rounded-2xl p-4`}>
+                  <p className={`font-medium mb-3 ${colors.containerText}`}>Create a Markbook Password</p>
+                  <div className={`flex items-start gap-2 mb-4 p-3 rounded-lg border ${effectiveMode === 'light' ? 'bg-amber-50 border-amber-200' : 'bg-amber-950/40 border-amber-800/60'}`}>
+                    <AlertTriangle size={16} className={`mt-0.5 shrink-0 ${effectiveMode === 'light' ? 'text-amber-700' : 'text-amber-400'}`} />
+                    <p className={`text-xs ${effectiveMode === 'light' ? 'text-amber-800' : 'text-amber-200'}`}>
+                      If you forget this password, it <strong>cannot be reset or recovered</strong> -- your marks would be permanently inaccessible.
+                    </p>
+                  </div>
+                  <label className={`block text-sm font-medium mb-1 ${colors.containerText}`}>Password</label>
+                  <input
+                    type="password"
+                    value={inlinePassword}
+                    onChange={(e) => setInlinePassword(e.target.value)}
+                    className={`w-full px-4 py-3 rounded-lg border ${colors.inputBorder} ${colors.input} mb-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    placeholder="Enter password"
+                    autoComplete="new-password"
+                  />
+                  <label className={`block text-sm font-medium mb-1 ${colors.containerText}`}>Confirm Password</label>
+                  <input
+                    type="password"
+                    value={inlineConfirmPassword}
+                    onChange={(e) => setInlineConfirmPassword(e.target.value)}
+                    className={`w-full px-4 py-3 rounded-lg border ${colors.inputBorder} ${colors.input} mb-4 text-base focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    placeholder="Confirm password"
+                    autoComplete="new-password"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => {
+                        setShowInlineCreatePassword(false);
+                        setInlinePassword('');
+                        setInlineConfirmPassword('');
+                      }}
+                      className={`${colors.buttonSecondary} ${colors.buttonSecondaryHover} px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (inlinePassword.trim() === '') {
+                          showError('Invalid Password', 'Password cannot be empty', { effectiveMode, colors });
+                          return;
+                        }
+                        if (inlinePassword !== inlineConfirmPassword) {
+                          showError('Passwords Do Not Match', 'Please make sure both fields match', { effectiveMode, colors });
+                          return;
+                        }
+                        setMarkbookPasswordEnabled(true);
+                        setMarkbookPassword(inlinePassword);
+                        setShowInlineCreatePassword(false);
+                        setInlinePassword('');
+                        setInlineConfirmPassword('');
+                        showSuccess('Password Set', 'Your markbook is now password protected.', { effectiveMode, colors });
+                      }}
+                      className={`${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-2 rounded-lg font-medium transition-colors duration-200`}
+                    >
+                      Set Password
+                    </button>
+                  </div>
+                </div>
+              )}
               {markbookPasswordEnabled && (
                 <>
                   <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
@@ -1344,12 +1434,7 @@ const Settings: React.FC<SettingsProps> = ({
                         </div>
                       </div>
                       <button
-                        onClick={() => {
-                          localStorage.removeItem('markbookPassword');
-                          setMarkbookPasswordEnabled(false);
-                          setMarkbookPassword('');
-                          showSuccess('Password Removed', 'Markbook password protection has been removed', { effectiveMode, colors });
-                        }}
+                        onClick={() => setMarkbookPasswordEnabled(false)}
                         className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
                       >
                         <Trash2 size={16} />
@@ -1379,37 +1464,55 @@ const Settings: React.FC<SettingsProps> = ({
       {showPasswordModal && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
           <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md`}>
-            <h3 className={`text-xl font-semibold ${colors.buttonText} mb-4`}>Set Markbook Password</h3>
+            <h3 className={`text-xl font-semibold ${colors.containerText} mb-4`}>Change Markbook Password</h3>
+
+            <div className={`flex items-start gap-2 mb-4 p-3 rounded-lg border ${effectiveMode === 'light' ? 'bg-amber-50 border-amber-200' : 'bg-amber-950/40 border-amber-800/60'}`}>
+              <AlertTriangle size={16} className={`mt-0.5 shrink-0 ${effectiveMode === 'light' ? 'text-amber-700' : 'text-amber-400'}`} />
+              <p className={`text-xs ${effectiveMode === 'light' ? 'text-amber-800' : 'text-amber-200'}`}>
+                If you forget your new password, it <strong>cannot be reset or recovered</strong> -- your marks would be permanently inaccessible.
+              </p>
+            </div>
 
             {/* If a password already exists, ask for the current password first */}
             {localStorage.getItem('markbookPassword') && (
-              <div className="mb-6">
+              <div className="mb-4">
                 <label className={`block text-sm font-medium mb-1 ${colors.containerText}`}>Current Password</label>
                 <input
                   type="password"
                   value={oldPasswordInput}
                   onChange={(e)=>setOldPasswordInput(e.target.value)}
-                  className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg mb-2 ${effectiveMode === 'light' ? 'bg-white text-black' : 'bg-gray-800 text-white'} ${colors.inputBorder}`}
+                  className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg mb-2 ${colors.input} ${colors.inputBorder}`}
                   placeholder="Enter current password"
+                  autoComplete="current-password"
                 />
               </div>
             )}
-            
+
             <label className={`block text-sm font-medium mb-1 ${colors.containerText}`}>New Password</label>
             <input
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6 text-lg ${effectiveMode === 'light' ? 'bg-white text-black' : 'bg-gray-800 text-white'} ${colors.inputBorder}`}
+              className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3 text-lg ${colors.input} ${colors.inputBorder}`}
               placeholder="Enter new password"
+              autoComplete="new-password"
+            />
+            <label className={`block text-sm font-medium mb-1 ${colors.containerText}`}>Confirm New Password</label>
+            <input
+              type="password"
+              value={changePasswordConfirm}
+              onChange={(e) => setChangePasswordConfirm(e.target.value)}
+              className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6 text-lg ${colors.input} ${colors.inputBorder}`}
+              placeholder="Confirm new password"
+              autoComplete="new-password"
             />
             <div className="flex justify-end gap-3">
               <button
-                onClick={() => { setShowPasswordModal(false); setNewPassword(''); setOldPasswordInput(''); }}
+                onClick={() => { setShowPasswordModal(false); setNewPassword(''); setChangePasswordConfirm(''); setOldPasswordInput(''); }}
                 className="bg-secondary hover:bg-secondary-dark text-secondary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200"
               >Cancel</button>
               <button
-                onClick={() => { 
+                onClick={async () => {
                   const storedHash = localStorage.getItem('markbookPassword');
                   if (storedHash) {
                     // Password already set – verify old password first
@@ -1422,9 +1525,36 @@ const Settings: React.FC<SettingsProps> = ({
                     showError('Invalid Password', 'Password cannot be empty', { effectiveMode, colors });
                     return;
                   }
+                  if (newPassword !== changePasswordConfirm) {
+                    showError('Passwords Do Not Match', 'Please make sure both fields match', { effectiveMode, colors });
+                    return;
+                  }
+                  // Decrypt the existing marks with the OLD password before
+                  // committing the new one, regardless of whether the
+                  // markbook happens to be unlocked (and thus already
+                  // decrypted into memory) right now -- otherwise, if it's
+                  // not currently unlocked, re-encrypting with the new
+                  // password would encrypt an empty in-memory state and
+                  // silently destroy the real data.
+                  if (storedHash) {
+                    const encryptedBlob = localStorage.getItem('examsBySubject_encrypted');
+                    if (encryptedBlob) {
+                      const decrypted = await decryptWithPassword<Record<string, any[]>>(oldPasswordInput, encryptedBlob);
+                      if (decrypted === null) {
+                        showError(
+                          'Could Not Decrypt Marks',
+                          "Your current password matched, but the stored marks couldn't be decrypted. Nothing has been changed.",
+                          { effectiveMode, colors }
+                        );
+                        return;
+                      }
+                      setExamsBySubject(decrypted);
+                    }
+                  }
                   setMarkbookPassword(newPassword);
                   setShowPasswordModal(false);
                   setNewPassword('');
+                  setChangePasswordConfirm('');
                   setOldPasswordInput('');
                   showSuccess('Password Updated', 'Your markbook password has been updated successfully!', { effectiveMode, colors });
                 }}
@@ -1461,7 +1591,7 @@ const Settings: React.FC<SettingsProps> = ({
                   }
                 }
               }}
-              className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6 text-lg ${colors.inputBackground} ${colors.inputBorder} ${colors.buttonText}`}
+              className={`w-full px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6 text-lg ${colors.input} ${colors.inputBorder}`}
               placeholder="Enter password"
               autoFocus
             />

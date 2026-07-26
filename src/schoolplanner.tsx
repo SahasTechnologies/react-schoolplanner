@@ -26,6 +26,7 @@ import NotFound from './components/NotFound';
 import PageErrorBoundary from './components/PageErrorBoundary';
 import { Exam } from './types';
 import { hashPassword, memoizedComparePassword } from './utils/passwordUtils';
+import { encryptWithPassword, decryptWithPassword } from './utils/markbookCrypto';
 import LinksWidget from './components/LinksWidget';
 import QuoteOfTheDayWidget from './components/QuoteOfTheDayWidget';
 import WordOfTheDayWidget from './components/WordOfTheDayWidget';
@@ -129,8 +130,13 @@ const SchoolPlanner = () => {
   // NEW: State for exam side panel
   const [selectedSubjectForExam, setSelectedSubjectForExam] = useState<Subject | null>(null);
 
-  // Exams by subject id
+  // Exams by subject id. When markbook password protection is on, the real
+  // data lives encrypted in localStorage (see markbookCrypto.ts) and is only
+  // decrypted into this state after a successful unlock -- so we don't load
+  // the (legacy, pre-encryption) plaintext copy here in that case.
   const [examsBySubject, setExamsBySubject] = useState<Record<string, Exam[]>>(() => {
+    const passwordEnabled = localStorage.getItem('markbookPasswordEnabled') === 'true';
+    if (passwordEnabled) return {};
     const saved = localStorage.getItem('examsBySubject');
     return saved ? JSON.parse(saved) : {};
   });
@@ -142,10 +148,9 @@ const SchoolPlanner = () => {
   const [welcomeStep, setWelcomeStep] = useState<'legal' | 'upload' | 'name_input' | 'completed'>('legal');
   const [userName, setUserName] = useState('');
 
-  // Persist examsBySubject
-  useEffect(() => {
-    localStorage.setItem('examsBySubject', JSON.stringify(examsBySubject));
-  }, [examsBySubject]);
+  // examsBySubject is persisted further down, after markbookPasswordEnabled
+  // and markbookEncryptionPassword are declared, since saving needs to know
+  // whether to encrypt first.
 
   // Listen for widget visibility changes
   useEffect(() => {
@@ -555,6 +560,7 @@ const SchoolPlanner = () => {
       unlockAttempt={unlockAttempt}
       setUnlockAttempt={setUnlockAttempt}
       setIsMarkbookLocked={setIsMarkbookLocked}
+      onUnlock={handleMarkbookUnlock}
     />
   );
 
@@ -566,6 +572,8 @@ const SchoolPlanner = () => {
         clearData={clearData}
         autoNamingEnabled={autoNamingEnabled}
         setAutoNamingEnabled={setAutoNamingEnabled}
+        examsBySubject={examsBySubject}
+        setExamsBySubject={setExamsBySubject}
         showThemeModal={showThemeModal}
         setShowThemeModal={setShowThemeModal}
         theme={theme}
@@ -2322,6 +2330,10 @@ const SchoolPlanner = () => {
   const [newPassword, setNewPassword] = useState('');
   const [isMarkbookLocked, setIsMarkbookLocked] = useState(true);
   const [unlockAttempt, setUnlockAttempt] = useState('');
+  // Kept in memory only (never persisted) for as long as the markbook stays
+  // unlocked this session, so edits made during that time can be
+  // re-encrypted before saving. Cleared whenever the markbook (re)locks.
+  const [markbookEncryptionPassword, setMarkbookEncryptionPassword] = useState<string | null>(null);
 
   // Add state for disabling password protection
   const [showDisablePasswordModal, setShowDisablePasswordModal] = useState(false);
@@ -2334,6 +2346,52 @@ const SchoolPlanner = () => {
     } else {
       setMarkbookPasswordEnabled(true);
     }
+  };
+
+  // Verifies the entered password against the stored hash and, if correct,
+  // decrypts the stored marks into memory (or, the first time protection is
+  // unlocked after being turned on / after upgrading from an older version
+  // that stored marks in plaintext, encrypts whatever's currently there).
+  // Returns whether the attempt succeeded, so the caller can show an error.
+  const handleMarkbookUnlock = async (attempt: string): Promise<boolean> => {
+    const storedHash = localStorage.getItem('markbookPassword');
+    if (!storedHash || !memoizedComparePassword(attempt, storedHash)) {
+      return false;
+    }
+
+    const encryptedBlob = localStorage.getItem('examsBySubject_encrypted');
+    if (encryptedBlob) {
+      const decrypted = await decryptWithPassword<Record<string, Exam[]>>(attempt, encryptedBlob);
+      if (decrypted === null) {
+        // Password hash matched but decryption failed -- shouldn't normally
+        // happen (would mean corrupted storage). Don't touch existing data.
+        showError(
+          'Could Not Read Marks',
+          "Your password was correct, but the stored marks couldn't be decrypted. Your data hasn't been changed.",
+          { effectiveMode, colors }
+        );
+        return false;
+      }
+      setExamsBySubject(decrypted);
+    } else {
+      // No encrypted blob yet: either this is the very first unlock since
+      // protection was turned on, or a legacy plaintext copy exists from
+      // before encryption was added. Either way, encrypt what's there now.
+      const legacyPlaintext = localStorage.getItem('examsBySubject');
+      const dataToEncrypt = legacyPlaintext ? JSON.parse(legacyPlaintext) : examsBySubject;
+      setExamsBySubject(dataToEncrypt);
+      try {
+        const blob = await encryptWithPassword(attempt, dataToEncrypt);
+        localStorage.setItem('examsBySubject_encrypted', blob);
+        localStorage.removeItem('examsBySubject');
+      } catch (e) {
+        console.error('Failed to encrypt markbook data on first unlock', e);
+      }
+    }
+
+    setMarkbookEncryptionPassword(attempt);
+    setIsMarkbookLocked(false);
+    return true;
   };
 
   // Anti-inspection measures - only when lock screen is active
@@ -2374,15 +2432,69 @@ const SchoolPlanner = () => {
     localStorage.setItem('markbookPasswordEnabled', markbookPasswordEnabled.toString());
   }, [markbookPasswordEnabled]);
 
-  // Persist a NEW password when the user sets one.  
+  // Persist a NEW password when the user sets one (either the first time
+  // protection is turned on, or via "Change Password"). Also (re-)encrypts
+  // whatever's currently in examsBySubject with this password, since that's
+  // the only point we have the plaintext password and the plaintext data
+  // available together.
   // If the string is empty we leave the stored hash untouched so that a page refresh doesn't inadvertently remove or double-hash it.
   useEffect(() => {
     if (markbookPassword) {
-      localStorage.setItem('markbookPassword', hashPassword(markbookPassword));
+      const plaintextPassword = markbookPassword;
+      localStorage.setItem('markbookPassword', hashPassword(plaintextPassword));
+      (async () => {
+        try {
+          const blob = await encryptWithPassword(plaintextPassword, examsBySubject);
+          localStorage.setItem('examsBySubject_encrypted', blob);
+          localStorage.removeItem('examsBySubject');
+        } catch (e) {
+          console.error('Failed to encrypt markbook data on password set', e);
+        }
+      })();
+      setMarkbookEncryptionPassword(plaintextPassword);
       // Clear plaintext from memory immediately after hashing for a tiny bit of extra safety.
       setMarkbookPassword('');
     }
+    // examsBySubject is intentionally excluded: this effect should only run
+    // when the password itself changes, using whatever the exam data is at
+    // that moment, not re-run (and re-encrypt again) every time a mark is
+    // edited -- that's handled by the persistence effect below instead.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [markbookPassword]);
+
+  // Persist examsBySubject: encrypted (using the in-memory session password)
+  // while protection is on and unlocked, plaintext otherwise. While locked
+  // with protection on, examsBySubject is empty in memory anyway (see the
+  // lock effect below) so there's nothing new to (re-)encrypt.
+  useEffect(() => {
+    if (markbookPasswordEnabled) {
+      if (markbookEncryptionPassword) {
+        (async () => {
+          try {
+            const blob = await encryptWithPassword(markbookEncryptionPassword, examsBySubject);
+            localStorage.setItem('examsBySubject_encrypted', blob);
+            localStorage.removeItem('examsBySubject');
+          } catch (e) {
+            console.error('Failed to encrypt markbook data', e);
+          }
+        })();
+      }
+    } else {
+      localStorage.setItem('examsBySubject', JSON.stringify(examsBySubject));
+    }
+  }, [examsBySubject, markbookPasswordEnabled, markbookEncryptionPassword]);
+
+  // Clear decrypted marks from memory whenever the markbook (re)locks, so
+  // the plaintext doesn't just sit around in React state/props (inspectable
+  // via React DevTools) while "locked" -- unlocking again re-decrypts from
+  // the encrypted blob in localStorage.
+  useEffect(() => {
+    if (markbookPasswordEnabled && isMarkbookLocked) {
+      setExamsBySubject({});
+      setMarkbookEncryptionPassword(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMarkbookLocked, markbookPasswordEnabled]);
 
   // Lock markbook when navigating away
   useEffect(() => {
@@ -2565,16 +2677,39 @@ const SchoolPlanner = () => {
                   Cancel
                 </button>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     const storedHash = localStorage.getItem('markbookPassword');
                     if (!storedHash) {
                       setMarkbookPasswordEnabled(false);
+                      setMarkbookEncryptionPassword(null);
                       setShowDisablePasswordModal(false);
                       setDisablePasswordAttempt('');
                       showSuccess('Protection Disabled', 'No stored password found; protection disabled.', { effectiveMode, colors });
                       return;
                     }
                     if (memoizedComparePassword(disablePasswordAttempt, storedHash)) {
+                      // Decrypt the stored marks with the password just
+                      // verified and write them back out as plaintext,
+                      // otherwise they'd be left behind as an encrypted
+                      // blob nothing can ever read again once the password
+                      // itself is discarded below.
+                      const encryptedBlob = localStorage.getItem('examsBySubject_encrypted');
+                      if (encryptedBlob) {
+                        const decrypted = await decryptWithPassword<Record<string, Exam[]>>(disablePasswordAttempt, encryptedBlob);
+                        if (decrypted === null) {
+                          showError(
+                            'Could Not Decrypt Marks',
+                            "Your password matched, but the stored marks couldn't be decrypted. Protection was not disabled so your data is safe.",
+                            { effectiveMode, colors }
+                          );
+                          return;
+                        }
+                        setExamsBySubject(decrypted);
+                        localStorage.setItem('examsBySubject', JSON.stringify(decrypted));
+                        localStorage.removeItem('examsBySubject_encrypted');
+                      }
+                      setMarkbookEncryptionPassword(null);
+                      localStorage.removeItem('markbookPassword');
                       setMarkbookPasswordEnabled(false);
                       setShowDisablePasswordModal(false);
                       setDisablePasswordAttempt('');

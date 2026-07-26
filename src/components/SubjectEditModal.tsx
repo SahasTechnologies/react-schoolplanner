@@ -181,7 +181,9 @@ const SubjectEditModal: React.FC<SubjectEditModalProps> = ({
                 onClick={() => customColourInputRef.current?.click()}
                 title="Choose Custom Colour"
               >
-                <Edit2 size={16} className="text-white" />
+                <span className="w-5 h-5 rounded-full bg-black/55 flex items-center justify-center">
+                  <Edit2 size={12} className="text-white" />
+                </span>
               </button>
               <input
                 ref={customColourInputRef}

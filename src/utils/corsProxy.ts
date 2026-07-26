@@ -105,7 +105,28 @@ const DEFAULT_TIMEOUT_MS = 8000;
 // calling this function, compounding the delay well past a minute.
 const OVERALL_BUDGET_MS = 15000;
 
+// Our own Cloudflare Pages Function (see functions/api/fetch-proxy.js) --
+// runs server-side, so there's no CORS problem at all, and it edge-caches
+// each source URL so repeat requests are near-instant. This only covers a
+// small allowlisted set of hosts (the actual word/quote sources); anything
+// else falls through to the public proxy chain below.
+const OWN_PROXY_TIMEOUT_MS = 6000;
+
+async function tryOwnProxy(targetUrl: string, timeoutMs: number): Promise<string | null> {
+  try {
+    const res = await fetchWithTimeout(`/api/fetch-proxy?url=${encodeURIComponent(targetUrl)}`, {}, timeoutMs);
+    if (!res.ok) return null;
+    const text = await res.text();
+    return text || null;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchTextViaCors(targetUrl: string, init: RequestInit = {}, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<string> {
+  const ownResult = await tryOwnProxy(targetUrl, Math.min(timeoutMs, OWN_PROXY_TIMEOUT_MS));
+  if (ownResult) return ownResult;
+
   const hostname = getHost(targetUrl);
   const proxies = reorderByLastGood(PROXIES, hostname);
   const deadline = Date.now() + OVERALL_BUDGET_MS;

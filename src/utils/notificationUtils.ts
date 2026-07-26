@@ -151,19 +151,19 @@ class NotificationManager {
     const iconSize = 20;
     switch (type) {
       case 'success':
-        return `<svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2">
+        return `<svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
           <polyline points="22,4 12,14.01 9,11.01"></polyline>
         </svg>`;
       case 'error':
-        return `<svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2">
+        return `<svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"></circle>
           <line x1="15" y1="9" x2="9" y2="15"></line>
           <line x1="9" y1="9" x2="15" y2="15"></line>
         </svg>`;
       case 'info':
       default:
-        return `<svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2">
+        return `<svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"></circle>
           <line x1="12" y1="16" x2="12" y2="12"></line>
           <line x1="12" y1="8" x2="12.01" y2="8"></line>
@@ -341,27 +341,19 @@ class NotificationManager {
     notification.element.style.transform = 'translateX(100%)';
     notification.element.style.opacity = '0';
 
-    // After the exit animation, remove the element and update positions
+    // After the exit animation, remove the element from the DOM. The
+    // container is a flex column with its own gap, so the remaining
+    // notifications reflow into place automatically -- no manual
+    // repositioning needed (a previous version of this function applied a
+    // manual translateY on top of that flex layout, which double-offset
+    // every notification after the first and got worse with each one
+    // added or removed).
     setTimeout(() => {
       if (notification.element.parentNode) {
         notification.element.parentNode.removeChild(notification.element);
       }
       this.notifications = this.notifications.filter(n => n.id !== id);
-      
-      // Animate remaining notifications to slide up
-      this.animateRemainingNotifications();
     }, 300);
-  }
-
-  private animateRemainingNotifications() {
-    // Get all notification elements in the container
-    const notificationElements = Array.from(this.container.children) as HTMLElement[];
-    
-    // Animate each notification to its new position
-    notificationElements.forEach((element, index) => {
-      const targetTransform = `translateY(${index * (320 + 8)}px)`; // 320px width + 8px gap
-      element.style.transform = targetTransform;
-    });
   }
 
   clearAll() {

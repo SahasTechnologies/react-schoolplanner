@@ -5,7 +5,6 @@ import SubjectCard from '../components/SubjectCard';
 import SubjectEditModal from '../components/SubjectEditModal';
 import ExamPanel from '../components/ExamPanel';
 import { normalizeSubjectName } from '../utils/subjectUtils';
-import { memoizedComparePassword } from '../utils/passwordUtils';
 import { showError } from '../utils/notificationUtils';
 import { defaultColours } from '../utils/fileUtils';
 import { exportMarkbookPdf } from '../utils/markbookPdf';
@@ -39,6 +38,7 @@ interface MarkbookPageProps {
   unlockAttempt: string;
   setUnlockAttempt: (value: string) => void;
   setIsMarkbookLocked: (value: boolean) => void;
+  onUnlock: (attempt: string) => Promise<boolean>;
 }
 
 export default function MarkbookPage({
@@ -69,7 +69,7 @@ export default function MarkbookPage({
   isMarkbookLocked,
   unlockAttempt,
   setUnlockAttempt,
-  setIsMarkbookLocked
+  onUnlock
 }: MarkbookPageProps) {
   // Helper: calculate average mark percentage for a subject (null if no marks)
   const getAverageMark = (subject: Subject): number | null => {
@@ -109,6 +109,23 @@ export default function MarkbookPage({
   });
 
   // Create the exam panel content - either login screen or actual exam panel
+  const [isUnlocking, setIsUnlocking] = React.useState(false);
+  const attemptUnlock = async () => {
+    if (isUnlocking) return;
+    setIsUnlocking(true);
+    try {
+      const ok = await onUnlock(unlockAttempt);
+      if (ok) {
+        setUnlockAttempt('');
+        handleSubjectSelect(null as any);
+      } else {
+        showError('Incorrect Password', 'Please try again', { effectiveMode, colors });
+      }
+    } finally {
+      setIsUnlocking(false);
+    }
+  };
+
   const examPanelContent = (markbookPasswordEnabled && isMarkbookLocked) ? (
     <div className="flex flex-col items-center justify-center h-full min-h-[400px]">
       <Shield className={effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400'} size={48} />
@@ -123,36 +140,24 @@ export default function MarkbookPage({
           onChange={(e) => setUnlockAttempt(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
-              const storedHash = localStorage.getItem('markbookPassword');
-              if (storedHash && memoizedComparePassword(unlockAttempt, storedHash)) {
-                setIsMarkbookLocked(false);
-                setUnlockAttempt('');
-              } else {
-                showError('Incorrect Password', 'Please try again', { effectiveMode, colors });
-              }
+              attemptUnlock();
             }
           }}
           className={`w-full px-4 py-3 rounded-lg border ${colors.border} focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4 text-lg ${colors.container} ${colors.text}`}
           placeholder="Enter password"
           autoComplete="off"
+          disabled={isUnlocking}
         />
         <button
-          onClick={() => {
-            const storedHash = localStorage.getItem('markbookPassword');
-            if (storedHash && memoizedComparePassword(unlockAttempt, storedHash)) {
-              setIsMarkbookLocked(false);
-              setUnlockAttempt('');
-            } else {
-              showError('Incorrect Password', 'Please try again', { effectiveMode, colors });
-            }
-          }}
-          className={`w-full ${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-3 rounded-lg font-medium transition-colors duration-200`}
+          onClick={attemptUnlock}
+          disabled={isUnlocking}
+          className={`w-full ${colors.buttonAccent} ${colors.buttonAccentHover} ${colors.buttonText} px-4 py-3 rounded-lg font-medium transition-colors duration-200 disabled:opacity-60`}
         >
-          Unlock
+          {isUnlocking ? 'Unlocking…' : 'Unlock'}
         </button>
       </div>
       {/* Footer */}
-      <p className={`mt-6 text-xs opacity-70 ${colors.containerText}`}>Protected by bcrypt hashing</p>
+      <p className={`mt-6 text-xs opacity-70 ${colors.containerText}`}>Protected by bcrypt hashing &amp; on-device encryption</p>
     </div>
   ) : (
     <ExamPanel
@@ -231,7 +236,7 @@ export default function MarkbookPage({
                   effectiveMode={effectiveMode}
                   colors={colors}
                   onEdit={startEditingSubject}
-                  onSelect={handleSubjectSelect}
+                  onSelect={(markbookPasswordEnabled && isMarkbookLocked) ? () => {} : handleSubjectSelect}
                 />
               ))
             )}

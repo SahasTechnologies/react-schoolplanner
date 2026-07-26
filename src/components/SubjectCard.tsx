@@ -42,10 +42,10 @@ const EditButton: React.FC<{ onEdit: () => void; colors: any }> = ({ onEdit, col
         onEdit();
       }}
       onAnimationEnd={() => setIsPopping(false)}
-      className={`${colors.container} ${colors.border} border rounded-r-2xl rounded-l-lg px-3 flex items-center justify-center text-gray-400 hover:text-white active:scale-90 transition-transform duration-150 ${isPopping ? 'animate-edit-pop' : ''}`}
+      className={`${colors.container} bg-white/10 ${colors.border} border rounded-r-2xl rounded-l-lg px-3 flex items-center justify-center ${colors.containerText} opacity-70 hover:opacity-100 active:scale-90 transition-all duration-150 ${isPopping ? 'animate-edit-pop' : ''}`}
       title="Edit subject"
     >
-      <Edit2 size={16} />
+      <Edit2 size={20} />
     </button>
   );
 };
