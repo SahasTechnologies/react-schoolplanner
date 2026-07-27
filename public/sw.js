@@ -1,5 +1,5 @@
 // Service Worker for School Planner
-const CACHE_NAME = 'school-planner-v5';
+const CACHE_NAME = 'school-planner-v6';
 const OFFLINE_FALLBACK_PAGE = '/index.html';
 
 // Pre-cache the application shell. The actual JS/CSS/font bundle has
@@ -55,6 +55,39 @@ async function discoverAndCacheAssets(cache) {
     );
   } catch (_) {
     // ignore, best-effort
+  }
+
+  // Belt-and-braces: also precache everything listed in the build-time
+  // manifest (see vite.config.ts's assetManifestPlugin). index.html only
+  // ever references the entry chunk, the manualChunks (vendor/router/
+  // icons), and the stylesheet -- it never references route-level
+  // code-split chunks (Settings, MarkbookPage, WeekViewPage), on-demand
+  // heavy libraries (the jsPDF/html2canvas/DOMPurify chunk), or the font
+  // files (only linked from inside the compiled CSS). Without this, going
+  // offline before ever visiting those routes/features left them totally
+  // broken because their JS had never been fetched, let alone cached.
+  try {
+    const manifestResp = await fetch('/asset-manifest.json', { cache: 'no-store' });
+    if (manifestResp && manifestResp.ok) {
+      const manifestUrls = await manifestResp.json();
+      if (Array.isArray(manifestUrls)) {
+        await Promise.all(
+          manifestUrls.map(async (url) => {
+            try {
+              const resp = await fetch(url);
+              if (resp && resp.status === 200) {
+                await cache.put(url, resp);
+              }
+            } catch (_) {
+              // ignore individual asset failures, best-effort
+            }
+          })
+        );
+      }
+    }
+  } catch (_) {
+    // asset-manifest.json doesn't exist in dev (vite dev server) -- fine,
+    // this is purely an enhancement over the index.html scan above.
   }
 }
 
@@ -189,7 +222,24 @@ self.addEventListener('message', (event) => {
     self.skipWaiting();
   }
   if (event.data && event.data.type === 'UPDATE_CACHE') {
-    event.waitUntil(updateCache());
+    const respond = (success) => {
+      // Prefer a MessageChannel port if the client provided one (request/
+      // response), otherwise fall back to posting straight back to the
+      // client that sent the message. Previously nothing was ever sent
+      // back, so the "Update Cache" button in Settings just assumed
+      // success the instant the message was posted, regardless of whether
+      // the service worker actually managed to refetch anything.
+      if (event.ports && event.ports[0]) {
+        event.ports[0].postMessage({ type: 'CACHE_UPDATED', success });
+      } else if (event.source) {
+        event.source.postMessage({ type: 'CACHE_UPDATED', success });
+      }
+    };
+    event.waitUntil(
+      updateCache()
+        .then(() => respond(true))
+        .catch(() => respond(false))
+    );
   }
 });
 
@@ -202,16 +252,19 @@ self.addEventListener('sync', (event) => {
 
 // Function to update cache with latest versions
 async function updateCache() {
-  try {
-    const cache = await caches.open(CACHE_NAME);
-    for (const url of urlsToCache) {
-      try {
-        const response = await fetch(url);
-        if (response.status === 200) {
-          await cache.put(url, response.clone());
-        }
-      } catch (_) {}
-    }
-    await discoverAndCacheAssets(cache);
-  } catch (_) {}
+  // Only swallow errors from individual URL fetches (best-effort, one bad
+  // source shouldn't fail the whole update). A failure to even open the
+  // cache is a real failure and should propagate so the caller (see the
+  // 'message' handler above) can report it back to the UI instead of
+  // silently claiming success.
+  const cache = await caches.open(CACHE_NAME);
+  for (const url of urlsToCache) {
+    try {
+      const response = await fetch(url);
+      if (response.status === 200) {
+        await cache.put(url, response.clone());
+      }
+    } catch (_) {}
+  }
+  await discoverAndCacheAssets(cache);
 }

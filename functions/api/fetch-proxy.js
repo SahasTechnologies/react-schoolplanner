@@ -28,6 +28,8 @@ const ALLOWED_HOSTS = new Set([
   'favqs.com',
   'zenquotes.io',
   'www.nswschoolholiday.com.au',
+  'kwize.com',
+  'gist.githubusercontent.com',
 ]);
 
 // Only proxy plain GETs to a small known allowlist of sources -- this is

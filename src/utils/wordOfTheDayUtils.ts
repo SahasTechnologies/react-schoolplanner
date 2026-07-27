@@ -340,15 +340,37 @@ async function fetchFromMerriamWebsterRSS(): Promise<WordOfTheDay | null> {
     const xml = await fetchHtmlWithProxies('https://www.merriam-webster.com/wotd/feed/rss2');
     const parser = new XMLParser({ ignoreAttributes: false, cdataPropName: '__cdata' });
     const rss = parser.parse(xml);
-    const item = rss?.rss?.channel?.item || rss?.channel?.item;
+    const rawItem = rss?.rss?.channel?.item ?? rss?.channel?.item;
+    if (!rawItem) throw new Error('No RSS items');
+    // The feed contains several recent entries, not just today's -- so
+    // fast-xml-parser represents <item> as an ARRAY, not a single object.
+    // Treating it as one object (the previous code did `item.description`
+    // directly on whatever this was) meant every property access silently
+    // returned undefined whenever there was more than one <item>, which is
+    // effectively always, so this source failed on every request.
+    const item = Array.isArray(rawItem) ? rawItem[0] : rawItem;
     if (!item) throw new Error('No RSS items');
-    const desc = String(item.description || item.__cdata || '');
-    // description is HTML inside CDATA
-    // Word is bolded early
-    let word = '';
-    const mWord = desc.match(/<strong>([^<]+)<\/strong>/i);
-    if (mWord) word = mWord[1].trim();
+
+    const desc = String(
+      (typeof item.description === 'object' ? item.description?.__cdata : item.description) ??
+      item.__cdata ?? ''
+    );
+
+    // The word is most reliably the RSS <title> -- MW's word-of-the-day
+    // feed normally uses just the bare word as the title. Fall back to the
+    // bolded word the description HTML conventionally leads with if the
+    // title doesn't look like a single word (e.g. some feed revisions
+    // prefix it with "Word of the Day: ").
+    const rawTitle = String(
+      (typeof item.title === 'object' ? item.title?.__cdata : item.title) ?? ''
+    ).trim();
+    let word = rawTitle.replace(/^Word of the Day:\s*/i, '').trim();
+    if (!word || /[.:]/.test(word) || word.split(/\s+/).length > 3) {
+      const mWord = desc.match(/<strong>([^<]+)<\/strong>/i);
+      word = (mWord ? mWord[1].trim() : word) || word;
+    }
     if (!word) throw new Error('MW RSS: no word');
+
     // Type
     let type = 'word';
     const mType = desc.match(/<em>([^<]+)<\/em>/i);
@@ -369,7 +391,13 @@ async function fetchFromMerriamWebsterRSS(): Promise<WordOfTheDay | null> {
       definition = parseHtmlEntities(t);
       break;
     }
-    if (!definition) definition = 'Visit Merriam-Webster to see the full definition.';
+    // Some feed revisions put the whole entry in <description> without any
+    // <p> tags at all -- rather than giving up, fall back to stripping all
+    // tags from the whole description so there's still a real definition.
+    if (!definition) {
+      const stripped = parseHtmlEntities(desc.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim());
+      definition = stripped.length > 20 ? stripped : 'Visit Merriam-Webster to see the full definition.';
+    }
     return { word, pronunciation, type, definition, source: 'merriam-webster' };
   } catch (e) {
     console.error('[WordOfTheDay] Merriam-Webster RSS failed:', e);

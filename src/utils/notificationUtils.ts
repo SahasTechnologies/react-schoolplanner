@@ -21,6 +21,13 @@ class NotificationManager {
   private notifications: NotificationItem[] = [];
   private container!: HTMLElement;
 
+  // Shared transition used for every animated property on a notification.
+  // Kept as a constant (rather than baked into transition: all/none toggles
+  // done ad-hoc) so FLIP repositioning can briefly disable and then
+  // precisely restore the exact same transition -- see animateReposition().
+  private static readonly TRANSITION =
+    'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+
   constructor() {
     this.createContainer();
   }
@@ -60,9 +67,11 @@ class NotificationManager {
       max-width: 320px;
       width: 320px;
       pointer-events: auto;
-      transform: translateX(100%);
+      --tx: 100%;
+      --ty: 0px;
+      transform: translateX(var(--tx)) translateY(var(--ty));
       opacity: 0;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: ${NotificationManager.TRANSITION};
       margin-bottom: 0;
     `;
 
@@ -289,9 +298,9 @@ class NotificationManager {
     this.container.appendChild(element);
     this.notifications.push(notification);
 
-    // Trigger slide-in animation from left
+    // Trigger slide-in animation from the right
     requestAnimationFrame(() => {
-      element.style.transform = 'translateX(0)';
+      element.style.setProperty('--tx', '0%');
       element.style.opacity = '1';
     });
 
@@ -336,24 +345,55 @@ class NotificationManager {
     if (!notification) return;
 
     notification.isExiting = true;
-    
+
     // Slide out to the right
-    notification.element.style.transform = 'translateX(100%)';
+    notification.element.style.setProperty('--tx', '100%');
     notification.element.style.opacity = '0';
 
     // After the exit animation, remove the element from the DOM. The
-    // container is a flex column with its own gap, so the remaining
-    // notifications reflow into place automatically -- no manual
-    // repositioning needed (a previous version of this function applied a
-    // manual translateY on top of that flex layout, which double-offset
-    // every notification after the first and got worse with each one
-    // added or removed).
+    // container is a flex column, so once this element is actually taken
+    // out of the flow, every notification below it collapses upward
+    // instantly with no animation of its own -- animateReposition() below
+    // is what turns that instant snap into a smooth slide.
     setTimeout(() => {
+      const remaining = this.notifications.filter(n => n.id !== id);
+      const oldRects = new Map(remaining.map(n => [n.id, n.element.getBoundingClientRect()]));
+
       if (notification.element.parentNode) {
         notification.element.parentNode.removeChild(notification.element);
       }
       this.notifications = this.notifications.filter(n => n.id !== id);
+
+      this.animateReposition(remaining, oldRects);
     }, 300);
+  }
+
+  // FLIP (First-Last-Invert-Play) reposition animation: given each
+  // notification's bounding rect *before* a DOM mutation that may have
+  // shifted it (a sibling being removed above/below it), instantly offset
+  // it back to its old position with transitions disabled, then release
+  // that offset on the next frame so it animates into its real new spot.
+  // This is what makes notifications slide smoothly up or down when
+  // another one is added or removed, instead of jumping into place.
+  private animateReposition(items: NotificationItem[], oldRects: Map<string, DOMRect>) {
+    items.forEach(n => {
+      if (n.isExiting) return;
+      const oldRect = oldRects.get(n.id);
+      if (!oldRect) return;
+      const newRect = n.element.getBoundingClientRect();
+      const delta = oldRect.top - newRect.top;
+      if (Math.abs(delta) < 1) return;
+
+      n.element.style.transition = 'none';
+      n.element.style.setProperty('--ty', `${delta}px`);
+      // Force a reflow so the browser registers the offset starting point
+      // before we restore the transition and animate back to 0.
+      void n.element.offsetHeight;
+      n.element.style.transition = NotificationManager.TRANSITION;
+      requestAnimationFrame(() => {
+        n.element.style.setProperty('--ty', '0px');
+      });
+    });
   }
 
   clearAll() {

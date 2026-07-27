@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { LoaderCircle, BookOpen, CloudOff } from 'lucide-react';
+import { LoaderCircle, BookOpen, CloudOff, ArrowRight } from 'lucide-react';
 import { ThemeKey, getColors } from '../utils/themeUtils';
 import { fetchWordOfTheDay, getCachedWord, cacheWord, WordOfTheDay, clearWordCache } from '../utils/wordOfTheDayUtils';
 
@@ -193,9 +193,10 @@ export default function WordOfTheDayWidget({
             href={source.url}
             target="_blank"
             rel="noopener noreferrer"
-            className={`text-xs mt-2 opacity-60 hover:opacity-100 transition-opacity ${colors.text}`}
+            className={`text-xs mt-2 opacity-60 hover:opacity-100 transition-opacity inline-flex items-center gap-1 ${colors.text}`}
           >
-            View on {source.name} →
+            <span>View on {source.name}</span>
+            <ArrowRight size={12} />
           </a>
         );
       })()}

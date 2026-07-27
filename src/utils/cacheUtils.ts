@@ -98,13 +98,25 @@ export const forceCacheUpdate = async (): Promise<boolean> => {
   if (!isServiceWorkerSupported()) {
     return false;
   }
-  
+
   try {
     const registration = await navigator.serviceWorker.getRegistration();
     if (registration && registration.active) {
-      // Send message to service worker to update cache
-      registration.active.postMessage({ type: 'UPDATE_CACHE' });
-      return true;
+      // Wait for the service worker's actual CACHE_UPDATED reply (see
+      // sw.js) instead of assuming success the instant the message is
+      // posted -- previously this resolved true unconditionally, so the
+      // "Update Cache" button in Settings always showed a success toast
+      // even if the service worker failed to refresh anything.
+      const result = await new Promise<boolean>((resolve) => {
+        const channel = new MessageChannel();
+        const timeout = setTimeout(() => resolve(false), 15000);
+        channel.port1.onmessage = (event) => {
+          clearTimeout(timeout);
+          resolve(!!event.data?.success);
+        };
+        registration.active!.postMessage({ type: 'UPDATE_CACHE' }, [channel.port2]);
+      });
+      return result;
     }
     return false;
   } catch {

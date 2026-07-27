@@ -289,15 +289,24 @@ const Settings: React.FC<SettingsProps> = ({
   const [changePasswordConfirm, setChangePasswordConfirm] = useState('');
   const [quoteProvider, setQuoteProvider] = useState(() => {
     const stored = localStorage.getItem('quoteProvider');
-    // Migrate deprecated values
+    // Migrate deprecated values. BrainyQuote never actually worked (no
+    // browser-usable API) so it's replaced outright by Kwize; Baulko Bell
+    // Times is replaced by the JakubPetriska quotes CSV.
     if (stored === 'notion-quote' || stored === 'random-quotes-api') {
       localStorage.setItem('quoteProvider', 'favqs');
       return 'favqs';
     }
-    return stored || 'brainyquote';
+    if (stored === 'brainyquote') {
+      localStorage.setItem('quoteProvider', 'kwize');
+      return 'kwize';
+    }
+    if (stored === 'baulko-bell-times') {
+      localStorage.setItem('quoteProvider', 'jakub-petriska');
+      return 'jakub-petriska';
+    }
+    return stored || 'kwize';
   });
-  const [brainyQuoteType, setBrainyQuoteType] = useState(() => localStorage.getItem('quoteType') || 'normal');
-  const [baulkoQuoteRefreshMode, setBaulkoQuoteRefreshMode] = useState(() => localStorage.getItem('baulkoQuoteRefreshMode') || 'daily');
+  const [jakubPetriskaQuoteRefreshMode, setJakubPetriskaQuoteRefreshMode] = useState(() => localStorage.getItem('jakubPetriskaQuoteRefreshMode') || 'daily');
 
   // Word of the Day source lives only in localStorage; no component state needed
 
@@ -605,16 +614,12 @@ const Settings: React.FC<SettingsProps> = ({
                   const provider = e.target.value;
                   setQuoteProvider(provider);
                   localStorage.setItem('quoteProvider', provider);
-                  // Clear all BrainyQuote caches
-                  ['normal', 'love', 'art', 'nature', 'funny'].forEach(type => {
-                    localStorage.removeItem(`quoteOfTheDayCache_${type}`);
-                  });
                   // Clear legacy RandomQuotes API cache if present
                   localStorage.removeItem('randomQuoteCache');
                   localStorage.removeItem('randomQuoteCacheDate');
-                  // Clear Baulko cache
-                  localStorage.removeItem('baulkoQuoteCache');
-                  localStorage.removeItem('baulkoQuoteCacheDate');
+                  // Clear JakubPetriska cache
+                  localStorage.removeItem('jakubPetriskaQuoteCache');
+                  localStorage.removeItem('jakubPetriskaQuoteCacheDate');
 
                   // Notify widgets to refresh automatically
                   window.dispatchEvent(new CustomEvent('quoteTypeChanged'));
@@ -622,78 +627,39 @@ const Settings: React.FC<SettingsProps> = ({
                 }}
                 className={`px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text}`}
               >
-                <option value="brainyquote">BrainyQuote</option>
+                <option value="kwize">Kwize</option>
                 <option value="favqs">Favqs</option>
                 <option value="zenquotes">ZenQuotes</option>
-                <option value="baulko-bell-times">Baulko Bell Times</option>
+                <option value="jakub-petriska">JakubPetriska Quotes</option>
               </select>
             </div>
             <div
               className="overflow-hidden transition-all duration-500 ease-in-out"
               style={{
-                maxHeight: quoteProvider === 'brainyquote' ? '140px' : '0px',
-                opacity: quoteProvider === 'brainyquote' ? 1 : 0,
-                marginTop: quoteProvider === 'brainyquote' ? '4px' : '0px'
+                maxHeight: quoteProvider === 'jakub-petriska' ? '140px' : '0px',
+                opacity: quoteProvider === 'jakub-petriska' ? 1 : 0,
+                marginTop: quoteProvider === 'jakub-petriska' ? '4px' : '0px'
               }}
             >
               <div className={`${colors.container} ${colors.border} border p-4 flex items-center justify-between transition-all duration-500`} style={{ borderRadius: '10px 10px 16px 16px' }}>
                 <div className="flex items-center gap-3">
                   <Quote className={`${colors.accentText}`} size={18} />
                   <div>
-                    <p className={`font-medium ${colors.containerText}`}>BrainyQuote Quote Type</p>
-                    <p className={`text-sm ${colors.containerText} opacity-80`}>Choose which type of quote to display from BrainyQuote</p>
-                  </div>
-                </div>
-                <select
-                  value={brainyQuoteType}
-                  onChange={(e) => {
-                    const type = e.target.value;
-                    setBrainyQuoteType(type);
-                    localStorage.setItem('quoteType', type);
-                    ['normal', 'love', 'art', 'nature', 'funny'].forEach(type => {
-                      localStorage.removeItem(`quoteOfTheDayCache_${type}`);
-                    });
-                    // Notify widgets to refresh automatically
-                    window.dispatchEvent(new CustomEvent('quoteTypeChanged'));
-                    showSuccess('Quote Type Updated', `Quote type changed to ${type}. The widget will refresh automatically!`, { effectiveMode, colors });
-                  }}
-                  className={`px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text}`}
-                >
-                  <option value="normal">BrainyQuote Quote of the Day</option>
-                  <option value="love">BrainyQuote Love Quote</option>
-                  <option value="art">BrainyQuote Art Quote</option>
-                  <option value="nature">BrainyQuote Nature Quote</option>
-                  <option value="funny">BrainyQuote Funny Quote</option>
-                </select>
-              </div>
-            </div>
-            <div
-              className="overflow-hidden transition-all duration-500 ease-in-out"
-              style={{
-                maxHeight: quoteProvider === 'baulko-bell-times' ? '140px' : '0px',
-                opacity: quoteProvider === 'baulko-bell-times' ? 1 : 0,
-                marginTop: quoteProvider === 'baulko-bell-times' ? '4px' : '0px'
-              }}
-            >
-              <div className={`${colors.container} ${colors.border} border p-4 flex items-center justify-between transition-all duration-500`} style={{ borderRadius: '10px 10px 16px 16px' }}>
-                <div className="flex items-center gap-3">
-                  <Quote className={`${colors.accentText}`} size={18} />
-                  <div>
-                    <p className={`font-medium ${colors.containerText}`}>Baulko Bell Times Refresh Mode</p>
+                    <p className={`font-medium ${colors.containerText}`}>JakubPetriska Quotes Refresh Mode</p>
                     <p className={`text-sm ${colors.containerText} opacity-80`}>Choose when to refresh the quote</p>
                   </div>
                 </div>
                 <select
-                  value={baulkoQuoteRefreshMode}
+                  value={jakubPetriskaQuoteRefreshMode}
                   onChange={(e) => {
                     const mode = e.target.value;
-                    setBaulkoQuoteRefreshMode(mode);
-                    localStorage.setItem('baulkoQuoteRefreshMode', mode);
+                    setJakubPetriskaQuoteRefreshMode(mode);
+                    localStorage.setItem('jakubPetriskaQuoteRefreshMode', mode);
                     if (mode === 'reload') {
-                      localStorage.removeItem('baulkoQuoteCache');
-                      localStorage.removeItem('baulkoQuoteCacheDate');
+                      localStorage.removeItem('jakubPetriskaQuoteCache');
+                      localStorage.removeItem('jakubPetriskaQuoteCacheDate');
                     }
-                    showSuccess('Refresh Mode Updated', `Baulko Bell Times will refresh ${mode === 'reload' ? 'on every page reload' : 'once daily at midnight'}`, { effectiveMode, colors });
+                    showSuccess('Refresh Mode Updated', `JakubPetriska Quotes will refresh ${mode === 'reload' ? 'on every page reload' : 'once daily at midnight'}`, { effectiveMode, colors });
                     window.dispatchEvent(new CustomEvent('quoteTypeChanged'));
                   }}
                   className={`px-3 py-2 rounded-lg border ${colors.border} ${colors.container} ${colors.text}`}

@@ -1,13 +1,14 @@
 import * as React from 'react';
-import { LoaderCircle, Quote, CloudOff } from 'lucide-react';
+import { LoaderCircle, Quote, CloudOff, ArrowRight } from 'lucide-react';
 import { ThemeKey, getColors } from '../utils/themeUtils';
 import {
   QuoteOfTheDay,
   fetchFavqsQuote,
   fetchZenQuotesToday,
-  fetchBaulkoQuote,
-  getCachedBaulkoQuote,
-  cacheBaulkoQuote
+  fetchKwizeQuote,
+  fetchJakubPetriskaQuote,
+  getCachedJakubPetriskaQuote,
+  cacheJakubPetriskaQuote
 } from '../utils/quoteOfTheDayUtils';
 
 interface QuoteOfTheDayWidgetProps {
@@ -49,16 +50,24 @@ export default function QuoteOfTheDayWidget({
       mountTimeRef.current = Date.now();
     }
 
-    let quoteProvider = localStorage.getItem('quoteProvider') || 'favqs';
-    // Migrate old/deprecated providers
-    if (quoteProvider === 'notion-quote' || quoteProvider === 'random-quotes-api' || quoteProvider === 'brainyquote') {
+    let quoteProvider = localStorage.getItem('quoteProvider') || 'kwize';
+    // Migrate old/deprecated providers. BrainyQuote never actually worked
+    // (no browser-usable API), so it's replaced outright by Kwize; Baulko
+    // Bell Times is replaced by the JakubPetriska quotes CSV.
+    if (quoteProvider === 'notion-quote' || quoteProvider === 'random-quotes-api') {
       quoteProvider = 'favqs';
       localStorage.setItem('quoteProvider', 'favqs');
+    } else if (quoteProvider === 'brainyquote') {
+      quoteProvider = 'kwize';
+      localStorage.setItem('quoteProvider', 'kwize');
+    } else if (quoteProvider === 'baulko-bell-times') {
+      quoteProvider = 'jakub-petriska';
+      localStorage.setItem('quoteProvider', 'jakub-petriska');
     }
     console.log('[QuoteWidget] Using quote provider:', quoteProvider);
 
     const originalProvider = quoteProvider;
-    const label = (p: string) => p === 'favqs' ? 'Favqs' : p === 'zenquotes' ? 'ZenQuotes' : 'Baulko Bell Times';
+    const label = (p: string) => p === 'favqs' ? 'Favqs' : p === 'zenquotes' ? 'ZenQuotes' : p === 'kwize' ? 'Kwize' : 'JakubPetriska Quotes';
 
     const tryFavqs = async () => {
       console.log('[QuoteWidget] Trying Favqs...');
@@ -68,9 +77,13 @@ export default function QuoteOfTheDayWidget({
       console.log('[QuoteWidget] Trying ZenQuotes...');
       return await fetchZenQuotesToday();
     };
-    const tryBaulko = async () => {
-      console.log('[QuoteWidget] Trying Baulko Bell Times...');
-      return await fetchBaulkoQuote();
+    const tryKwize = async () => {
+      console.log('[QuoteWidget] Trying Kwize...');
+      return await fetchKwizeQuote();
+    };
+    const tryJakubPetriska = async () => {
+      console.log('[QuoteWidget] Trying JakubPetriska Quotes...');
+      return await fetchJakubPetriskaQuote();
     };
 
     const finish = (ok: boolean, data?: QuoteOfTheDay | null) => {
@@ -94,7 +107,7 @@ export default function QuoteOfTheDayWidget({
       }
       // fallback order
       console.log('[QuoteWidget] Favqs failed, trying fallbacks...');
-      const alt = await tryZen() || await tryBaulko();
+      const alt = await tryZen() || await tryKwize();
       return finish(!!alt, alt);
     } else if (quoteProvider === 'zenquotes') {
       const data = await tryZen();
@@ -105,33 +118,44 @@ export default function QuoteOfTheDayWidget({
         return;
       }
       console.log('[QuoteWidget] ZenQuotes failed, trying fallbacks...');
-      const alt = await tryFavqs() || await tryBaulko();
+      const alt = await tryFavqs() || await tryKwize();
       return finish(!!alt, alt);
-    } else if (quoteProvider === 'baulko-bell-times') {
+    } else if (quoteProvider === 'kwize') {
+      const data = await tryKwize();
+      if (data) {
+        setQuoteData(data);
+        setBlockedNote(null);
+        if (silent) setLoading(false); else stopSpinner();
+        return;
+      }
+      console.log('[QuoteWidget] Kwize failed, trying fallbacks...');
+      const alt = await tryFavqs() || await tryZen();
+      return finish(!!alt, alt);
+    } else if (quoteProvider === 'jakub-petriska') {
       if (forceRefresh) {
-        localStorage.removeItem('baulkoQuoteCache');
-        localStorage.removeItem('baulkoQuoteCacheDate');
+        localStorage.removeItem('jakubPetriskaQuoteCache');
+        localStorage.removeItem('jakubPetriskaQuoteCacheDate');
       } else {
-        const cached = getCachedBaulkoQuote();
+        const cached = getCachedJakubPetriskaQuote();
         if (cached) {
-          console.log('[QuoteWidget] Using cached Baulko Bell Times quote');
+          console.log('[QuoteWidget] Using cached JakubPetriska quote');
           setQuoteData(cached);
           setLoading(false);
           return;
         }
       }
 
-      console.log('[QuoteWidget] Fetching Baulko Bell Times quote...');
-      const data = await fetchBaulkoQuote();
+      console.log('[QuoteWidget] Fetching JakubPetriska quote...');
+      const data = await tryJakubPetriska();
       if (data) {
-        console.log('[QuoteWidget] Successfully fetched Baulko quote');
+        console.log('[QuoteWidget] Successfully fetched JakubPetriska quote');
         setQuoteData(data);
-        cacheBaulkoQuote(data);
+        cacheJakubPetriskaQuote(data);
         setBlockedNote(null);
         if (silent) setLoading(false); else stopSpinner();
         return;
       }
-      console.error('[QuoteWidget] Failed to fetch Baulko quote, trying fallbacks');
+      console.error('[QuoteWidget] Failed to fetch JakubPetriska quote, trying fallbacks');
       const alt = await tryFavqs() || await tryZen();
       return finish(!!alt, alt);
     }
@@ -195,15 +219,20 @@ export default function QuoteOfTheDayWidget({
           href={quoteData.link}
           target="_blank"
           rel="noopener noreferrer"
-          className={`text-xs mt-2 opacity-60 hover:opacity-100 transition-opacity ${colors.text}`}
+          className={`text-xs mt-2 opacity-60 hover:opacity-100 transition-opacity inline-flex items-center gap-1 ${colors.text}`}
         >
-          {quoteData.source === 'favqs'
-            ? 'View on Favqs →'
-            : quoteData.source === 'zenquotes'
-              ? 'View on ZenQuotes →'
-              : quoteData.source === 'baulko-bell-times'
-                ? 'View on Baulko Bell Times →'
-                : 'View Source →'}
+          <span>
+            {quoteData.source === 'favqs'
+              ? 'View on Favqs'
+              : quoteData.source === 'zenquotes'
+                ? 'View on ZenQuotes'
+                : quoteData.source === 'kwize'
+                  ? 'View on Kwize'
+                  : quoteData.source === 'jakub-petriska'
+                    ? 'View on JakubPetriska Quotes'
+                    : 'View Source'}
+          </span>
+          <ArrowRight size={12} />
         </a>
       )}
     </div>

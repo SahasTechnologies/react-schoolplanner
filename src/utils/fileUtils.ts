@@ -408,7 +408,7 @@ export const exportAllData = (
       'weekNumberingEnabled',
       'use24HourFormat',
       'quoteProvider',
-      'brainyquoteQuoteType',
+      'jakubPetriskaQuoteRefreshMode',
       'notionQuoteRefreshMode',
       'wordSource',
       'linksView'
