@@ -1,5 +1,5 @@
 // Service Worker for School Planner
-const CACHE_NAME = 'school-planner-v6';
+const CACHE_NAME = 'school-planner-v7';
 const OFFLINE_FALLBACK_PAGE = '/index.html';
 
 // Pre-cache the application shell. The actual JS/CSS/font bundle has
@@ -141,13 +141,18 @@ self.addEventListener('fetch', (event) => {
           // Fetch the actual requested URL so any CDN-injected attributes/scripts remain consistent
           const fresh = await fetch(req);
           if (fresh && fresh.ok) {
-            // In the background, refresh the offline fallback HTML from /index.html
+            // Keep the offline copy in sync in the background. This has to
+            // re-run the FULL asset discovery (not just re-fetch
+            // index.html) -- otherwise, after a redeploy changes the
+            // content-hashed JS/CSS filenames, this would overwrite the
+            // cached index.html to reference the NEW hashes while the
+            // cache still only contains the OLD build's files. The site
+            // would then look perfectly cached (the entry still shows up
+            // in Cache Storage) right up until an offline reload actually
+            // needed one of those newly-referenced, never-cached files.
             try {
               const cache = await caches.open(CACHE_NAME);
-              const idx = await fetch(OFFLINE_FALLBACK_PAGE);
-              if (idx && idx.ok) {
-                cache.put(OFFLINE_FALLBACK_PAGE, idx.clone());
-              }
+              await discoverAndCacheAssets(cache);
             } catch (_) {}
             return fresh;
           }
@@ -164,9 +169,17 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-First for fonts
+  // Cache-First for fonts and the hashed Vite build output (/assets/*).
+  // These filenames are content-hashed by the build, so once one is
+  // cached it can never go stale under that URL -- there's no reason to
+  // wait on a network round-trip for it on every load, and serving
+  // straight from cache means an offline reload doesn't depend on a
+  // network attempt failing cleanly for every single chunk before falling
+  // back (any one hanging or behaving oddly used to risk the reload
+  // looking like it "didn't load").
+  const isBuildAsset = url.origin === self.location.origin && url.pathname.startsWith('/assets/');
   const isFontRequest = req.destination === 'font' || /\.(?:woff2?|ttf|otf|eot)$/i.test(url.pathname);
-  if (isFontRequest) {
+  if (isBuildAsset || isFontRequest) {
     event.respondWith(
       (async () => {
         const cache = await caches.open(CACHE_NAME);

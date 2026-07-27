@@ -50,30 +50,12 @@ export default function LinksWidget({ effectiveMode, colors }: LinksWidgetProps)
     return [
       {
         id: '1',
-        name: 'Moodle',
-        url: 'https://web1.baulkham-h.schools.nsw.edu.au/',
-        icon: 'Folder'
-      },
-      {
-        id: '2',
-        name: 'Calendar',
-        url: 'https://baulkham-h.sentral.com.au',
-        icon: 'Clock'
-      },
-      {
-        id: '3',
-        name: 'Newsletter',
-        url: 'https://baulkham-h.schools.nsw.gov.au',
-        icon: 'Newspaper'
-      },
-      {
-        id: '4',
         name: 'Sentral',
         url: 'https://baulkham-h.sentral.com.au/auth/portal?action=login_student',
         icon: 'CreditCard'
       },
       {
-        id: '5',
+        id: '2',
         name: 'Printing',
         url: 'http://10.209.96.176',
         icon: 'Printer'

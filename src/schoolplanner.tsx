@@ -791,26 +791,32 @@ const SchoolPlanner = () => {
             the space-y container's first child with no space-y of its own,
             so the greeting's top offset is exactly pt-4 -- matching
             Calendar/Markbook/Settings -- with nothing else adding to it. */}
-        <div className="relative pt-4 mb-4">
-          <div ref={(el) => {
-            if (el) {
-              el.innerHTML = '';
-              const indicator = createOfflineIndicatorElement({
-                effectiveMode,
-                size: 'medium',
-                offlineCachingEnabled,
-                onToggleOfflineCaching: () => setOfflineCachingEnabled(!offlineCachingEnabled)
-              });
-              el.appendChild(indicator);
-            }
-          }} className="absolute top-4 right-0 z-10" />
-          {/* Greeting + Week badge */
-          }
+        <div className="pt-4 mb-4">
+          {/* Greeting + offline indicator + Week badge */}
           <div>
             <div className="flex items-center justify-between gap-4">
               <h1 className={`font-bold leading-normal tracking-tight ${colors.text} text-2xl sm:text-3xl md:text-4xl whitespace-nowrap overflow-hidden text-ellipsis py-1`}>
                 {`${getGreeting(userName)}.`}
               </h1>
+            <div className="flex items-center gap-3">
+              {/* Offline indicator: sits inline in the header row (vertically
+                  centered via the row's items-center) rather than as an
+                  absolutely-positioned overlay, so it never collides with
+                  the Week badge -- it lands just to that badge's left when
+                  it's shown, or at the right edge of the header on its own
+                  when there's no badge to sit next to. */}
+              <div ref={(el) => {
+                if (el) {
+                  el.innerHTML = '';
+                  const indicator = createOfflineIndicatorElement({
+                    effectiveMode,
+                    size: 'medium',
+                    offlineCachingEnabled,
+                    onToggleOfflineCaching: () => setOfflineCachingEnabled(!offlineCachingEnabled)
+                  });
+                  el.appendChild(indicator);
+                }
+              }} />
             {weekBadgeText && (
               <div className="relative group">
                 <span className={`inline-flex items-center px-4 py-1.5 rounded-xl border ${colors.border} ${colors.container} ${colors.containerText} text-base sm:text-lg font-semibold whitespace-nowrap cursor-pointer transition-all`}>{weekBadgeText}</span>
@@ -911,6 +917,7 @@ const SchoolPlanner = () => {
                 </div>
               </div>
             )}
+            </div>
           </div>
         </div>
         </div>
