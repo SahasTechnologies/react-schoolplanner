@@ -93,7 +93,13 @@ export const checkForUpdates = async (): Promise<boolean> => {
   }
 };
 
-// Force update the cache
+// Force update the cache: check the server for a newer deployed service
+// worker (Workbox revisions its precache manifest, and therefore the
+// sw.js file itself, on every build) and let it take over. The generated
+// service worker is configured with skipWaiting/clientsClaim, so once an
+// update is found it installs and activates automatically -- there's no
+// custom message protocol to speak to here (that was specific to the old
+// hand-written service worker, which Workbox has replaced).
 export const forceCacheUpdate = async (): Promise<boolean> => {
   if (!isServiceWorkerSupported()) {
     return false;
@@ -101,24 +107,9 @@ export const forceCacheUpdate = async (): Promise<boolean> => {
 
   try {
     const registration = await navigator.serviceWorker.getRegistration();
-    if (registration && registration.active) {
-      // Wait for the service worker's actual CACHE_UPDATED reply (see
-      // sw.js) instead of assuming success the instant the message is
-      // posted -- previously this resolved true unconditionally, so the
-      // "Update Cache" button in Settings always showed a success toast
-      // even if the service worker failed to refresh anything.
-      const result = await new Promise<boolean>((resolve) => {
-        const channel = new MessageChannel();
-        const timeout = setTimeout(() => resolve(false), 15000);
-        channel.port1.onmessage = (event) => {
-          clearTimeout(timeout);
-          resolve(!!event.data?.success);
-        };
-        registration.active!.postMessage({ type: 'UPDATE_CACHE' }, [channel.port2]);
-      });
-      return result;
-    }
-    return false;
+    if (!registration) return false;
+    await registration.update();
+    return true;
   } catch {
     return false;
   }
