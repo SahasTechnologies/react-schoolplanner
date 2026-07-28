@@ -47,23 +47,34 @@ async function fetchFromMerriamWebster(): Promise<WordOfTheDay | null> {
 async function fetchFromDictionaryCom(): Promise<WordOfTheDay | null> {
   console.log('[WordOfTheDay] Trying Dictionary.com...');
   try {
-    const html = await fetchHtmlWithProxies('https://www.dictionary.com/e/word-of-the-day/');
-    // Word
-    const titleMatch = html.match(/<title>Word of the Day - ([^|]+) \| Dictionary\.com<\/title>/);
-    if (!titleMatch) throw new Error('Dict.com: word not found');
-    const word = titleMatch[1].trim();
-    // Pronunciation
+    const html = await fetchHtmlWithProxies('https://www.dictionary.com/word-of-the-day');
+
+    // Word: <a class="wotd-entry-headword" href="/browse/...">word</a>
+    const wordMatch = html.match(/<a\s+class\s*=\s*["']wotd-entry-headword["'][^>]*>([^<]+)<\/a>/i);
+    if (!wordMatch) throw new Error('Dict.com: word not found');
+    const word = wordMatch[1].trim();
+
+    // Pronunciation: <p class="wotd-entry-phonetics">[puhngk-<b>til</b>-ee-oh]</p>
     let pronunciation = word;
-    const pronMatch = html.match(/<span class="otd-item-headword__pronunciation__text">\s*\[\s*([^\]]+)\]\s*<\/span>/);
-    if (pronMatch) pronunciation = sanitizePronunciation(pronMatch[1].replace(/<[^>]*>/g, '').trim(), word);
-    // Type
+    const pronMatch = html.match(/<p\s+class\s*=\s*["']wotd-entry-phonetics["'][^>]*>([\s\S]*?)<\/p>/i);
+    if (pronMatch) {
+      const raw = pronMatch[1].replace(/<[^>]*>/g, '').replace(/[[\]]/g, '').trim();
+      pronunciation = sanitizePronunciation(parseHtmlEntities(raw), word);
+    }
+
+    // Type: <div class="wotd-entry-pos">noun</div>
     let type = 'word';
-    const tMatch = html.match(/<span class="italic">\s*([^<]+?)\s*<\/span>\s*<\/p>\s*<p>/);
-    if (tMatch) type = tMatch[1].trim();
-    // Definition
+    const typeMatch = html.match(/<div\s+class\s*=\s*["']wotd-entry-pos["'][^>]*>([^<]+)<\/div>/i);
+    if (typeMatch) type = typeMatch[1].trim();
+
+    // Definition: <p class="wotd-entry-definition">a fine point or detail</p>
     let definition = 'Visit Dictionary.com to see the full definition.';
-    const dMatch = html.match(/<span class="italic">\s*[^<]+?\s*<\/span>\s*<\/p>\s*<p>([^<]+)<\/p>/);
-    if (dMatch) definition = parseHtmlEntities(dMatch[1].trim());
+    const dMatch = html.match(/<p\s+class\s*=\s*["']wotd-entry-definition["'][^>]*>([\s\S]*?)<\/p>/i);
+    if (dMatch) {
+      const text = parseHtmlEntities(dMatch[1].replace(/<[^>]*>/g, '').trim());
+      if (text) definition = text;
+    }
+
     return { word, pronunciation, type, definition, source: 'dictionary' };
   } catch (e) {
     console.error('[WordOfTheDay] Dictionary.com failed:', e);
@@ -279,14 +290,21 @@ async function fetchFromBritannica(): Promise<WordOfTheDay | null> {
     }
     console.log('[WordOfTheDay] Parsed word:', word);
 
-    // Extract pronunciation from hpron_word span (contains slashes and inner spans)
+    // Extract pronunciation from hpron_word span. The real markup nests a
+    // <span class="smark"> around the stress mark inside it (e.g.
+    // /kə<span class="smark">ˈ</span>læps/), so a naive non-greedy match up
+    // to the first </span> truncates mid-word. Instead, extend the match
+    // past any nested spans by requiring what follows the closing </span>
+    // to be the next sibling element (the audio-play <a> icon, or the
+    // closing </div>) -- that's the only closing </span> that actually
+    // ends the pronunciation.
     let pronunciation = '';
-    const pronMatch = html.match(/<span\s+class\s*=\s*["']hpron_word[^"']*["'][^>]*>(.*?)<\/span>/i);
+    const pronMatch = html.match(/<span\s+class\s*=\s*["']hpron_word[^"']*["'][^>]*>([\s\S]*?)<\/span>\s*(?:<a\b|<\/div>)/i);
     if (pronMatch) {
       // Remove HTML tags and slashes, keep IPA content
       pronunciation = sanitizePronunciation(
         pronMatch[1]
-        .replace(/<[^>]*>/g, '') // Remove all HTML tags
+        .replace(/<[^>]*>/g, '') // Remove all HTML tags (including the nested smark span)
         .replace(/^\/|\/$/g, '') // Remove leading/trailing slashes
         .trim(),
         word
@@ -304,19 +322,23 @@ async function fetchFromBritannica(): Promise<WordOfTheDay | null> {
     }
     console.log('[WordOfTheDay] Type:', type);
 
-    // Extract first definition from midbt div (pattern: <strong>1 :</strong> definition text)
+    // Extract the first definition from the first midbt div. The sense
+    // number and the colon are two SEPARATE <strong> tags with a
+    // bracketed grammar note in between (e.g. "<strong>1</strong> [no
+    // object] <strong>:</strong> to break apart..."), and that bracketed
+    // note varies (sometimes a letter like "2 a", sometimes absent
+    // entirely, as in "5 : to fold together") -- rather than trying to
+    // match that exact tag shape, strip all tags from the whole div and
+    // just take everything after the first colon in the plain text.
     let definition = '';
-    let defMatch = html.match(/<div\s+class\s*=\s*["']midbt["'][^>]*><p><strong>1\s*:\s*<\/strong>\s*([^<]+)/i);
-    if (defMatch) {
-      definition = parseHtmlEntities(defMatch[1].trim());
-    } else {
-      // Fallback: any strong tag with "1 :" pattern
-      defMatch = html.match(/<strong>1\s*:\s*<\/strong>\s*([^<]{20,}?)(?:<|\.)/);
-      if (defMatch) {
-        definition = parseHtmlEntities(defMatch[1].trim());
-      } else {
-        definition = 'Visit Britannica Dictionary to see the full definition.';
-      }
+    const midbtMatch = html.match(/<div\s+class\s*=\s*["']midbt[^"']*["'][^>]*>([\s\S]*?)<\/div>/i);
+    if (midbtMatch) {
+      const plain = midbtMatch[1].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      const colonIdx = plain.indexOf(':');
+      definition = parseHtmlEntities(colonIdx !== -1 ? plain.slice(colonIdx + 1).trim() : plain);
+    }
+    if (!definition) {
+      definition = 'Visit Britannica Dictionary to see the full definition.';
     }
     console.log('[WordOfTheDay] Parsed definition:', definition.substring(0, 50) + '...');
 

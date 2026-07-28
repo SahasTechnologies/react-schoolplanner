@@ -6,7 +6,7 @@ import {
   Maximize, X, Home, BarChart3, Clock
 } from 'lucide-react';
 
-import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router';
 import { ThemeKey, getColors, getColorValues, CustomThemeColors, loadCustomThemeColors, injectCustomThemeStyles, injectSidebarHoverStyle } from './utils/themeUtils';
 import { normalizeSubjectName, getSubjectIcon } from './utils/subjectUtils';
 import { CalendarEvent, WeekData, insertBreaksBetweenEvents, isBreakEvent } from './utils/calendarUtils';

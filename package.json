@@ -9,6 +9,9 @@
     "lint": "eslint .",
     "preview": "vite preview"
   },
+  "overrides": {
+    "brace-expansion": "^5.0.8"
+  },
   "dependencies": {
     "@fontpkg/red-hat-text": "^1.10.1",
     "@fontsource/red-hat-text": "^5.3.0",
@@ -25,7 +28,7 @@
     "react-dom": "^19.1.0",
     "react-grid-layout": "^1.5.2",
     "react-markdown": "^10.1.0",
-    "react-router-dom": "^7.6.3",
+    "react-router": "^8.3.0",
     "recharts": "^2.8.0",
     "remark-gfm": "^4.0.1",
     "terser": "^5.43.1"

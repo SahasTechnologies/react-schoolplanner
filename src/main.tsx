@@ -8,7 +8,7 @@ import '@fontsource/red-hat-text/500.css';
 import '@fontsource/red-hat-text/600.css';
 import '@fontsource/red-hat-text/700.css';
 import './index.css' // Keep base styles
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router';
 
 // Allow only the primary production domain and local development hosts
 const hostname = window.location.hostname;
