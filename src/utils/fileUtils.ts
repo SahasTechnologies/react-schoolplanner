@@ -61,6 +61,15 @@ export interface FileProcessingResult {
   subjects: Subject[];
   error?: string;
   userName?: string;
+  // Present only when importing a "complete backup" .school file (see
+  // exportAllData) -- processSchoolFile previously parsed subjects/
+  // weekData/name only and silently dropped everything below, even
+  // though exportAllData had already written it all out.
+  examsBySubject?: unknown;
+  markbookPassword?: string;
+  markbookPasswordEnabled?: boolean;
+  links?: unknown;
+  preferences?: Record<string, unknown>;
 }
 
 // Process ICS file
@@ -220,7 +229,18 @@ export const processSchoolFile = async (
     return {
       weekData,
       subjects,
-      userName: data.name || undefined
+      userName: data.name || undefined,
+      // These are only present in a "complete backup" file (see
+      // exportAllData) -- pass them straight through so the caller can
+      // restore them. Previously nothing here read these fields at all,
+      // so a "complete backup" import silently dropped exams, the
+      // markbook password, links, and every preference, even though the
+      // export had faithfully written all of it out.
+      examsBySubject: data.examsBySubject,
+      markbookPassword: typeof data.markbookPassword === 'string' ? data.markbookPassword : undefined,
+      markbookPasswordEnabled: typeof data.markbookPasswordEnabled === 'boolean' ? data.markbookPasswordEnabled : undefined,
+      links: data.links,
+      preferences: data.preferences && typeof data.preferences === 'object' ? data.preferences : undefined,
     };
   } catch (err) {
     return {
@@ -272,6 +292,26 @@ export const exportData = (
         colour: subject.colour || generateRandomColour(),
       };
     });
+
+    // Also include the actual weekly timetable -- this is the "timing"
+    // the Subjects checkbox label already promises, but it was previously
+    // never written out at all, so re-importing a .school file could
+    // bring back subject names/colours but silently lost the whole
+    // schedule (processSchoolFile has always known how to read
+    // data.weekData back in; it just never had anything to read).
+    // localStorage's cached copy is already JSON-serialized with dates as
+    // ISO strings (JSON.stringify does this for Date objects
+    // automatically), which is exactly the shape processSchoolFile
+    // expects, so it can be embedded as-is.
+    const savedWeekData = localStorage.getItem('weekData');
+    if (savedWeekData) {
+      try {
+        data.weekData = JSON.parse(savedWeekData);
+      } catch {
+        // Malformed cache -- export the rest of the data without it
+        // rather than failing the whole export.
+      }
+    }
   }
   
   if (exportOptions.subjectInfo) {
@@ -356,6 +396,18 @@ export const exportAllData = (
   }));
   
   data.name = userName;
+
+  // Timetable/schedule -- see the matching note in exportData() above for
+  // why this has to be included explicitly (it's core data, not a
+  // "preference", so it's included here unconditionally).
+  const savedWeekData = localStorage.getItem('weekData');
+  if (savedWeekData) {
+    try {
+      data.weekData = JSON.parse(savedWeekData);
+    } catch {
+      // Malformed cache -- export the rest of the data without it.
+    }
+  }
   
   // Export exams and markbook data
   const examsData = localStorage.getItem('examsBySubject');
@@ -406,6 +458,7 @@ export const exportAllData = (
       'infoOrder',
       'infoShown',
       'weekNumberingEnabled',
+      'weekendsInProgressEnabled',
       'use24HourFormat',
       'quoteProvider',
       'jakubPetriskaQuoteRefreshMode',

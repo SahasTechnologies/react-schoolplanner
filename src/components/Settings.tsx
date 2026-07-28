@@ -189,6 +189,7 @@ const Settings: React.FC<SettingsProps> = ({
 
   // Week numbering settings
   const [weekNumberingEnabled, setWeekNumberingEnabled] = React.useState<boolean>(() => localStorage.getItem('weekNumberingEnabled') === 'true');
+  const [weekendsInProgressEnabled, setWeekendsInProgressEnabled] = React.useState<boolean>(() => localStorage.getItem('weekendsInProgressEnabled') !== 'false');
   const [showWeekSourceModal, setShowWeekSourceModal] = React.useState(false);
   const [weekSource, setWeekSource] = React.useState<'nsw' | 'custom'>(() => (localStorage.getItem('weekSource') as any) || 'nsw');
   const [nswDivision, setNswDivision] = React.useState<'eastern' | 'western'>(() => (localStorage.getItem('weekNswDivision') as any) || 'eastern');
@@ -211,6 +212,7 @@ const Settings: React.FC<SettingsProps> = ({
       setWeekNumberingEnabled(localStorage.getItem('weekNumberingEnabled') === 'true');
       setWeekSource(((localStorage.getItem('weekSource') as any) || 'nsw'));
       setNswDivision(((localStorage.getItem('weekNswDivision') as any) || 'eastern'));
+      setWeekendsInProgressEnabled(localStorage.getItem('weekendsInProgressEnabled') !== 'false');
     };
     window.addEventListener('weekSettingsChanged', onWeekSettingsChanged as EventListener);
     return () => {
@@ -244,7 +246,7 @@ const Settings: React.FC<SettingsProps> = ({
   const [copied, setCopied] = useState(false);
   const [copyButtonPressed, setCopyButtonPressed] = useState(false);
 
-  // Obfuscation helpers (avoid putting sensitive strings in DOM/source as plain text)
+  // Obfuscation helpers (avoid putting sensitive strings in DOM/source as plain text
   const decodeChars = (arr: number[]) => String.fromCharCode(...arr);
   const PAYID_EMAIL_CHARS = [116,104,97,110,107,121,111,117,64,115,97,104,97,115,46,100,112,100,110,115,46,111,114,103];
   const CONTACT_EMAIL_CHARS = [115,97,104,97,115,64,115,104,105,109,112,105,46,100,101,118]; // sahas@shimpi.dev
@@ -373,7 +375,7 @@ const Settings: React.FC<SettingsProps> = ({
           animation: fadeIn 0.2s ease-out;
         }
       `}</style>
-      
+
       <div className="mx-auto w-full max-w-2xl xl:max-w-3xl px-4 pt-4">
         <div className="flex items-center gap-3 mb-8">
           <SettingsIcon className={colors.text} size={28} />
@@ -539,7 +541,7 @@ const Settings: React.FC<SettingsProps> = ({
               </label>
             </div>
             {weekNumberingEnabled && (
-              <div className={`${colors.container} ${colors.border} border rounded-b-2xl rounded-t-lg p-4 flex items-center justify-between`}>
+              <div className={`${colors.container} ${colors.border} border rounded-lg p-4 flex items-center justify-between`}>
                 <div className="flex items-center gap-3">
                   <Calendar className={`${colors.accentText}`} size={18} />
                   <div>
@@ -551,6 +553,21 @@ const Settings: React.FC<SettingsProps> = ({
                   <Edit2 size={16} />
                   Edit Source
                 </button>
+              </div>
+            )}
+            {weekNumberingEnabled && (
+              <div className={`${colors.container} ${colors.border} border rounded-b-2xl rounded-t-lg p-4 flex items-center justify-between`}>
+                <div className="flex items-center gap-3">
+                  <Calendar className={`${colors.accentText}`} size={18} />
+                  <div>
+                    <p className={`font-medium ${colors.containerText}`}>Count Weekends in Progress</p>
+                    <p className={`text-sm ${colors.containerText} opacity-80`}>Include Saturdays and Sundays in the term/holiday day count and percentage</p>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" checked={weekendsInProgressEnabled} onChange={(e) => { const v = e.target.checked; setWeekendsInProgressEnabled(v); localStorage.setItem('weekendsInProgressEnabled', String(v)); window.dispatchEvent(new CustomEvent('weekSettingsChanged')); }} className="sr-only peer" />
+                  <div className={`w-14 h-7 rounded-full relative transition-colors ${weekendsInProgressEnabled ? colors.buttonAccent : 'bg-gray-500'} peer-focus:outline-none peer-checked:after:translate-x-7 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-white/20 after:rounded-full after:h-6 after:w-6 after:transition-all`}></div>
+                </label>
               </div>
             )}
           </div>
@@ -671,7 +688,7 @@ const Settings: React.FC<SettingsProps> = ({
             </div>
           </div>
           )}
-          
+
           {wordWidgetEnabled && (
             <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
               <div className="flex items-center gap-3">
@@ -925,7 +942,7 @@ const Settings: React.FC<SettingsProps> = ({
                 onClick={async () => {
                   localStorage.setItem('weekSource', weekSource);
                   localStorage.setItem('weekNumberingEnabled', String(weekNumberingEnabled));
-                  
+
                   if (weekSource === 'nsw') {
                     localStorage.setItem('weekNswDivision', nswDivision);
                     // Auto-fetch NSW terms when saving
@@ -952,7 +969,7 @@ const Settings: React.FC<SettingsProps> = ({
                     localStorage.setItem('weekCustomCurrentWeek', String(customWeekNow > 0 ? customWeekNow : 1));
                     localStorage.setItem('weekCustomReferenceDate', customWeekReferenceDate);
                   }
-                  
+
                   window.dispatchEvent(new CustomEvent('weekSettingsChanged'));
                   showSuccess('Settings Saved', 'Week numbering and holiday settings have been updated.', { effectiveMode, colors });
                   setShowWeekSourceModal(false);
@@ -992,8 +1009,8 @@ const Settings: React.FC<SettingsProps> = ({
                 className="bg-secondary hover:bg-secondary-dark text-secondary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200"
               >Cancel</button>
               <button
-                onClick={() => { 
-                  setUserName(editUserName); 
+                onClick={() => {
+                  setUserName(editUserName);
                   setShowNameEditModal(false);
                   showSuccess('Name Updated', 'Your name has been updated successfully!', { effectiveMode, colors });
                 }}
@@ -1187,7 +1204,7 @@ const Settings: React.FC<SettingsProps> = ({
         </div>
       )}
 
-      
+
       {/* Legal Modals */}
       {showTerms && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
@@ -1539,7 +1556,7 @@ const Settings: React.FC<SettingsProps> = ({
             <p className={`text-sm ${colors.containerText} opacity-80 mb-4`}>
               Enter your markbook password to view settings
             </p>
-            
+
             <label className={`block text-sm font-medium mb-1 ${colors.containerText}`}>Password</label>
             <input
               type="password"
@@ -1563,9 +1580,9 @@ const Settings: React.FC<SettingsProps> = ({
             />
             <div className="flex justify-end gap-3">
               <button
-                onClick={() => { 
-                  setShowMarkbookPasswordVerification(false); 
-                  setMarkbookPasswordVerification(''); 
+                onClick={() => {
+                  setShowMarkbookPasswordVerification(false);
+                  setMarkbookPasswordVerification('');
                 }}
                 className="bg-secondary hover:bg-secondary-dark text-secondary-foreground px-4 py-2 rounded-lg font-medium transition-colors duration-200"
               >Cancel</button>
@@ -1739,13 +1756,13 @@ const Settings: React.FC<SettingsProps> = ({
           }
         `}</style>
         <div className="flex items-center gap-2 mb-3">
-          <div 
+          <div
             className={`p-3 rounded-xl ${effectiveMode === 'light' ? 'bg-red-100' : 'bg-red-900/30'} cursor-pointer`}
             onMouseEnter={() => setIsHeartHovered(true)}
             onMouseLeave={() => setIsHeartHovered(false)}
           >
-            <Heart 
-              size={20} 
+            <Heart
+              size={20}
               className="text-red-500"
               style={{
                 animation: isHeartHovered ? 'heartPulseFast 0.8s ease-in-out infinite' : 'heartPulse 1.5s ease-in-out infinite',
@@ -1759,7 +1776,7 @@ const Settings: React.FC<SettingsProps> = ({
         <div className="space-y-3">
           <div className={`${colors.container} ${colors.border} border rounded-2xl p-4`}>
             <div className="flex items-center gap-3">
-              <div 
+              <div
                 className="relative cursor-pointer"
                 onClick={(e) => {
                   const rect = e.currentTarget.getBoundingClientRect();
@@ -1821,14 +1838,14 @@ const Settings: React.FC<SettingsProps> = ({
                 className={`w-full flex items-center justify-between ${colors.containerText} hover:${colors.text} transition-colors`}
               >
                 <span className="text-sm font-medium">PayID information</span>
-                <ChevronDown 
-                  size={18} 
+                <ChevronDown
+                  size={18}
                   className={`transition-transform duration-500 ${showPayIDDetails ? 'rotate-180' : ''}`}
                 />
               </button>
-              <div 
+              <div
                 className="overflow-hidden transition-all duration-500 ease-in-out"
-                style={{ 
+                style={{
                   maxHeight: showPayIDDetails ? '500px' : '0',
                   opacity: showPayIDDetails ? 1 : 0
                 }}
@@ -1884,8 +1901,8 @@ const Settings: React.FC<SettingsProps> = ({
                     </div>
                     <div className="mt-3 pt-3 border-t border-opacity-30" style={{ borderColor: colors.border }}>
                       <p className={`text-xs ${colors.containerText} opacity-70 leading-relaxed`}>
-                        This site is free to use. If you enjoy it and want to chip in, you can make a small 
-                        donation to help cover costs. This is not a charity, so donations aren't tax‑deductible, 
+                        This site is free to use. If you enjoy it and want to chip in, you can make a small
+                        donation to help cover costs. This is not a charity, so donations aren't tax‑deductible,
                         but your support means a lot.
                       </p>
                     </div>
@@ -1907,7 +1924,7 @@ const Settings: React.FC<SettingsProps> = ({
         </div>
         <div className={`${colors.container} ${colors.border} border rounded-2xl p-4`}>
           <div className="w-full">
-            <FeedbackForm 
+            <FeedbackForm
               theme={theme}
               themeType={themeType}
               effectiveMode={effectiveMode}
@@ -1915,7 +1932,7 @@ const Settings: React.FC<SettingsProps> = ({
             />
           </div>
         </div>
-        
+
         {/* Email alternative box */}
         <div className={`mt-3 ${colors.container} ${colors.border} border rounded-2xl p-4`}>
           <div className="flex items-center justify-between gap-3">
