@@ -124,6 +124,53 @@ export default function WordOfTheDayWidget({
     return () => window.removeEventListener('wordSourceChanged', handleSourceChange);
   }, [loadWord]);
 
+  // Refresh at the start of each new day, entirely client-side -- no
+  // physical page reload required. Mirrors the same scheduling used by
+  // QuoteOfTheDayWidget: a timer fires right at the day boundary for tabs
+  // left open overnight, and a visibility/focus check catches the day
+  // change for tabs that were backgrounded or asleep over midnight.
+  React.useEffect(() => {
+    let dayKey = new Date().toDateString();
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const msUntilNextMidnight = () => {
+      const now = new Date();
+      const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 5); // 5s of slack past midnight
+      return nextMidnight.getTime() - now.getTime();
+    };
+
+    const refreshForNewDay = (reason: string) => {
+      const today = new Date().toDateString();
+      if (today === dayKey) return;
+      console.log(`[WordWidget] Date changed (${reason}), fetching a fresh word for the new day...`);
+      dayKey = today;
+      hasCheckedForUpdate.current = false;
+      loadWord(true, false);
+    };
+
+    const scheduleMidnightRefresh = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        refreshForNewDay('midnight timer');
+        scheduleMidnightRefresh(); // reschedule for the following day
+      }, msUntilNextMidnight());
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') refreshForNewDay('tab became visible');
+    };
+
+    scheduleMidnightRefresh();
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('focus', onVisibilityChange);
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('focus', onVisibilityChange);
+    };
+  }, [loadWord]);
+
   return (
     <div className={`${colors.container} rounded-lg ${colors.border} border p-4 flex flex-col items-center`}>
       <div className="flex items-center gap-2 mb-3 w-full">

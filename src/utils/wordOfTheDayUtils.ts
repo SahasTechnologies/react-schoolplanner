@@ -556,15 +556,27 @@ export async function fetchWordOfTheDay(): Promise<WordOfTheDay | null> {
 // ... (rest of the code remains the same)
 const CACHE_KEY = 'wordOfTheDayCache';
 
+// Cache entries are stamped with the local date they were fetched on, so a
+// cached word is only served back for the day it was actually fetched --
+// otherwise a permanently-cached entry would never expire on its own and
+// the widget would show the same word forever until something else (a
+// source change or an explicit cache clear) happened to blow it away.
+interface CachedWordEntry extends WordOfTheDay {
+  cachedDate: string;
+}
+
 export function getCachedWord(): WordOfTheDay | null {
   try {
     const cached = localStorage.getItem(CACHE_KEY);
     if (cached) {
-      const parsed = JSON.parse(cached) as WordOfTheDay;
+      const parsed = JSON.parse(cached) as CachedWordEntry;
       parsed.pronunciation = sanitizePronunciation(parsed.pronunciation, parsed.word);
       const preferredSource = localStorage.getItem('wordOfTheDaySource') || 'worddaily';
-      if (parsed?.source === preferredSource) {
-        console.log('[WordOfTheDay] Using cached word for source:', preferredSource, '(no expiration)');
+      const today = new Date().toDateString();
+      if (parsed?.cachedDate && parsed.cachedDate !== today) {
+        console.log('[WordOfTheDay] Cached word is from a previous day (cached:', parsed.cachedDate, 'today:', today, ') - ignoring cache');
+      } else if (parsed?.source === preferredSource) {
+        console.log('[WordOfTheDay] Using cached word for source:', preferredSource);
         return parsed;
       } else {
         console.log('[WordOfTheDay] Cache source mismatch (cached:', parsed?.source, 'preferred:', preferredSource, ') - ignoring cache');
@@ -580,8 +592,9 @@ export function getCachedWord(): WordOfTheDay | null {
 
 export function cacheWord(word: WordOfTheDay): void {
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(word));
-    console.log('[WordOfTheDay] Cached word (permanent):', word.word);
+    const entry: CachedWordEntry = { ...word, cachedDate: new Date().toDateString() };
+    localStorage.setItem(CACHE_KEY, JSON.stringify(entry));
+    console.log('[WordOfTheDay] Cached word for today:', word.word);
   } catch (error) {
     console.error('[WordOfTheDay] Error caching word:', error);
   }
