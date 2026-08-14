@@ -8,7 +8,9 @@ import {
   fetchKwizeQuote,
   fetchJakubPetriskaQuote,
   getCachedJakubPetriskaQuote,
-  cacheJakubPetriskaQuote
+  cacheJakubPetriskaQuote,
+  getCachedDailyQuote,
+  cacheDailyQuote
 } from '../utils/quoteOfTheDayUtils';
 
 interface QuoteOfTheDayWidgetProps {
@@ -98,9 +100,21 @@ export default function QuoteOfTheDayWidget({
     };
 
     if (quoteProvider === 'favqs') {
+      // Check cache first for daily quotes (unless forced refresh)
+      if (!forceRefresh) {
+        const cached = getCachedDailyQuote();
+        if (cached) {
+          console.log('[QuoteWidget] Using cached daily quote');
+          setQuoteData(cached);
+          setLoading(false);
+          return;
+        }
+      }
+      
       const data = await tryFavqs();
       if (data) {
         setQuoteData(data);
+        cacheDailyQuote(data);
         setBlockedNote(null);
         if (silent) setLoading(false); else stopSpinner();
         return;
@@ -108,28 +122,55 @@ export default function QuoteOfTheDayWidget({
       // fallback order
       console.log('[QuoteWidget] Favqs failed, trying fallbacks...');
       const alt = await tryZen() || await tryKwize();
+      if (alt) cacheDailyQuote(alt);
       return finish(!!alt, alt);
     } else if (quoteProvider === 'zenquotes') {
+      // Check cache first for daily quotes (unless forced refresh)
+      if (!forceRefresh) {
+        const cached = getCachedDailyQuote();
+        if (cached) {
+          console.log('[QuoteWidget] Using cached daily quote');
+          setQuoteData(cached);
+          setLoading(false);
+          return;
+        }
+      }
+      
       const data = await tryZen();
       if (data) {
         setQuoteData(data);
+        cacheDailyQuote(data);
         setBlockedNote(null);
         if (silent) setLoading(false); else stopSpinner();
         return;
       }
       console.log('[QuoteWidget] ZenQuotes failed, trying fallbacks...');
       const alt = await tryFavqs() || await tryKwize();
+      if (alt) cacheDailyQuote(alt);
       return finish(!!alt, alt);
     } else if (quoteProvider === 'kwize') {
+      // Check cache first for daily quotes (unless forced refresh)
+      if (!forceRefresh) {
+        const cached = getCachedDailyQuote();
+        if (cached) {
+          console.log('[QuoteWidget] Using cached daily quote');
+          setQuoteData(cached);
+          setLoading(false);
+          return;
+        }
+      }
+      
       const data = await tryKwize();
       if (data) {
         setQuoteData(data);
+        cacheDailyQuote(data);
         setBlockedNote(null);
         if (silent) setLoading(false); else stopSpinner();
         return;
       }
       console.log('[QuoteWidget] Kwize failed, trying fallbacks...');
       const alt = await tryFavqs() || await tryZen();
+      if (alt) cacheDailyQuote(alt);
       return finish(!!alt, alt);
     } else if (quoteProvider === 'jakub-petriska') {
       if (forceRefresh) {

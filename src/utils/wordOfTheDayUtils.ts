@@ -559,16 +559,22 @@ const CACHE_KEY = 'wordOfTheDayCache';
 export function getCachedWord(): WordOfTheDay | null {
   try {
     const cached = localStorage.getItem(CACHE_KEY);
-    if (cached) {
+    const cachedDate = localStorage.getItem(CACHE_KEY + 'Date');
+    const today = new Date().toDateString();
+    
+    if (cached && cachedDate === today) {
       const parsed = JSON.parse(cached) as WordOfTheDay;
       parsed.pronunciation = sanitizePronunciation(parsed.pronunciation, parsed.word);
       const preferredSource = localStorage.getItem('wordOfTheDaySource') || 'worddaily';
       if (parsed?.source === preferredSource) {
-        console.log('[WordOfTheDay] Using cached word for source:', preferredSource, '(no expiration)');
+        console.log('[WordOfTheDay] Using cached word for source:', preferredSource, '(date:', today, ')');
         return parsed;
       } else {
         console.log('[WordOfTheDay] Cache source mismatch (cached:', parsed?.source, 'preferred:', preferredSource, ') - ignoring cache');
       }
+    } else if (cached && cachedDate !== today) {
+      console.log('[WordOfTheDay] Cached word is from previous day (' + cachedDate + '), fetching new one');
+      clearWordCache();
     }
     
     console.log('[WordOfTheDay] No cached word found');
@@ -580,8 +586,10 @@ export function getCachedWord(): WordOfTheDay | null {
 
 export function cacheWord(word: WordOfTheDay): void {
   try {
+    const today = new Date().toDateString();
     localStorage.setItem(CACHE_KEY, JSON.stringify(word));
-    console.log('[WordOfTheDay] Cached word (permanent):', word.word);
+    localStorage.setItem(CACHE_KEY + 'Date', today);
+    console.log('[WordOfTheDay] Cached word for date:', today, ':', word.word);
   } catch (error) {
     console.error('[WordOfTheDay] Error caching word:', error);
   }
@@ -591,6 +599,7 @@ export function cacheWord(word: WordOfTheDay): void {
 export function clearWordCache(): void {
   try {
     localStorage.removeItem(CACHE_KEY);
+    localStorage.removeItem(CACHE_KEY + 'Date');
     console.log('[WordOfTheDay] Cache cleared');
   } catch (error) {
     console.error('[WordOfTheDay] Error clearing cache:', error);
