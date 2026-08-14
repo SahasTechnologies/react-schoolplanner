@@ -12,9 +12,6 @@ export interface QuoteOfTheDay {
 // Timeout-enabled fetch to avoid long hangs per proxy
 const QUOTE_FETCH_TIMEOUT_MS = 10000; // Increased to 10s for better reliability
 
-// Cache key for daily quotes (non-JakubPetriska sources)
-const DAILY_QUOTE_CACHE_KEY = 'dailyQuoteCache';
-
 function decodeHtmlEntities(str: string): string {
   return str
     .replace(/&#(\d+);/g, (_match, numStr) => String.fromCharCode(parseInt(numStr, 10)))
@@ -26,50 +23,6 @@ function decodeHtmlEntities(str: string): string {
     .replace(/&quot;/g, '"')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>');
-}
-
-// Cache management for daily quotes (Favqs, ZenQuotes, Kwize)
-export function getCachedDailyQuote(): QuoteOfTheDay | null {
-  try {
-    const cached = localStorage.getItem(DAILY_QUOTE_CACHE_KEY);
-    const cachedDate = localStorage.getItem(DAILY_QUOTE_CACHE_KEY + 'Date');
-    const today = new Date().toDateString();
-
-    if (cached && cachedDate === today) {
-      console.log('[QuoteCache] Using cached quote from today');
-      return JSON.parse(cached);
-    } else if (cached && cachedDate !== today) {
-      console.log('[QuoteCache] Cached quote is from previous day (' + cachedDate + '), fetching new one');
-      clearDailyQuoteCache();
-    }
-
-    console.log('[QuoteCache] No valid cache found');
-    return null;
-  } catch (error) {
-    console.error('[QuoteCache] Error reading cache:', error);
-    return null;
-  }
-}
-
-export function cacheDailyQuote(quote: QuoteOfTheDay): void {
-  try {
-    const today = new Date().toDateString();
-    localStorage.setItem(DAILY_QUOTE_CACHE_KEY, JSON.stringify(quote));
-    localStorage.setItem(DAILY_QUOTE_CACHE_KEY + 'Date', today);
-    console.log('[QuoteCache] Cached quote for date:', today);
-  } catch (error) {
-    console.error('[QuoteCache] Error caching quote:', error);
-  }
-}
-
-export function clearDailyQuoteCache(): void {
-  try {
-    localStorage.removeItem(DAILY_QUOTE_CACHE_KEY);
-    localStorage.removeItem(DAILY_QUOTE_CACHE_KEY + 'Date');
-    console.log('[QuoteCache] Cache cleared');
-  } catch (error) {
-    console.error('[QuoteCache] Error clearing cache:', error);
-  }
 }
 
 // Favqs QOTD
@@ -120,76 +73,80 @@ export async function fetchZenQuotesToday(): Promise<QuoteOfTheDay | null> {
   }
 }
 
-// Kwize "Quote of the Day" -- Use the embed endpoint which returns clean HTML with quote text
-// https://kwize.com/quote-of-the-day/embed/&txt=0 provides the quote in a parseable format
-export async function fetchKwizeQuote(): Promise<QuoteOfTheDay | null> {
-  console.log('[Kwize] Fetching quote from embed endpoint...');
-  try {
-    const html = await fetchTextViaCors('https://kwize.com/quote-of-the-day/embed/&txt=0', {}, QUOTE_FETCH_TIMEOUT_MS);
+// Kwize "Quote of the Day" -- Kwize has no JSON API, only an HTML embed
+// widget (see https://kwize.com/quote-widget/). The plain
+// https://kwize.com/quote-of-the-day/ page does NOT contain the quote
+// markup server-side -- it's injected into that page client-side (via an
+// iframe pointing at the embed endpoint), so scraping that URL never finds
+// anything and fetchKwizeQuote() always fell through to the fallback
+// providers. The embed endpoint itself, by contrast, *is* plain static
+// HTML (that's the whole point of an embeddable widget), so we fetch that
+// directly instead and parse the markup it renders, which looks like:
+//
+// <div id="kwize_embed"><div id="kwize_embed_quote">
+//   <a href="..."><span><b>&ldquo;</b> The quote text <b>&rdquo;</b></span>
+//   <span><img ...><span style="font-size:0.5em;">Author Name</span>
+//   <span style="font-size:0.5em;">,&nbsp;<i>Work Title</i></span>
+//   <span style="font-size:0.5em;">(Year)</span></span></a>
+// </div></div>
+const KWIZE_EMBED_URL = 'https://kwize.com/quote-of-the-day/embed/&txt=0';
 
-    // Parse the HTML to extract quote text
-    // The embed format has: <div id="kwize_embed_quote"><a ...><span><b>&ldquo;</b> QUOTE TEXT <b>&rdquo;</b></span>...
-    const quoteElementMatch = html.match(/<div id="kwize_embed_quote">([\s\S]*?)<\/div>/);
-    
-    if (!quoteElementMatch) {
-      throw new Error('Kwize: could not find quote element');
-    }
-    
-    const innerHtml = quoteElementMatch[1];
-    
-    // Extract the quote text - it's wrapped in <span> with ldquo and rdquo in <b> tags
-    const quoteSpanMatch = innerHtml.match(/<span>([\s\S]*?)<\/span>/);
-    if (!quoteSpanMatch) {
-      throw new Error('Kwize: could not find quote span');
-    }
-    
-    // Remove the <b> tags with ldquo/rdquo and get the text content
-    let quote = quoteSpanMatch[1]
-      .replace(/<b>[\s\S]*?<\/b>/g, '') // Remove the decorative curly quotes
-      .trim();
-    
-    quote = decodeHtmlEntities(quote);
-    
-    if (!quote) {
-      throw new Error('Kwize: empty quote text');
-    }
-    
-    // Extract author and work info from the small spans (font-size:0.5em)
-    const smallSpans = [...innerHtml.matchAll(/<span style="font-size:0\.5em;">([\s\S]*?)<\/span>/g)];
-    
-    let author = 'Unknown';
-    let work = '';
-    
-    if (smallSpans.length >= 2) {
-      // First small span contains the author name
-      author = decodeHtmlEntities(smallSpans[0][1].trim());
-      
-      // Second small span contains the work title (starts with comma)
-      const workText = smallSpans[1][1].trim();
-      if (workText.startsWith(',')) {
-        work = workText.substring(1).replace(/^\s*\i\s*/, '').replace(/\i\s*$/, '').trim();
+export async function fetchKwizeQuote(): Promise<QuoteOfTheDay | null> {
+  console.log('[Kwize] Fetching quote...');
+  try {
+    const raw = await fetchTextViaCors(KWIZE_EMBED_URL, {}, QUOTE_FETCH_TIMEOUT_MS);
+
+    // Our own proxy (functions/api/fetch-proxy.js) already extracts just
+    // the quote/author/link server-side and returns it as small JSON, so
+    // most of the time there's nothing left to parse here. The public
+    // CORS-proxy fallback chain has no such extraction step though -- it
+    // just forwards the raw embed HTML -- so fall back to scraping it the
+    // same way the proxy does when the response isn't our compact JSON.
+    try {
+      const parsed = JSON.parse(raw) as { quote?: string; author?: string; link?: string };
+      if (parsed?.quote && parsed?.author) {
+        console.log('[Kwize] Successfully parsed quote (proxy JSON)');
+        return {
+          quote: parsed.quote,
+          author: parsed.author,
+          link: parsed.link || 'https://kwize.com/quote-of-the-day/',
+          source: 'kwize',
+        };
       }
-      
-      // Third span might contain the year in parentheses
-      if (smallSpans.length >= 3) {
-        const yearText = smallSpans[2][1].trim();
-        if (yearText.match(/^\(\d{4}\)$/)) {
-          work = work ? `${work} (${yearText.replace(/[()]/g, '')})` : yearText.replace(/[()]/g, '');
-        }
-      }
+    } catch {
+      // Not JSON -- fall through to HTML parsing below.
     }
-    
-    // Build the link to the quote page
-    const linkMatch = innerHtml.match(/href="([^"]+)"/);
-    const link = linkMatch ? (linkMatch[1].startsWith('http') ? linkMatch[1] : `https://kwize.com${linkMatch[1]}`) : 'https://kwize.com/quote-of-the-day/';
-    
-    console.log('[Kwize] Successfully parsed quote from embed endpoint');
-    return { 
-      quote, 
-      author, 
-      link, 
-      source: 'kwize',
-    };
+
+    const html = raw;
+    const anchorMatch = html.match(/<div id="kwize_embed_quote">\s*<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/);
+    if (!anchorMatch) throw new Error('Kwize: embed block not found');
+    const rawLink = anchorMatch[1];
+    const inner = anchorMatch[2];
+
+    // The quote itself is the first *bare* <span> (no attributes) -- the
+    // author/work/year spans that follow it all carry a style attribute,
+    // so this pattern only ever matches the quote.
+    const quoteMatch = inner.match(/<span>([\s\S]*?)<\/span>/);
+    if (!quoteMatch) throw new Error('Kwize: quote span not found');
+    const quote = decodeHtmlEntities(
+      quoteMatch[1]
+        .replace(/<b>[\s\S]*?<\/b>/g, '') // strip the decorative curly-quote marks
+        .replace(/<[^>]*>/g, '')
+        .trim()
+    );
+    if (!quote) throw new Error('Kwize: empty quote text');
+
+    // The author is the first of the small (font-size:0.5em) spans; the
+    // ones after it hold the work title and year.
+    const smallSpans = [...inner.matchAll(/<span style="font-size:0\.5em;">([\s\S]*?)<\/span>/g)];
+    if (!smallSpans.length) throw new Error('Kwize: author span not found');
+    const author = decodeHtmlEntities(smallSpans[0][1].replace(/<[^>]*>/g, '').trim());
+    if (!author) throw new Error('Kwize: empty author');
+
+    const link = rawLink.startsWith('http') ? rawLink : `https://kwize.com${rawLink}`;
+
+    console.log('[Kwize] Successfully parsed quote');
+    return { quote, author, link, source: 'kwize' };
   } catch (e) {
     console.error('[Kwize] Failed:', e);
     return null;

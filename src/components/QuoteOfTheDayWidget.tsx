@@ -8,9 +8,7 @@ import {
   fetchKwizeQuote,
   fetchJakubPetriskaQuote,
   getCachedJakubPetriskaQuote,
-  cacheJakubPetriskaQuote,
-  getCachedDailyQuote,
-  cacheDailyQuote
+  cacheJakubPetriskaQuote
 } from '../utils/quoteOfTheDayUtils';
 
 interface QuoteOfTheDayWidgetProps {
@@ -100,21 +98,9 @@ export default function QuoteOfTheDayWidget({
     };
 
     if (quoteProvider === 'favqs') {
-      // Check cache first for daily quotes (unless forced refresh)
-      if (!forceRefresh) {
-        const cached = getCachedDailyQuote();
-        if (cached) {
-          console.log('[QuoteWidget] Using cached daily quote');
-          setQuoteData(cached);
-          setLoading(false);
-          return;
-        }
-      }
-      
       const data = await tryFavqs();
       if (data) {
         setQuoteData(data);
-        cacheDailyQuote(data);
         setBlockedNote(null);
         if (silent) setLoading(false); else stopSpinner();
         return;
@@ -122,55 +108,28 @@ export default function QuoteOfTheDayWidget({
       // fallback order
       console.log('[QuoteWidget] Favqs failed, trying fallbacks...');
       const alt = await tryZen() || await tryKwize();
-      if (alt) cacheDailyQuote(alt);
       return finish(!!alt, alt);
     } else if (quoteProvider === 'zenquotes') {
-      // Check cache first for daily quotes (unless forced refresh)
-      if (!forceRefresh) {
-        const cached = getCachedDailyQuote();
-        if (cached) {
-          console.log('[QuoteWidget] Using cached daily quote');
-          setQuoteData(cached);
-          setLoading(false);
-          return;
-        }
-      }
-      
       const data = await tryZen();
       if (data) {
         setQuoteData(data);
-        cacheDailyQuote(data);
         setBlockedNote(null);
         if (silent) setLoading(false); else stopSpinner();
         return;
       }
       console.log('[QuoteWidget] ZenQuotes failed, trying fallbacks...');
       const alt = await tryFavqs() || await tryKwize();
-      if (alt) cacheDailyQuote(alt);
       return finish(!!alt, alt);
     } else if (quoteProvider === 'kwize') {
-      // Check cache first for daily quotes (unless forced refresh)
-      if (!forceRefresh) {
-        const cached = getCachedDailyQuote();
-        if (cached) {
-          console.log('[QuoteWidget] Using cached daily quote');
-          setQuoteData(cached);
-          setLoading(false);
-          return;
-        }
-      }
-      
       const data = await tryKwize();
       if (data) {
         setQuoteData(data);
-        cacheDailyQuote(data);
         setBlockedNote(null);
         if (silent) setLoading(false); else stopSpinner();
         return;
       }
       console.log('[QuoteWidget] Kwize failed, trying fallbacks...');
       const alt = await tryFavqs() || await tryZen();
-      if (alt) cacheDailyQuote(alt);
       return finish(!!alt, alt);
     } else if (quoteProvider === 'jakub-petriska') {
       if (forceRefresh) {
@@ -216,6 +175,53 @@ export default function QuoteOfTheDayWidget({
     };
     window.addEventListener('quoteTypeChanged', onTypeChanged);
     return () => window.removeEventListener('quoteTypeChanged', onTypeChanged);
+  }, [loadQuote]);
+
+  // Refresh at the start of each new day, entirely client-side -- no
+  // physical page reload required. This covers two cases: (1) the tab is
+  // left open across midnight, in which case a timer fires right at the
+  // day boundary, and (2) the tab was backgrounded/asleep over midnight and
+  // only becomes visible again later, in which case a visibility check
+  // catches the missed day change as soon as the user comes back.
+  React.useEffect(() => {
+    let dayKey = new Date().toDateString();
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const msUntilNextMidnight = () => {
+      const now = new Date();
+      const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 5); // 5s of slack past midnight
+      return nextMidnight.getTime() - now.getTime();
+    };
+
+    const refreshForNewDay = (reason: string) => {
+      const today = new Date().toDateString();
+      if (today === dayKey) return;
+      console.log(`[QuoteWidget] Date changed (${reason}), fetching a fresh quote for the new day...`);
+      dayKey = today;
+      loadQuote(true, false);
+    };
+
+    const scheduleMidnightRefresh = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        refreshForNewDay('midnight timer');
+        scheduleMidnightRefresh(); // reschedule for the following day
+      }, msUntilNextMidnight());
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') refreshForNewDay('tab became visible');
+    };
+
+    scheduleMidnightRefresh();
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('focus', onVisibilityChange);
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('focus', onVisibilityChange);
+    };
   }, [loadQuote]);
 
   return (
