@@ -5,32 +5,34 @@ import { Subject } from '../types';
 // Subject colour palette, grouped into three intensity levels so the person
 // can pick the vibe that suits them, each still ordered in rainbow (hue)
 // order with a neutral grey appended at the end.
-export const colourPaletteGroups: { vibrant: string[]; normal: string[]; dark: string[] } = {
-  vibrant: [
-    '#F42525', '#F46A25', '#F49D25', '#F4D125', '#D1F425',
-    '#7BF425', '#25F425', '#25F46A', '#25F4AF', '#25F4E2',
-    '#25C0F4', '#2590F4', '#2559F4', '#3625F4', '#7B25F4',
-    '#C025F4', '#F425AF',
-    '#7B8C9D',
-  ],
+// Subject colour palette, grouped into three intensity levels so the person
+// can pick the vibe that suits them, each still ordered in rainbow (hue)
+// order with a neutral appended at the end.
+export const colourPaletteGroups: { normal: string[]; naturals: string[]; dark: string[] } = {
   normal: [
-    '#880707', '#883207', '#885207', '#887207', '#728807',
-    '#3D8807', '#078807', '#078832', '#047857', '#07887D',
-    '#076888', '#074A88', '#072788', '#120788', '#3D0788',
-    '#680788', '#88075D',
-    '#454D54',
+    '#D91624', '#E8421D', '#B75B00', '#938100', '#6F8500',
+    '#4B9000', '#078832', '#00840D', '#008435', '#008571',
+    '#007F7F', '#008299', '#0079AD', '#0076D6', '#0065FF',
+    '#2559F4', '#4C5EFE', '#675FF7', '#7B25F4', '#8A51F6',
+    '#9B38FE', '#B133F4', '#BB00EA', '#D00BC6', '#D100BC',
+    '#DB00A4', '#E00065', '#E01867', '#C7144B', '#E50022',
+  ],
+  naturals: [
+    '#8B4513', '#6B4226', '#6F4E37', '#5D4037', '#3E2C23',
+    '#8A6844', '#85714E', '#77683F', '#6B7245', '#7C7267',
+    '#6E5F4B', '#57534E', '#44403C', '#475569', '#526073',
+    '#6B7280', '#374151', '#1E293B',
   ],
   dark: [
-    '#431919', '#432719', '#433119', '#433C19', '#3C4319',
-    '#2A4319', '#194319', '#194327', '#194335', '#19433F',
-    '#193843', '#192F43', '#192443', '#1D1943', '#2A1943',
-    '#381943', '#431935',
-    '#26292C',
+    '#7F1D1D', '#7C2D12', '#78350F', '#713F12', '#431407',
+    '#3F6212', '#14532D', '#064E3B', '#134E4A', '#155E75',
+    '#0C4A6E', '#1E3A8A', '#312E81', '#4C1D95', '#581C87',
+    '#701A75', '#831843', '#881337',
   ],
 };
 
 // Kept for backward compatibility with existing auto-assignment code that
-// just wants a reasonable default set (the muted/normal group).
+// just wants a reasonable default set (the everyday/normal group).
 export const defaultColours = colourPaletteGroups.normal;
 
 // Generate unique colour that hasn't been used yet

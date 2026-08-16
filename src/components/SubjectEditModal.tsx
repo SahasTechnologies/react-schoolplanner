@@ -42,16 +42,16 @@ const SubjectEditModal: React.FC<SubjectEditModalProps> = ({
 }) => {
   const customColourInputRef = useRef<HTMLInputElement>(null);
   const allPaletteColours = [
-    ...colourPaletteGroups.vibrant,
     ...colourPaletteGroups.normal,
+    ...colourPaletteGroups.naturals,
     ...colourPaletteGroups.dark,
   ];
-  const groupContaining = (colour: string): 'vibrant' | 'normal' | 'dark' => {
-    if (colourPaletteGroups.vibrant.includes(colour)) return 'vibrant';
+  const groupContaining = (colour: string): 'normal' | 'naturals' | 'dark' => {
     if (colourPaletteGroups.dark.includes(colour)) return 'dark';
+    if (colourPaletteGroups.naturals.includes(colour)) return 'naturals';
     return 'normal';
   };
-  const [paletteGroup, setPaletteGroup] = React.useState<'vibrant' | 'normal' | 'dark'>(() => groupContaining(editColour));
+  const [paletteGroup, setPaletteGroup] = React.useState<'normal' | 'naturals' | 'dark'>(() => groupContaining(editColour));
   React.useEffect(() => {
     if (selectedSubjectForEdit) {
       setPaletteGroup(groupContaining(editColour));
@@ -149,7 +149,7 @@ const SubjectEditModal: React.FC<SubjectEditModalProps> = ({
             </label>
             {/* Palette group tabs */}
             <div className="flex gap-2 mb-3">
-              {(['vibrant', 'normal', 'dark'] as const).map((group) => (
+              {(['normal', 'naturals', 'dark'] as const).map((group) => (
                 <button
                   key={group}
                   type="button"
