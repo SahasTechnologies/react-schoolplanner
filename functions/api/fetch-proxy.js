@@ -135,6 +135,7 @@ export async function onRequestGet(context) {
 // extractor, or a page whose markup didn't match what we expected).
 function extractImportantData(targetUrl, body) {
   if (targetUrl.hostname === 'kwize.com') return extractKwizeQuote(body);
+  if (targetUrl.hostname === 'worddaily.com') return extractWordDaily(body);
   return null;
 }
 
@@ -159,14 +160,101 @@ function extractKwizeQuote(html) {
     );
     if (!quote) return null;
 
+    // Author is first small span; remaining small spans hold work title + year
     const smallSpans = [...inner.matchAll(/<span style="font-size:0\.5em;">([\s\S]*?)<\/span>/g)];
     if (!smallSpans.length) return null;
     const author = decodeHtmlEntities(smallSpans[0][1].replace(/<[^>]*>/g, '').trim());
     if (!author) return null;
 
+    // Annotation: work title and year from subsequent small spans
+    let annotation = '';
+    if (smallSpans.length > 1) {
+      annotation = smallSpans
+        .slice(1)
+        .map((m) => decodeHtmlEntities(m[1].replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()))
+        .filter(Boolean)
+        .join(' ')
+        .replace(/^,\s*/, '')
+        .trim();
+    }
+
+    // Author image (relative path on kwize.com)
+    let image = undefined;
+    const imgMatch = inner.match(/<img[^>]+src=["']([^"']+)["']/i);
+    if (imgMatch) {
+      const src = imgMatch[1];
+      image = src.startsWith('http') ? src : `https://kwize.com${src.startsWith('/') ? '' : '/'}${src}`;
+    }
+
     const link = rawLink.startsWith('http') ? rawLink : `https://kwize.com${rawLink}`;
 
-    return { quote, author, link, source: 'kwize' };
+    return { quote, author, link, source: 'kwize', image, annotation };
+  } catch {
+    return null;
+  }
+}
+
+// Extract the key fields from a WordDaily word-of-the-day page so the
+// browser only receives a tiny JSON payload instead of the full ad-heavy
+// HTML document.
+function extractWordDaily(html) {
+  try {
+    // Word
+    let word = '';
+    let m = html.match(/<h2\s+class=["']words-single-title["'][^>]*>([^<]+)<\/h2>/i);
+    if (m) word = m[1].trim();
+    if (!word) {
+      m = html.match(/<title>([^-|<]+?)\s*[-|]\s*(?:Word Daily|WordDaily)/i);
+      if (m) word = m[1].trim();
+    }
+    if (!word) return null;
+
+    // Pronunciation
+    let pronunciation = word;
+    m = html.match(/<div\s+class=["']phonetic["'][^>]*>\s*<span[^>]*>([^<]+)<\/span>/i);
+    if (m) pronunciation = m[1].trim();
+
+    // Audio (prefer the element with id="audio")
+    let audioUrl = undefined;
+    m =
+      html.match(/<audio[^>]+id=["']audio["'][^>]+src=["']([^"']+\.mp3)["']/i) ||
+      html.match(/src=["'](https?:\/\/[^"']*-WD\.mp3)["']/i) ||
+      html.match(/src=["'](https?:\/\/inbox-media-offload\.worddaily\.com\/[^"']+\.mp3)["']/i);
+    if (m) audioUrl = m[1];
+
+    // Part of speech
+    let type = 'word';
+    m =
+      html.match(/<div\s+class=["']words-single-noun-title["'][^>]*>\s*<h3>([^<]+)<\/h3>/i) ||
+      html.match(/<h3>(noun|verb|adjective|adverb|pronoun|preposition|conjunction|interjection)<\/h3>/i);
+    if (m) type = m[1].trim().toLowerCase();
+
+    // Definition – target the specific description list, never the footer
+    let definition = '';
+    m =
+      html.match(/<div\s+class=["']words-single-noun-description["'][^>]*>\s*<ul>\s*<li>([^<]+)<\/li>/i) ||
+      html.match(/<div\s+class=["']words-single-noun-description["'][^>]*>[\s\S]*?<li>([^<]+)<\/li>/i);
+    if (m) definition = decodeHtmlEntities(m[1].trim());
+    if (!definition || /©|all rights reserved|word daily/i.test(definition)) {
+      const allLis = [...html.matchAll(/<li>([^<]{5,120})<\/li>/gi)];
+      for (const li of allLis) {
+        const t = decodeHtmlEntities(li[1].trim());
+        if (t && !/©|all rights reserved|word daily|privacy|terms/i.test(t) && t.length < 200) {
+          definition = t;
+          break;
+        }
+      }
+    }
+    if (!definition) definition = 'Visit WordDaily.com to see the full definition.';
+
+    return {
+      word,
+      pronunciation,
+      type,
+      definition,
+      source: 'worddaily',
+      audioUrl,
+    };
   } catch {
     return null;
   }

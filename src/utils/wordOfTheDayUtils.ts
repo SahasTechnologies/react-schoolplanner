@@ -10,6 +10,7 @@ export interface WordOfTheDay {
   type: string;
   definition: string;
   source: 'vocabulary' | 'dictionary' | 'worddaily' | 'merriam-webster' | 'britannica' | 'wordsmith';
+  audioUrl?: string;
 }
 
 // HTML fallback for Merriam-Webster
@@ -186,23 +187,42 @@ async function fetchFromVocabularyCom(): Promise<WordOfTheDay | null> {
 async function fetchFromWordDaily(): Promise<WordOfTheDay | null> {
   console.log('[WordOfTheDay] Trying WordDaily.com...');
   try {
-    const html = await fetchHtmlWithProxies('https://worddaily.com/todays-word/');
-    console.log('[WordOfTheDay] WordDaily.com HTML length:', html?.length);
+    const raw = await fetchHtmlWithProxies('https://worddaily.com/todays-word/');
+    console.log('[WordOfTheDay] WordDaily.com response length:', raw?.length);
 
-    // Extract word - try multiple patterns
+    // Our proxy (and potentially others) may return a compact JSON extraction
+    // instead of the full HTML page. Prefer that when available.
+    try {
+      const parsed = JSON.parse(raw) as Partial<WordOfTheDay> & { source?: string };
+      if (parsed?.word && parsed?.definition) {
+        console.log('[WordOfTheDay] Successfully parsed word (proxy JSON)');
+        return {
+          word: String(parsed.word).trim(),
+          pronunciation: sanitizePronunciation(String(parsed.pronunciation || parsed.word), String(parsed.word)),
+          type: String(parsed.type || 'word').toLowerCase(),
+          definition: parseHtmlEntities(String(parsed.definition).trim()),
+          source: 'worddaily',
+          audioUrl: typeof parsed.audioUrl === 'string' ? parsed.audioUrl : undefined,
+        };
+      }
+    } catch {
+      // Not JSON -- fall through to HTML parsing.
+    }
+
+    const html = raw;
+
+    // Extract word - prefer the dedicated title class used by WordDaily
     let word = '';
-    // Pattern 1: title tag (most reliable) - "Word - Word Daily" format
-    let wordMatch = html.match(/<title>([^-|<]+?)\s*[-|]\s*(?:Word Daily|WordDaily)/i);
+    let wordMatch = html.match(/<h2\s+class=["']words-single-title["'][^>]*>([^<]+)<\/h2>/i);
     if (wordMatch) {
       word = wordMatch[1].trim();
     } else {
-      // Pattern 2: h1 or h2 with word-related class
-      wordMatch = html.match(/<h[12][^>]*class=["']?[^"']*(?:word|title)[^"']*["']?[^>]*>([^<]+)<\/h[12]>/i);
+      // Title tag: "Farrago - Word Daily"
+      wordMatch = html.match(/<title>([^-|<]+?)\s*[-|]\s*(?:Word Daily|WordDaily)/i);
       if (wordMatch) {
         word = wordMatch[1].trim();
       } else {
-        // Pattern 3: any h1 or h2 (first one found)
-        wordMatch = html.match(/<h[12][^>]*>([^<]{2,30})<\/h[12]>/);
+        wordMatch = html.match(/<h[12][^>]*class=["']?[^"']*(?:word|title)[^"']*["']?[^>]*>([^<]+)<\/h[12]>/i);
         if (wordMatch) {
           word = wordMatch[1].trim();
         } else {
@@ -213,43 +233,63 @@ async function fetchFromWordDaily(): Promise<WordOfTheDay | null> {
     }
     console.log('[WordOfTheDay] Parsed word:', word);
 
-    // Extract pronunciation - try multiple patterns
-    let pronunciation = '';
-    let pronMatch = html.match(/<[^>]*class=["']?[^"']*phonetic[^"']*["']?[^>]*>\s*<[^>]*>([^<]+)<\//);
+    // Pronunciation lives inside <div class="phonetic"><span>...</span></div>
+    let pronunciation = word;
+    let pronMatch = html.match(/<div\s+class=["']phonetic["'][^>]*>\s*<span[^>]*>([^<]+)<\/span>/i);
     if (pronMatch) {
       pronunciation = sanitizePronunciation(pronMatch[1].trim(), word);
     } else {
-      // Try simpler pattern
-      pronMatch = html.match(/\[([^\]]+)\]/);
+      pronMatch = html.match(/class=["'][^"']*phonetic[^"']*["'][^>]*>\s*(?:<[^>]+>)?([^<]+)/i);
       if (pronMatch) {
         pronunciation = sanitizePronunciation(pronMatch[1].trim(), word);
-      } else {
-        pronunciation = word;
       }
     }
     console.log('[WordOfTheDay] Parsed pronunciation:', pronunciation);
 
-    // Extract type - try multiple patterns
+    // Audio: the primary word audio is the one with id="audio" or ending in -WD.mp3
+    let audioUrl: string | undefined;
+    const audioMatch =
+      html.match(/<audio[^>]+id=["']audio["'][^>]+src=["']([^"']+\.mp3)["']/i) ||
+      html.match(/src=["'](https?:\/\/[^"']*Farrago-WD\.mp3|https?:\/\/[^"']*-WD\.mp3)["']/i) ||
+      html.match(/src=["'](https?:\/\/inbox-media-offload\.worddaily\.com\/[^"']+\.mp3)["']/i);
+    if (audioMatch) {
+      audioUrl = audioMatch[1];
+    }
+    console.log('[WordOfTheDay] Parsed audioUrl:', audioUrl || '(none)');
+
+    // Part of speech: <div class="words-single-noun-title"><h3>Noun</h3></div>
     let type = 'word';
-    const typeMatch = html.match(/<[^>]*>\s*(noun|verb|adjective|adverb|pronoun|preposition|conjunction|interjection)\s*<\/[^>]*>/i);
+    const typeMatch =
+      html.match(/<div\s+class=["']words-single-noun-title["'][^>]*>\s*<h3>([^<]+)<\/h3>/i) ||
+      html.match(/<h3>(noun|verb|adjective|adverb|pronoun|preposition|conjunction|interjection)<\/h3>/i);
     if (typeMatch) {
-      type = typeMatch[1].toLowerCase();
+      type = typeMatch[1].trim().toLowerCase();
     }
     console.log('[WordOfTheDay] Type:', type);
 
-    // Extract definition - try multiple patterns
+    // Definition: specifically inside the noun-description list item
+    // Avoid the footer copyright <li>&copy; 2026 Word Daily. All rights reserved.</li>
     let definition = '';
-    let defMatch = html.match(/<li>([^<]{20,})<\/li>/);
+    const defMatch =
+      html.match(/<div\s+class=["']words-single-noun-description["'][^>]*>\s*<ul>\s*<li>([^<]+)<\/li>/i) ||
+      html.match(/<div\s+class=["']words-single-noun-description["'][^>]*>[\s\S]*?<li>([^<]+)<\/li>/i);
     if (defMatch) {
       definition = parseHtmlEntities(defMatch[1].trim());
-    } else {
-      // Try paragraph
-      defMatch = html.match(/<p[^>]*>([^<]{30,})<\/p>/);
-      if (defMatch) {
-        definition = parseHtmlEntities(defMatch[1].trim());
-      } else {
-        definition = 'Visit WordDaily.com to see the full definition.';
+    }
+    // Reject anything that looks like the site footer copyright
+    if (!definition || /©|all rights reserved|word daily/i.test(definition)) {
+      // Fallback: first short <li> that is not the copyright
+      const allLis = [...html.matchAll(/<li>([^<]{5,120})<\/li>/gi)];
+      for (const m of allLis) {
+        const t = parseHtmlEntities(m[1].trim());
+        if (t && !/©|all rights reserved|word daily|privacy|terms/i.test(t) && t.length < 200) {
+          definition = t;
+          break;
+        }
       }
+    }
+    if (!definition) {
+      definition = 'Visit WordDaily.com to see the full definition.';
     }
     console.log('[WordOfTheDay] Parsed definition:', definition.substring(0, 50) + '...');
 
@@ -259,6 +299,7 @@ async function fetchFromWordDaily(): Promise<WordOfTheDay | null> {
       type,
       definition,
       source: 'worddaily',
+      audioUrl,
     };
   } catch (error) {
     console.error('[WordOfTheDay] WordDaily.com failed:', error);

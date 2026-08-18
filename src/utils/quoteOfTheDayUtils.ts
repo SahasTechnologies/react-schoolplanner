@@ -7,6 +7,10 @@ export interface QuoteOfTheDay {
   author: string;
   link: string;
   source?: 'favqs' | 'zenquotes' | 'kwize' | 'jakub-petriska';
+  /** Optional author portrait (Kwize) */
+  image?: string;
+  /** Optional work title + year annotation (Kwize) */
+  annotation?: string;
 }
 
 // Timeout-enabled fetch to avoid long hangs per proxy
@@ -103,7 +107,13 @@ export async function fetchKwizeQuote(): Promise<QuoteOfTheDay | null> {
     // just forwards the raw embed HTML -- so fall back to scraping it the
     // same way the proxy does when the response isn't our compact JSON.
     try {
-      const parsed = JSON.parse(raw) as { quote?: string; author?: string; link?: string };
+      const parsed = JSON.parse(raw) as {
+        quote?: string;
+        author?: string;
+        link?: string;
+        image?: string;
+        annotation?: string;
+      };
       if (parsed?.quote && parsed?.author) {
         console.log('[Kwize] Successfully parsed quote (proxy JSON)');
         return {
@@ -111,6 +121,8 @@ export async function fetchKwizeQuote(): Promise<QuoteOfTheDay | null> {
           author: parsed.author,
           link: parsed.link || 'https://kwize.com/quote-of-the-day/',
           source: 'kwize',
+          image: parsed.image,
+          annotation: parsed.annotation,
         };
       }
     } catch {
@@ -143,10 +155,30 @@ export async function fetchKwizeQuote(): Promise<QuoteOfTheDay | null> {
     const author = decodeHtmlEntities(smallSpans[0][1].replace(/<[^>]*>/g, '').trim());
     if (!author) throw new Error('Kwize: empty author');
 
+    // Annotation (work title + year) from remaining small spans
+    let annotation: string | undefined;
+    if (smallSpans.length > 1) {
+      annotation = smallSpans
+        .slice(1)
+        .map((m) => decodeHtmlEntities(m[1].replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()))
+        .filter(Boolean)
+        .join(' ')
+        .replace(/^,\s*/, '')
+        .trim() || undefined;
+    }
+
+    // Author image
+    let image: string | undefined;
+    const imgMatch = inner.match(/<img[^>]+src=["']([^"']+)["']/i);
+    if (imgMatch) {
+      const src = imgMatch[1];
+      image = src.startsWith('http') ? src : `https://kwize.com${src.startsWith('/') ? '' : '/'}${src}`;
+    }
+
     const link = rawLink.startsWith('http') ? rawLink : `https://kwize.com${rawLink}`;
 
     console.log('[Kwize] Successfully parsed quote');
-    return { quote, author, link, source: 'kwize' };
+    return { quote, author, link, source: 'kwize', image, annotation };
   } catch (e) {
     console.error('[Kwize] Failed:', e);
     return null;

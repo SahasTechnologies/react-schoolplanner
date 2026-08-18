@@ -250,9 +250,28 @@ export default function QuoteOfTheDayWidget({
             <div className={`text-base leading-relaxed px-2 ${colors.containerText}`}>
               "{quoteData.quote}"
             </div>
-            {/* Author */}
-            <div className={`text-base text-right px-2 opacity-70 ${colors.containerText}`}>
-              - {quoteData.author}
+            {/* Author + optional portrait + annotation */}
+            <div className={`text-base px-2 opacity-70 ${colors.containerText} flex flex-col items-end gap-1`}>
+              <div className="flex items-center gap-2 justify-end">
+                {quoteData.image && (
+                  <img
+                    src={quoteData.image}
+                    alt={quoteData.author}
+                    className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+                    loading="lazy"
+                    onError={(e) => {
+                      // Hide broken image
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                )}
+                <span>- {quoteData.author}</span>
+              </div>
+              {quoteData.annotation && (
+                <div className="text-xs italic opacity-80 text-right">
+                  {quoteData.annotation}
+                </div>
+              )}
             </div>
             {blockedNote && (
               <div className={`text-xs text-center opacity-60 ${colors.containerText}`}>{blockedNote}</div>

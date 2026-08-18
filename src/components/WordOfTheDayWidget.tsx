@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { LoaderCircle, BookOpen, CloudOff, ArrowRight } from 'lucide-react';
+import { LoaderCircle, BookOpen, CloudOff, ArrowRight, Volume2 } from 'lucide-react';
 import { ThemeKey, getColors } from '../utils/themeUtils';
 import { fetchWordOfTheDay, getCachedWord, cacheWord, WordOfTheDay, clearWordCache } from '../utils/wordOfTheDayUtils';
 
@@ -62,7 +62,8 @@ export default function WordOfTheDayWidget({
               newData.pronunciation !== cached.pronunciation ||
               newData.definition !== cached.definition ||
               newData.source !== cached.source ||
-              newData.type !== cached.type
+              newData.type !== cached.type ||
+              newData.audioUrl !== cached.audioUrl
             );
             if (changed) {
               console.log('[WordWidget] Found updated data, applying...');
@@ -197,17 +198,38 @@ export default function WordOfTheDayWidget({
             <div className={`font-bold text-2xl ${colors.containerText}`}>
               {wordData.word}
             </div>
-            {/* Type and Pronunciation - only show if meaningful data exists */}
+            {/* Type and Pronunciation + optional audio play button */}
             {(() => {
               const hasType = wordData.type && wordData.type.toLowerCase() !== 'word';
               const hasPronunciation = wordData.pronunciation && wordData.pronunciation !== wordData.word;
-              
-              if (hasType || hasPronunciation) {
+              const hasAudio = Boolean(wordData.audioUrl);
+
+              if (hasType || hasPronunciation || hasAudio) {
                 return (
-                  <div className={`text-base opacity-70 ${colors.containerText}`}>
-                    {hasType && wordData.type}
-                    {hasType && hasPronunciation && ' | '}
-                    {hasPronunciation && wordData.pronunciation}
+                  <div className={`text-base opacity-70 ${colors.containerText} flex items-center justify-center gap-2 flex-wrap`}>
+                    {hasType && <span>{wordData.type}</span>}
+                    {hasType && hasPronunciation && <span>|</span>}
+                    {hasPronunciation && <span>{wordData.pronunciation}</span>}
+                    {hasAudio && (
+                      <button
+                        type="button"
+                        aria-label={`Play pronunciation of ${wordData.word}`}
+                        title="Play pronunciation"
+                        className={`inline-flex items-center justify-center rounded-full p-1.5 hover:opacity-100 opacity-80 transition-opacity ${colors.containerText}`}
+                        onClick={() => {
+                          try {
+                            const audio = new Audio(wordData.audioUrl!);
+                            audio.play().catch((err) => {
+                              console.warn('[WordWidget] Audio play failed:', err);
+                            });
+                          } catch (err) {
+                            console.warn('[WordWidget] Audio creation failed:', err);
+                          }
+                        }}
+                      >
+                        <Volume2 size={16} />
+                      </button>
+                    )}
                   </div>
                 );
               }
