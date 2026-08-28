@@ -1,11 +1,14 @@
-import React, { useRef } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   Edit2, Calculator, FlaskConical, Palette, Music, Globe, Dumbbell, Languages, 
   Code2, Brain, Mic2, Users, Heart, Star, Zap, Rocket, 
   Camera, Coffee, Gamepad2, Headphones, Lightbulb, Paintbrush, Trophy, Crown, 
   Sun, Moon, Flame, Flower2 as Flower, Apple, Pizza, Car, Plane, Home, 
-  School, Laptop, Smartphone, Book
+  School, Laptop, Smartphone, Book, Atom, Bike, Cloud, Compass, Cpu, Database,
+  Dices, Eye, FileText, Globe2, Landmark, Map, MessageCircle, Microscope, Mountain,
+  NotebookPen, Orbit, Palette as PaletteIcon, PawPrint, Puzzle, Sigma, Telescope,
+  Timer, TreePine, WandSparkles, Waves, Workflow
 } from 'lucide-react';
 import { Subject } from '../types';
 import { colourPaletteGroups } from '../utils/fileUtils';
@@ -52,6 +55,7 @@ const SubjectEditModal: React.FC<SubjectEditModalProps> = ({
     return 'normal';
   };
   const [paletteGroup, setPaletteGroup] = React.useState<'normal' | 'naturals' | 'dark'>(() => groupContaining(editColour));
+  const [iconSearch, setIconSearch] = useState('');
   React.useEffect(() => {
     if (selectedSubjectForEdit) {
       setPaletteGroup(groupContaining(editColour));
@@ -99,14 +103,32 @@ const SubjectEditModal: React.FC<SubjectEditModalProps> = ({
     { name: 'Home', component: Home, label: 'Home' },
     { name: 'School', component: School, label: 'School' },
     { name: 'Laptop', component: Laptop, label: 'Computer' },
-    { name: 'Smartphone', component: Smartphone, label: 'Mobile' }
+    { name: 'Smartphone', component: Smartphone, label: 'Mobile' },
+    { name: 'Atom', component: Atom, label: 'Physics' }, { name: 'Bike', component: Bike, label: 'Cycling' },
+    { name: 'Cloud', component: Cloud, label: 'Cloud' }, { name: 'Compass', component: Compass, label: 'Navigation' },
+    { name: 'Cpu', component: Cpu, label: 'Computing' }, { name: 'Database', component: Database, label: 'Data' },
+    { name: 'Dices', component: Dices, label: 'Games' }, { name: 'Eye', component: Eye, label: 'Vision' },
+    { name: 'FileText', component: FileText, label: 'Writing' }, { name: 'Globe2', component: Globe2, label: 'World' },
+    { name: 'Landmark', component: Landmark, label: 'Civics' }, { name: 'Map', component: Map, label: 'Mapping' },
+    { name: 'MessageCircle', component: MessageCircle, label: 'Discussion' }, { name: 'Microscope', component: Microscope, label: 'Biology' },
+    { name: 'Mountain', component: Mountain, label: 'Outdoors' }, { name: 'NotebookPen', component: NotebookPen, label: 'Notes' },
+    { name: 'Orbit', component: Orbit, label: 'Astronomy' }, { name: 'PaletteIcon', component: PaletteIcon, label: 'Design' },
+    { name: 'PawPrint', component: PawPrint, label: 'Animals' }, { name: 'Puzzle', component: Puzzle, label: 'Puzzles' },
+    { name: 'Sigma', component: Sigma, label: 'Algebra' }, { name: 'Telescope', component: Telescope, label: 'Astronomy' },
+    { name: 'Timer', component: Timer, label: 'Time' }, { name: 'TreePine', component: TreePine, label: 'Nature' },
+    { name: 'Dumbbell', component: Dumbbell, label: 'Volleyball' }, { name: 'WandSparkles', component: WandSparkles, label: 'Creative' },
+    { name: 'Waves', component: Waves, label: 'Ocean' }, { name: 'Workflow', component: Workflow, label: 'Process' }
   ];
+  const filteredIconOptions = useMemo(() => {
+    const query = iconSearch.trim().toLowerCase();
+    return query ? iconOptions.filter(icon => `${icon.name} ${icon.label}`.toLowerCase().includes(query)) : iconOptions;
+  }, [iconSearch]);
   if (!showSubjectEditModal || !selectedSubjectForEdit) {
     return null;
   }
 
   return createPortal(
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" style={{ zIndex: 9999 }}>
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" style={{ zIndex: 9999 }} onClick={cancelSubjectEdit}>
       <style>{`
         .hide-scrollbar::-webkit-scrollbar {
           display: none;
@@ -116,7 +138,7 @@ const SubjectEditModal: React.FC<SubjectEditModalProps> = ({
           scrollbar-width: none;
         }
       `}</style>
-      <div className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md max-h-[90vh] overflow-y-auto hide-scrollbar`} style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      <div onClick={(e) => e.stopPropagation()} className={`${colors.container} rounded-lg p-6 shadow-xl border border-gray-700 w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar animate-fadeIn`}>
         <div className="flex items-center gap-3 mb-4">
           <Edit2 className={colors.containerText} size={28} />
           <h3 className={`text-3xl font-semibold ${colors.containerText}`}>Edit Subject</h3>
@@ -204,8 +226,16 @@ const SubjectEditModal: React.FC<SubjectEditModalProps> = ({
             <label className={`block ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-300'} text-sm font-medium mb-2`}>
               Subject Icon
             </label>
-            <div className="grid grid-cols-6 gap-2 mb-4">
-              {iconOptions.map((iconOption) => {
+            <input
+              type="search"
+              value={iconSearch}
+              onChange={(e) => setIconSearch(e.target.value)}
+              placeholder="Search subject icons…"
+              aria-label="Search subject icons"
+              className={`w-full mb-3 px-3 py-2 rounded-md border ${colors.border} ${colors.input} ${colors.text}`}
+            />
+            <div className="grid grid-cols-6 gap-2 mb-4 max-h-56 overflow-y-auto custom-scrollbar pr-1">
+              {filteredIconOptions.map((iconOption) => {
                 const IconComponent = iconOption.component;
                 return (
                   <button

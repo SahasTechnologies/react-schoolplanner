@@ -190,8 +190,8 @@ export default function MarkbookPage({
         </div>
         {!(markbookPasswordEnabled && isMarkbookLocked) && (
           <button
-            onClick={() => setShowExportModal(true)}
-            className={`inline-flex items-center gap-2 px-3 py-2 rounded-md border ${colors.border} ${effectiveMode==='light'?'bg-white hover:bg-gray-50 text-black':'bg-gray-800 hover:bg-gray-700 text-white'} transition-colors`}
+            onClick={() => setShowExportModal(true)}              className={`inline-flex items-center gap-2 px-3 py-2 rounded-md border ${colors.border} ${effectiveMode==='light'?'bg-white hover:bg-gray-50 text-black':'bg-gray-800 hover:bg-gray-700 text-white'} transition-all hover:scale-105 active:scale-95`}
+
           >
             <FileDown size={16} />
             <span className="text-sm font-medium">Export PDF</span>
@@ -212,6 +212,7 @@ export default function MarkbookPage({
               value={subjectSortOption}
               onChange={(e) => setSubjectSortOption(e.target.value as any)}
               className={`border ${colors.border} rounded-md px-2 py-1 text-sm ${effectiveMode === 'light' ? 'bg-white text-black' : 'bg-gray-800 text-white'} focus:outline-none`}
+              style={{ fontFamily: 'inherit' }}
             >
               <option value="marks-asc">Marks Ascending</option>
               <option value="marks-desc">Marks Descending</option>

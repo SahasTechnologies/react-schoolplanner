@@ -5,7 +5,9 @@ import { Smile, HeartHandshake, BotOff, PartyPopper } from 'lucide-react';
 
 // Google Form submission endpoint and entry IDs
 const GOOGLE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSc9Cb3cU5ifmk7ymHTrMPhLpvHJ8a-_WXOQFPkpDhwQZWVlwQ/formResponse';
-const FORMSUBMIT_FALLBACK = 'https://formsubmit.co/ajax/3b648867dccdbbc25deec547a473850f';
+const FORMSUBMIT_FALLBACK = import.meta.env.VITE_FEEDBACK_ENDPOINT || 'https://formsubmit.co/ajax/3b648867dccdbbc25deec547a473850f';
+const FEEDBACK_EMAIL = import.meta.env.VITE_FEEDBACK_EMAIL || import.meta.env.VITE_EMAIL;
+const FEEDBACK_CACHE_KEY = 'feedbackFormCache';
 
 // Lightweight canvas confetti
 const ConfettiCanvas: React.FC<{ className?: string; durationMs?: number }> = ({ className = '', durationMs = 4000 }) => {
@@ -125,7 +127,7 @@ interface FeedbackFormProps {
 
 const SlideContainer: React.FC<{ children: React.ReactNode; colors: any; bottomLeft?: React.ReactNode }>=({ children, colors, bottomLeft })=>{
   return (
-    <div className={`w-full rounded-xl ${colors.container} ${colors.text} border ${colors.softBorder} shadow-inner overflow-hidden min-h-[560px] sm:min-h-[640px] p-10 sm:p-14 flex flex-col justify-center relative`}>
+    <div className={`w-full rounded-xl ${colors.container} ${colors.text} border ${colors.softBorder} shadow-inner overflow-hidden min-h-[560px] sm:min-h-[640px] p-10 sm:p-14 flex flex-col justify-center relative animate-fadeIn`}>
       {/* overlay tinted with button color at 50% opacity */}
       <div className={`absolute inset-0 rounded-xl ${colors.buttonAccent} opacity-50 z-0 pointer-events-none`} />
       <div className="relative z-10">
@@ -297,14 +299,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
     }
   };
 
-  // Submit to Google Forms using a hidden form + iframe (works even when fetch is blocked)
-  const submitGoogleViaFormDOM = async (): Promise<boolean> => {
-    try {
-      const params = buildGoogleParams();
-      return await submitGoogleDOMWithOptionalTokens(params);
-    } catch { return false; }
-  };
-
+  /* Legacy Google Forms submit path retained below for compatibility with cached drafts. */
   // Variant that accepts arbitrary params (for cached autosend on mount)
   const submitGoogleViaFormDOMWithParams = (params: URLSearchParams): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -362,10 +357,12 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
       fsfd.append('_honey', companyWebsite);
       fsfd.append('timestamp', new Date().toISOString());
 
+      if (FEEDBACK_EMAIL) fsfd.append('_replyto', FEEDBACK_EMAIL);
       const res = await fetch(FORMSUBMIT_FALLBACK, {
         method: 'POST',
         headers: { 'Accept': 'application/json' },
         body: fsfd,
+        keepalive: true,
       });
       return res.ok;
     } catch {
@@ -386,9 +383,10 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
     }
 
     try {
-      // For manual submits: try Google first; only use FormSubmit if Google attempt failed
-      const googleOk = await submitGoogleViaFormDOM();
-      if (!googleOk) await submitToFormSubmit(isAutoSubmit);
+      // Do not wait for Google token/proxy discovery. The configured endpoint is
+      // fast and can notify the destination mailbox server-side.
+      const submitted = await submitToFormSubmit(isAutoSubmit);
+      if (!submitted) throw new Error('Feedback endpoint rejected the submission');
 
       if (!isAutoSubmit) {
         hasSubmittedRef.current = true;
@@ -479,13 +477,13 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
       timestamp: Date.now()
     };
     try {
-      localStorage.setItem('feedbackFormCache', JSON.stringify(formState));
+      localStorage.setItem(FEEDBACK_CACHE_KEY, JSON.stringify(formState));
     } catch (e) { /* ignore */ }
   }, [rating, howToTen, anythingElse, wantsContact, contactEmail]);
 
   // Load cached data on mount and auto-send (guarded to once per load)
   useEffect(() => {
-    const cached = localStorage.getItem('feedbackFormCache');
+    const cached = localStorage.getItem(FEEDBACK_CACHE_KEY);
     if (!cached || hasSubmittedRef.current) return;
     // Prevent duplicate sends (e.g., StrictMode double-mount)
     if (localStorage.getItem('feedbackFormCache_sending') === '1') return;
@@ -517,7 +515,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ colors }) => {
           fsfd.append('timestamp', new Date(formState.timestamp).toISOString());
           await fetch(FORMSUBMIT_FALLBACK, { method: 'POST', headers: { 'Accept': 'application/json' }, body: fsfd });
         }
-        localStorage.removeItem('feedbackFormCache');
+        localStorage.removeItem(FEEDBACK_CACHE_KEY);
         localStorage.removeItem('feedbackFormCache_sending');
       })();
     } catch (e) {

@@ -31,13 +31,16 @@ const BounceButton = ({
       onClick={onClick}
       title={title}
       className={`
-        p-3 rounded-lg mx-auto block relative
-        transition-[background-color,transform] duration-150 ease-out
-        active:scale-90
+        p-3 rounded-lg mx-auto block relative group
+        transition-[background-color,transform,box-shadow] duration-150 ease-out
+        hover:scale-115 hover:shadow-lg active:scale-90
         ${isActivePath ? `${accentBg} ${iconActive}` : 'sidebar-hover-accent hover:scale-110'}
       `}
     >
-      <Icon size={20} className={`${isActivePath ? iconActive : iconInactive} transition-colors duration-150`} />
+      <Icon size={22} className={`${isActivePath ? iconActive : iconInactive} transition-colors duration-150`} />
+      <span className="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity delay-500 group-hover:opacity-100">
+        {title}
+      </span>
     </button>
   );
 };

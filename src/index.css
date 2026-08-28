@@ -19,6 +19,27 @@ textarea {
   font: inherit;
 }
 
+/* Consistent tactile controls across the app. */
+button {
+  transform-origin: center;
+  transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+}
+button:hover:not(:disabled) {
+  transform: scale(1.045);
+  filter: brightness(1.04);
+}
+button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, .75) transparent;
+}
+.custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, .75); border-radius: 999px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+
 /* FeedbackForm-only lightweight animations */
 @keyframes feedback-shake {
   0%, 100% { transform: translateX(0); }

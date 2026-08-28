@@ -183,8 +183,8 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
             </button>
           )}
           {showTerms && (
-            <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-              <div className={`${colors.container} rounded-lg p-6 shadow-xl border ${colors.border} w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}>
+            <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" onClick={() => { setShowTerms(false); setMarkdownError(null); }}>
+              <div onClick={(e) => e.stopPropagation()} className={`${colors.container} rounded-lg p-6 shadow-xl border ${colors.border} w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode} animate-fadeIn`}>
                 <button onClick={() => { setShowTerms(false); setMarkdownError(null); }} className={`absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition ${colors.containerText}`}>&times;</button>
                 {loadingMarkdown === 'terms' ? (
                   <div className={`py-8 ${colors.text}`}>Loading...</div>
@@ -197,8 +197,8 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
             </div>
           )}
           {showPrivacy && (
-            <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-              <div className={`${colors.container} rounded-lg p-6 shadow-xl border ${colors.border} w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}>
+            <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" onClick={() => { setShowPrivacy(false); setMarkdownError(null); }}>
+              <div onClick={(e) => e.stopPropagation()} className={`${colors.container} rounded-lg p-6 shadow-xl border ${colors.border} w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode} animate-fadeIn`}>
                 <button onClick={() => { setShowPrivacy(false); setMarkdownError(null); }} className={`absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition ${colors.containerText}`}>&times;</button>
                 {loadingMarkdown === 'privacy' ? (
                   <div className={`py-8 ${colors.text}`}>Loading...</div>
@@ -212,7 +212,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = (props: WelcomeScreenProps) 
           )}
           {showLicensing && (
             <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-              <div className={`${colors.container} rounded-lg p-6 shadow-xl border ${colors.border} w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode}`}>
+              <div onClick={(e) => e.stopPropagation()} className={`${colors.container} rounded-lg p-6 shadow-xl border ${colors.border} w-full max-w-lg relative max-h-[80vh] overflow-y-auto custom-scrollbar-${effectiveMode} animate-fadeIn`}>
                 <button onClick={() => { setShowLicensing(false); setMarkdownError(null); }} className={`absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 transition ${colors.containerText}`}>&times;</button>
                 {loadingMarkdown === 'license' ? (
                   <div className={`py-8 ${colors.text}`}>Loading...</div>

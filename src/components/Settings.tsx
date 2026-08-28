@@ -33,14 +33,10 @@ import {
   Sun,
   Moon,
   Monitor,
-  ChevronDown,
   MessageSquare,
   Mail,
   BookOpen,
-  Share2,
   Link as LinkIcon,
-  Landmark,
-  HandHeart,
   Copy,
   AlertTriangle
 } from 'lucide-react';
@@ -239,18 +235,13 @@ const Settings: React.FC<SettingsProps> = ({
   const [licenseContent, setLicenseContent] = useState<string>('');
   const [loadingMarkdown, setLoadingMarkdown] = useState<string | null>(null);
   const [markdownError, setMarkdownError] = useState<string | null>(null);
-  const [showPayIDDetails, setShowPayIDDetails] = useState(false);
-  const [isHeartHovered, setIsHeartHovered] = useState(false);
-  const [floatingHearts, setFloatingHearts] = useState<Array<{id: number, x: number, y: number}>>([]);
-  const [heartIdCounter, setHeartIdCounter] = useState(0);
   const [copied, setCopied] = useState(false);
+  const decodeChars = (arr: number[]) => String.fromCharCode(...arr);
+  const CONTACT_EMAIL_CHARS = [115,97,104,97,115,64,115,104,105,109,112,105,46,100,101,118];
   const [copyButtonPressed, setCopyButtonPressed] = useState(false);
 
-  // Obfuscation helpers (avoid putting sensitive strings in DOM/source as plain text)
-  const decodeChars = (arr: number[]) => String.fromCharCode(...arr);
-  const PAYID_EMAIL_CHARS = [116,104,97,110,107,121,111,117,64,115,97,104,97,115,46,100,112,100,110,115,46,111,114,103];
-  const CONTACT_EMAIL_CHARS = [115,97,104,97,115,64,115,104,105,109,112,105,46,100,101,118]; // sahas@shimpi.dev
-  const PAYEE_NAME_CHARS = [83,65,72,65,83,32,83,72,73,77,80,73];
+  // Contact details are intentionally kept out of the donation UI; feedback is
+  // delivered by the configured server-side endpoint.
 
   useEffect(() => {
     if (showTerms && !termsContent) {
@@ -1731,190 +1722,7 @@ const Settings: React.FC<SettingsProps> = ({
         </div>
       </section>
 
-      {/* Donate Section */}
-      <section className="mb-8">
-        <style>{`
-          @keyframes heartPulse {
-            0% {
-              transform: translateY(0) scale(1);
-              opacity: 1;
-            }
-            50% {
-              transform: translateY(-30px) scale(1.2);
-              opacity: 0.8;
-            }
-            100% {
-              transform: translateY(-60px) scale(0.8);
-              opacity: 0;
-            }
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.15); }
-          }
-          @keyframes heartPulseFast {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.2); }
-          }
-        `}</style>
-        <div className="flex items-center gap-2 mb-3">
-          <div 
-            className={`p-3 rounded-xl ${effectiveMode === 'light' ? 'bg-red-100' : 'bg-red-900/30'} cursor-pointer`}
-            onMouseEnter={() => setIsHeartHovered(true)}
-            onMouseLeave={() => setIsHeartHovered(false)}
-          >
-            <Heart 
-              size={20} 
-              className="text-red-500"
-              style={{
-                animation: isHeartHovered ? 'heartPulseFast 0.8s ease-in-out infinite' : 'heartPulse 1.5s ease-in-out infinite',
-                transition: 'transform 0.3s ease-in-out, fill 0.2s ease-in-out'
-              }}
-              fill={isHeartHovered ? 'currentColor' : 'none'}
-            />
-          </div>
-          <h3 className={`text-lg font-medium ${colors.text}`}>Donate</h3>
-        </div>
-        <div className="space-y-3">
-          <div className={`${colors.container} ${colors.border} border rounded-2xl p-4`}>
-            <div className="flex items-center gap-3">
-              <div 
-                className="relative cursor-pointer"
-                onClick={(e) => {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const x = e.clientX - rect.left;
-                  const y = e.clientY - rect.top;
-                  const newHeart = { id: heartIdCounter, x, y };
-                  setFloatingHearts(prev => [...prev, newHeart]);
-                  setHeartIdCounter(prev => prev + 1);
-                  setTimeout(() => {
-                    setFloatingHearts(prev => prev.filter(h => h.id !== newHeart.id));
-                  }, 2000);
-                }}
-              >
-                <HandHeart className={`${colors.accentText}`} size={20} />
-                {floatingHearts.map(heart => (
-                  <Heart
-                    key={heart.id}
-                    size={16}
-                    className="absolute pointer-events-none text-red-500"
-                    fill="currentColor"
-                    style={{
-                      left: heart.x,
-                      top: heart.y,
-                      animation: 'floatHeart 2s ease-out forwards'
-                    }}
-                  />
-                ))}
-              </div>
-              <div>
-                <p className={`font-medium ${colors.containerText}`}>Support Our Work</p>
-                <p className={`text-sm ${colors.containerText} opacity-80`}>
-                  Creating and maintaining a website like this takes time, effort, and resources. If you find this app helpful and would like to support its continued development, we appreciate your love but don't have a payment platform yet.
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className={`${colors.container} ${colors.border} border rounded-2xl p-4`}>
-            <div className="flex items-center gap-3">
-              <Share2 className={`${colors.accentText}`} size={20} />
-              <div>
-                <p className={`font-medium ${colors.containerText}`}>Share the Love</p>
-                <p className={`text-sm ${colors.containerText} opacity-80`}>
-                  You can help by sharing this platform with friends, classmates, teachers, and anyone who might find it useful. Every share helps us grow and improve!
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className={`${colors.container} ${colors.border} border rounded-2xl p-4`}>
-            <div className="flex items-center gap-3 mb-3">
-              <Landmark className={`${colors.accentText}`} size={18} />
-              <div>
-                <p className={`font-medium ${colors.containerText}`}>PayID Donation</p>
-                <p className={`text-sm ${colors.containerText} opacity-80`}>For supporters in Australia</p>
-              </div>
-            </div>
-            <div className={`${colors.background} rounded-lg p-3 ${colors.border} border`}>
-              <button
-                onClick={() => setShowPayIDDetails(!showPayIDDetails)}
-                className={`w-full flex items-center justify-between ${colors.containerText} hover:${colors.text} transition-colors`}
-              >
-                <span className="text-sm font-medium">PayID information</span>
-                <ChevronDown 
-                  size={18} 
-                  className={`transition-transform duration-500 ${showPayIDDetails ? 'rotate-180' : ''}`}
-                />
-              </button>
-              <div 
-                className="overflow-hidden transition-all duration-500 ease-in-out"
-                style={{ 
-                  maxHeight: showPayIDDetails ? '500px' : '0',
-                  opacity: showPayIDDetails ? 1 : 0
-                }}
-              >
-                <div className={`mt-3 pt-3 border-t ${colors.border}`}>
-                  <div className="space-y-2">
-                    <div>
-                      <p className={`text-xs ${colors.containerText} opacity-60 mb-1`}>PayID</p>
-                      <div className="flex items-center gap-2">
-                        <p
-                          className={`text-sm font-mono ${colors.containerText} font-semibold select-none`}
-                          onCopy={(e) => e.preventDefault()}
-                          draggable={false}
-                          style={{ userSelect: 'none' }}
-                        >
-                          {decodeChars(PAYID_EMAIL_CHARS)}
-                        </p>
-                        <button
-                          onClick={() => {
-                            navigator.clipboard.writeText(decodeChars(PAYID_EMAIL_CHARS));
-                            setCopied(true);
-                            setCopyButtonPressed(true);
-                            setTimeout(() => setCopyButtonPressed(false), 150);
-                            setTimeout(() => setCopied(false), 2000);
-                          }}
-                          onMouseDown={() => setCopyButtonPressed(true)}
-                          onMouseUp={() => setCopyButtonPressed(false)}
-                          onMouseLeave={() => setCopyButtonPressed(false)}
-                          className={`${colors.text} hover:${colors.accentText} px-2 py-1 rounded transition-all duration-150 flex items-center gap-1`}
-                          style={{
-                            transform: copyButtonPressed ? 'scale(0.9)' : 'scale(1)',
-                            animation: !copyButtonPressed && copied ? 'buttonBounce 0.2s ease-out' : 'none'
-                          }}
-                          title="Copy PayID"
-                        >
-                          <Copy size={14} />
-                        </button>
-                        {copied && (
-                          <span className={`text-xs ${colors.accentText} font-medium animate-fadeIn`}>Copied</span>
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      <p className={`text-xs ${colors.containerText} opacity-60 mb-1`}>Verify the payee is</p>
-                      <p
-                        className={`text-sm ${colors.containerText} font-semibold select-none`}
-                        onCopy={(e) => e.preventDefault()}
-                        draggable={false}
-                        style={{ userSelect: 'none' }}
-                      >
-                        {decodeChars(PAYEE_NAME_CHARS)}
-                      </p>
-                    </div>
-                    <div className="mt-3 pt-3 border-t border-opacity-30" style={{ borderColor: colors.border }}>
-                      <p className={`text-xs ${colors.containerText} opacity-70 leading-relaxed`}>
-                        This site is free to use. If you enjoy it and want to chip in, you can make a small 
-                        donation to help cover costs. This is not a charity, so donations aren't tax‑deductible, 
-                        but your support means a lot.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Feedback Form (Dummy replacement for YouForm) */}
+      {/* Feedback Form */}
       <section className="mb-8">
         <div className="flex items-center gap-2 mb-3">
           <div className={`p-3 rounded-xl ${colors.containerOverlay}`}>

@@ -1,13 +1,18 @@
 # Privacy Policy
 
-_Last Updated: 19 March 2025_
+_Last updated: 28 August 2026_
 
-This Privacy Policy governs the manner in which this software collects, uses, maintains, and discloses information collected from users (‚ÄúUsers‚Äù) of the Software. All data is stored locally on your device and is not transmitted or processed on external servers. The data is not encrypted, so ensure your device‚Äôs security. No personal data is sold or traded.
+## What stays on your device
+School Planner stores timetable data, subjects, settings, and markbook records in browser storage on your device. We do not operate an account database for this information. You can remove it using the appís clear-data controls or your browserís site-data controls.
 
-We incorporate fonts and icons provided by Lucide, and have other dependencies. Please review their respective Privacy Policies for more information.
+## Optional feedback
+When you submit feedback, the answers are sent to the feedback endpoint configured by the app. If the submission cannot be sent immediately, a draft may be stored locally and retried when you use the app again. If you ask to be contacted, the email address you provide is included with the feedback and used only to respond to it.
 
-By using the Software, you agree to this Privacy Policy. If you do not agree, please do not use the Software.
+## Other third parties
+Optional features may request content from third-party services, such as quote, dictionary, term-date, font, or feedback providers. Those requests are subject to the third partyís privacy policy.
 
-All user data is retained on your device until the Software is uninstalled, at which point it is permanently deleted.
+## Security and children
+Local storage is protected only by the security of your device and browser. Do not enter sensitive information into feedback. If you are under the age required to consent to online data processing where you live, ask a parent or guardian before sending feedback.
 
-This Policy is governed by the laws of Australia. 
+## Changes
+We may update this policy when the app or its integrations change. The date above indicates the latest revision.
