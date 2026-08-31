@@ -42,6 +42,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
+const MAX_REDIRECTS = 3;
+const MAX_RESPONSE_BYTES = 2 * 1024 * 1024; // 2MB ceiling
+const FETCH_TIMEOUT_MS = 8000;
+
 export async function onRequestOptions() {
   return new Response(null, { status: 204, headers: corsHeaders });
 }
@@ -55,14 +59,14 @@ export async function onRequestGet(context) {
     return jsonError('Missing url parameter', 400);
   }
 
-  let targetUrl;
+  let currentTargetUrl;
   try {
-    targetUrl = new URL(target);
+    currentTargetUrl = new URL(target);
   } catch {
     return jsonError('Invalid url parameter', 400);
   }
 
-  if (targetUrl.protocol !== 'https:' || !ALLOWED_HOSTS.has(targetUrl.hostname)) {
+  if (currentTargetUrl.protocol !== 'https:' || !ALLOWED_HOSTS.has(currentTargetUrl.hostname)) {
     return jsonError('Host not allowed', 403);
   }
 
@@ -77,38 +81,83 @@ export async function onRequestGet(context) {
   }
 
   let upstream;
+  let redirectsFollowed = 0;
+
   try {
-    upstream = await fetch(targetUrl.toString(), {
-      headers: {
-        // A normal browser-like UA; some of these sites block obvious
-        // server/bot user agents.
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
-        Accept: 'text/html,application/xhtml+xml,application/xml,application/json;q=0.9,*/*;q=0.8',
-      },
-      cf: { cacheTtl: CACHE_TTL_SECONDS, cacheEverything: true },
-    });
+    while (redirectsFollowed <= MAX_REDIRECTS) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+      try {
+        upstream = await fetch(currentTargetUrl.toString(), {
+          redirect: 'manual',
+          signal: controller.signal,
+          headers: {
+            'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+            Accept: 'text/html,application/xhtml+xml,application/xml,application/json;q=0.9,*/*;q=0.8',
+          },
+          cf: { cacheTtl: CACHE_TTL_SECONDS, cacheEverything: true },
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
+
+      // Check for redirect status codes
+      if ([301, 302, 303, 307, 308].includes(upstream.status)) {
+        redirectsFollowed++;
+        if (redirectsFollowed > MAX_REDIRECTS) {
+          return jsonError('Too many redirects', 502);
+        }
+
+        const locationHeader = upstream.headers.get('Location');
+        if (!locationHeader) {
+          return jsonError('Redirect without Location header', 502);
+        }
+
+        let nextUrl;
+        try {
+          nextUrl = new URL(locationHeader, currentTargetUrl.toString());
+        } catch {
+          return jsonError('Invalid redirect destination', 502);
+        }
+
+        // Re-validate redirect destination strictly against HTTPS & allowlist
+        if (nextUrl.protocol !== 'https:' || !ALLOWED_HOSTS.has(nextUrl.hostname)) {
+          return jsonError('Redirect destination not allowed', 403);
+        }
+
+        currentTargetUrl = nextUrl;
+        continue;
+      }
+
+      break;
+    }
   } catch (err) {
-    return jsonError(`Upstream fetch failed: ${err.message}`, 502);
+    const isTimeout = err?.name === 'AbortError';
+    return jsonError(isTimeout ? 'Upstream request timed out' : 'Upstream fetch failed', 502);
   }
 
-  if (!upstream.ok) {
-    return jsonError(`Upstream responded with ${upstream.status}`, 502);
+  if (!upstream || !upstream.ok) {
+    return jsonError(`Upstream responded with ${upstream ? upstream.status : 'error'}`, 502);
+  }
+
+  // Response size guard
+  const contentLength = upstream.headers.get('Content-Length');
+  if (contentLength && parseInt(contentLength, 10) > MAX_RESPONSE_BYTES) {
+    return jsonError('Upstream response exceeded size limit', 502);
   }
 
   let body = await upstream.text();
+  if (body.length > MAX_RESPONSE_BYTES) {
+    return jsonError('Upstream response exceeded size limit', 502);
+  }
+
   let contentType = upstream.headers.get('Content-Type') || 'text/plain; charset=utf-8';
 
   // For sources where we only ever want a couple of fields out of a much
-  // bigger HTML page (e.g. Kwize's embed widget also ships fonts/CSS/JS
-  // and a Cloudflare beacon script alongside the one paragraph we care
-  // about), extract just that data server-side. This keeps both the
-  // response sent to the browser and what's stored in the edge cache
-  // small, instead of round-tripping the whole page every time. If
-  // extraction fails for any reason we fall back to handing back the full
-  // body, so the client's own HTML-parsing fallback still has something to
-  // work with.
-  const extracted = extractImportantData(targetUrl, body);
+  // bigger HTML page, extract just that data server-side.
+  const extracted = extractImportantData(currentTargetUrl, body);
   if (extracted) {
     body = JSON.stringify(extracted);
     contentType = 'application/json; charset=utf-8';

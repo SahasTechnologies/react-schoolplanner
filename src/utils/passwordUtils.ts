@@ -1,29 +1,29 @@
 import bcrypt from 'bcryptjs';
 
+const BCRYPT_ROUNDS = 10;
+
 /**
- * Hash a password using bcrypt with 5 rounds for better performance
+ * Hash a password using bcrypt with standard secure work factor (10 rounds)
  */
 export const hashPassword = (password: string): string => {
-  const salt = bcrypt.genSaltSync(5); // Reduced from 10 to 5 rounds for better performance
+  const salt = bcrypt.genSaltSync(BCRYPT_ROUNDS);
   return bcrypt.hashSync(password, salt);
 };
 
 /**
- * Memoized password comparison to avoid repeated hashing
- * Caches the last password/hash comparison result
+ * Compare password against a hash without retaining plaintext in module state
  */
-export const memoizedComparePassword = (() => {
-  let lastPassword = '';
-  let lastHash = '';
-  let lastResult = false;
+export const comparePassword = (password: string, hash: string): boolean => {
+  if (!password || !hash) return false;
+  try {
+    return bcrypt.compareSync(password, hash);
+  } catch {
+    return false;
+  }
+};
 
-  return (password: string, hash: string): boolean => {
-    if (password === lastPassword && hash === lastHash) {
-      return lastResult;
-    }
-    lastPassword = password;
-    lastHash = hash;
-    lastResult = bcrypt.compareSync(password, hash);
-    return lastResult;
-  };
-})();
+/**
+ * Backward compatibility alias (now unmemoized to prevent secret retention)
+ */
+export const memoizedComparePassword = comparePassword;
+

@@ -5,9 +5,6 @@ import { Subject } from '../types';
 // Subject colour palette, grouped into three intensity levels so the person
 // can pick the vibe that suits them, each still ordered in rainbow (hue)
 // order with a neutral grey appended at the end.
-// Subject colour palette, grouped into three intensity levels so the person
-// can pick the vibe that suits them, each still ordered in rainbow (hue)
-// order with a neutral appended at the end.
 export const colourPaletteGroups: { normal: string[]; naturals: string[]; dark: string[] } = {
   normal: [
     '#D91624', '#E8421D', '#B75B00', '#938100', '#6F8500',
@@ -58,6 +55,35 @@ export const generateRandomColour = () => {
   return defaultColours[Math.floor(Math.random() * defaultColours.length)];
 };
 
+export const MAX_IMPORT_FILE_BYTES = 10 * 1024 * 1024; // 10MB
+export const MAX_IMPORT_EVENTS = 5000;
+
+export const ALLOWED_PREFERENCE_KEYS = [
+  'autoNamingEnabled',
+  'theme',
+  'themeType',
+  'themeMode',
+  'customThemeColors',
+  'offlineCachingEnabled',
+  'countdownInTitle',
+  'showCountdownInTimeline',
+  'showCountdownInSidebar',
+  'showFirstInfoBeside',
+  'infoOrder',
+  'infoShown',
+  'weekNumberingEnabled',
+  'weekendsInProgressEnabled',
+  'use24HourFormat',
+  'quoteProvider',
+  'jakubPetriskaQuoteRefreshMode',
+  'notionQuoteRefreshMode',
+  'wordSource',
+  'linksView',
+  'linksViewMode',
+  'groupDoublePeriods',
+  'showCountdownWidget'
+] as const;
+
 export interface FileProcessingResult {
   weekData: WeekData | null;
   subjects: Subject[];
@@ -79,12 +105,28 @@ export const processICSFile = async (
   file: File, 
   autoNamingEnabled: boolean
 ): Promise<FileProcessingResult> => {
+  if (file.size > MAX_IMPORT_FILE_BYTES) {
+    return {
+      weekData: null,
+      subjects: [],
+      error: 'File size exceeds the 10MB limit.'
+    };
+  }
+
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = (ev: ProgressEvent<FileReader>) => {
       try {
         const icsContent = ev.target?.result as string;
+        if (!icsContent || typeof icsContent !== 'string') {
+          resolve({ weekData: null, subjects: [], error: 'Could not read calendar file.' });
+          return;
+        }
         const allRawEvents = parseICS(icsContent);
+        if (allRawEvents.length > MAX_IMPORT_EVENTS) {
+          resolve({ weekData: null, subjects: [], error: `File contains too many events (max ${MAX_IMPORT_EVENTS}).` });
+          return;
+        }
         const allActualWeeks = groupAllEventsIntoActualWeeks(allRawEvents);
         
         if (allActualWeeks.length === 0) {
@@ -154,10 +196,18 @@ export const processICSFile = async (
 export const processSchoolFile = async (
   file: File
 ): Promise<FileProcessingResult> => {
+  if (file.size > MAX_IMPORT_FILE_BYTES) {
+    return {
+      weekData: null,
+      subjects: [],
+      error: 'File size exceeds the 10MB limit.'
+    };
+  }
+
   try {
     const data = await importSchoolData(file);
     
-    if (!data || typeof data !== 'object') {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
       return {
         weekData: null,
         subjects: [],
@@ -168,81 +218,77 @@ export const processSchoolFile = async (
     let weekData: WeekData | null = null;
     let subjects: Subject[] = [];
     
-    // Process subjects
-    if (data.subjects) {
-      // Ensure every subject has a colour (assign unique if missing)
+    // Process and validate subjects with strict schema
+    if (Array.isArray(data.subjects)) {
       const usedColours = new Set<string>();
-      const patchedSubjects = data.subjects.map((subject: any) => {
-        let colour = subject.colour || (subject.name && (data.subjectColours || []).find((sc: any) => sc.name === subject.name)?.colour);
-        
-        // If no colour found, assign a unique one
+      const safeSubjects: Subject[] = [];
+
+      for (const item of data.subjects.slice(0, 100)) { // cap at 100 subjects
+        if (!item || typeof item !== 'object') continue;
+        const name = typeof item.name === 'string' ? item.name.slice(0, 100).trim() : '';
+        if (!name) continue;
+
+        let colour = typeof item.colour === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(item.colour) ? item.colour : '';
+        if (!colour && Array.isArray(data.subjectColours)) {
+          const match = data.subjectColours.find((sc: any) => sc && sc.name === name);
+          if (match && typeof match.colour === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(match.colour)) {
+            colour = match.colour;
+          }
+        }
         if (!colour) {
           colour = generateUniqueColour(usedColours);
-          usedColours.add(colour);
-        } else {
-          // Track used colours even if they were already assigned
-          usedColours.add(colour);
         }
-        
-        return {
-          ...subject,
-          colour: colour
-        };
-      });
-      subjects = patchedSubjects;
+        usedColours.add(colour);
+
+        safeSubjects.push({
+          id: typeof item.id === 'string' && item.id.length < 100 ? item.id : crypto.randomUUID(),
+          name,
+          originalName: typeof item.originalName === 'string' ? item.originalName.slice(0, 100) : name,
+          colour,
+          icon: typeof item.icon === 'string' ? item.icon.slice(0, 50) : undefined
+        });
+      }
+      subjects = safeSubjects;
     }
     
-    // Process weekData
-    if (data.weekData) {
+    // Process and validate weekData
+    if (data.weekData && typeof data.weekData === 'object' && Array.isArray(data.weekData.events)) {
+      const safeEvents = data.weekData.events.slice(0, MAX_IMPORT_EVENTS).map((e: any) => ({
+        summary: typeof e.summary === 'string' ? e.summary.slice(0, 200) : '',
+        location: typeof e.location === 'string' ? e.location.slice(0, 200) : undefined,
+        description: typeof e.description === 'string' ? e.description.slice(0, 1000) : undefined,
+        dtstart: new Date(e.dtstart),
+        dtend: e.dtend ? new Date(e.dtend) : undefined
+      })).filter((e: any) => !isNaN(e.dtstart.getTime()));
+
       weekData = {
-        ...data.weekData,
         monday: new Date(data.weekData.monday),
         friday: new Date(data.weekData.friday),
-        events: data.weekData.events.map((e: any) => ({ 
-          ...e, 
-          dtstart: new Date(e.dtstart), 
-          dtend: e.dtend ? new Date(e.dtend) : undefined 
-        }))
+        events: safeEvents
       };
-    } else if (data.subjects && data.subjects.some((s: any) => Array.isArray(s.timings) && s.timings.length > 0)) {
-      // Generate weekData from subjects' timings
-      const allEvents = data.subjects.flatMap((subject: any) =>
-        (subject.timings || []).map((timing: any) => ({
-          summary: subject.name,
-          dtstart: new Date(timing.start),
-          dtend: timing.end ? new Date(timing.end) : undefined,
-          location: timing.location || '',
-          description: timing.description || ''
-        }))
-      );
-      
-      if (allEvents.length > 0) {
-        const allDates = allEvents.map((e: any) => e.dtstart);
-        const minDate = new Date(Math.min(...allDates.map((d: any) => d.getTime())));
-        const maxDate = new Date(Math.max(...allEvents.map((e: any) => (e.dtend ? e.dtend.getTime() : e.dtstart.getTime()))));
-        weekData = {
-          monday: minDate,
-          friday: maxDate,
-          events: allEvents
-        };
+    }
+
+    // Filter preferences strictly against allowlist
+    let safePreferences: Record<string, unknown> | undefined = undefined;
+    if (data.preferences && typeof data.preferences === 'object' && !Array.isArray(data.preferences)) {
+      safePreferences = {};
+      const allowedSet = new Set<string>(ALLOWED_PREFERENCE_KEYS);
+      for (const [key, val] of Object.entries(data.preferences)) {
+        if (allowedSet.has(key)) {
+          safePreferences[key] = val;
+        }
       }
     }
     
     return {
       weekData,
       subjects,
-      userName: data.name || undefined,
-      // These are only present in a "complete backup" file (see
-      // exportAllData) -- pass them straight through so the caller can
-      // restore them. Previously nothing here read these fields at all,
-      // so a "complete backup" import silently dropped exams, the
-      // markbook password, links, and every preference, even though the
-      // export had faithfully written all of it out.
+      userName: typeof data.name === 'string' ? data.name.slice(0, 100) : undefined,
       examsBySubject: data.examsBySubject,
-      markbookPassword: typeof data.markbookPassword === 'string' ? data.markbookPassword : undefined,
+      markbookPassword: typeof data.markbookPassword === 'string' && data.markbookPassword.length < 200 ? data.markbookPassword : undefined,
       markbookPasswordEnabled: typeof data.markbookPasswordEnabled === 'boolean' ? data.markbookPasswordEnabled : undefined,
-      links: data.links,
-      preferences: data.preferences && typeof data.preferences === 'object' ? data.preferences : undefined,
+      links: Array.isArray(data.links) ? data.links.slice(0, 50) : undefined,
+      preferences: safePreferences,
     };
   } catch (err) {
     return {
@@ -447,29 +493,7 @@ export const exportAllData = (
   if (includePreferences) {
     data.preferences = {};
     
-    const preferenceKeys = [
-      'autoNamingEnabled',
-      'theme',
-      'themeType',
-      'themeMode',
-      'offlineCachingEnabled',
-      'countdownInTitle',
-      'showCountdownInTimeline',
-      'showCountdownInSidebar',
-      'showFirstInfoBeside',
-      'infoOrder',
-      'infoShown',
-      'weekNumberingEnabled',
-      'weekendsInProgressEnabled',
-      'use24HourFormat',
-      'quoteProvider',
-      'jakubPetriskaQuoteRefreshMode',
-      'notionQuoteRefreshMode',
-      'wordSource',
-      'linksView'
-    ];
-    
-    preferenceKeys.forEach(key => {
+    ALLOWED_PREFERENCE_KEYS.forEach(key => {
       const value = localStorage.getItem(key);
       if (value !== null) {
         try {

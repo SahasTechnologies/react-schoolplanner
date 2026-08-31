@@ -29,16 +29,16 @@ const BounceButton = ({
   return (
     <button
       onClick={onClick}
-      title={title}
+      aria-label={title}
       className={`
         p-3 rounded-lg mx-auto block relative group
-        transition-[background-color,transform,box-shadow] duration-150 ease-out
+        transition-all duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)]
         hover:scale-115 hover:shadow-lg active:scale-90
         ${isActivePath ? `${accentBg} ${iconActive}` : 'sidebar-hover-accent hover:scale-110'}
       `}
     >
       <Icon size={22} className={`${isActivePath ? iconActive : iconInactive} transition-colors duration-150`} />
-      <span className="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity delay-500 group-hover:opacity-100">
+      <span className="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-hover:delay-200">
         {title}
       </span>
     </button>

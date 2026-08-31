@@ -30,7 +30,6 @@ export const PROXIES: ProxyEntry[] = [
   { name: 'allorigins workers json', prefix: 'https://api.allorigins.workers.dev/get?url=', mode: 'json' },
   { name: 'allorigins deno raw', prefix: 'https://allorigins.deno.dev/raw?url=', mode: 'param' },
   { name: 'allorigins deno json', prefix: 'https://allorigins.deno.dev/get?url=', mode: 'json' },
-  { name: 'jina reader (http shim)', prefix: 'https://r.jina.ai/http://', mode: 'path' },
   { name: 'bird ioliu', prefix: 'https://bird.ioliu.cn/v1?url=', mode: 'param' },
   { name: 'techzbots1 worker', prefix: 'https://proxy.techzbots1.workers.dev/?u=', mode: 'param' },
   { name: 'corsproxy.org', prefix: 'https://corsproxy.org/?', mode: 'param' },
@@ -87,11 +86,6 @@ function reorderByLastGood(list: ProxyEntry[], hostname: string): ProxyEntry[] {
 }
 
 export function buildProxyUrl(proxy: ProxyEntry, targetUrl: string): string {
-  if (proxy.name === 'jina reader (http shim)') {
-    // Jina requires http:// scheme; convert https:// to http://
-    const httpTarget = targetUrl.replace(/^https:\/\//i, 'http://');
-    return proxy.prefix + httpTarget.replace(/^http:\/\//i, '');
-  }
   if (proxy.mode === 'path') return proxy.prefix + targetUrl;
   return proxy.prefix + encodeURIComponent(targetUrl);
 }

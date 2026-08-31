@@ -1,4 +1,4 @@
-import { CalendarEvent, insertBreaksBetweenEvents, isBreakEvent } from './calendarUtils';
+import { CalendarEvent, insertBreaksBetweenEvents, isBreakEvent, groupDoublePeriodEvents } from './calendarUtils';
 
 /**
  * Get next occurrence of an event after now, treating week as repeating
@@ -36,7 +36,9 @@ export function findNextRepeatingEvent(
 ): { event: CalendarEvent; date: Date } | null {
   if (!events || events.length === 0) return null;
 
-  const eventsWithBreaks = insertBreaksBetweenEvents(events);
+  const shouldGroup = localStorage.getItem('groupDoublePeriods') === 'true';
+  const effectiveEvents = shouldGroup ? groupDoublePeriodEvents(events) : events;
+  const eventsWithBreaks = insertBreaksBetweenEvents(effectiveEvents);
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const todayDow = now.getDay();
 

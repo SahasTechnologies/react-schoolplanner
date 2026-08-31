@@ -9,8 +9,8 @@ const FORMSUBMIT_FALLBACK = import.meta.env.VITE_FEEDBACK_ENDPOINT || 'https://f
 const FEEDBACK_EMAIL = import.meta.env.VITE_FEEDBACK_EMAIL || import.meta.env.VITE_EMAIL;
 const FEEDBACK_CACHE_KEY = 'feedbackFormCache';
 
-// Lightweight canvas confetti
-const ConfettiCanvas: React.FC<{ className?: string; durationMs?: number }> = ({ className = '', durationMs = 4000 }) => {
+// Lightweight canvas confetti spanning the entire feedback area
+const ConfettiCanvas: React.FC<{ className?: string; durationMs?: number }> = ({ className = '', durationMs = 5000 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rafRef = useRef<number | null>(null);
   const startRef = useRef<number | null>(null);
@@ -19,90 +19,83 @@ const ConfettiCanvas: React.FC<{ className?: string; durationMs?: number }> = ({
     const canvas = canvasRef.current!;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    let originX = 0;
 
     const resize = () => {
       const parent = canvas.parentElement;
       if (!parent) return;
       canvas.width = parent.clientWidth;
       canvas.height = parent.clientHeight;
-      // keep origin centered on resize
-      originX = canvas.width / 2;
     };
     resize();
     const ro = new ResizeObserver(resize);
     if (canvas.parentElement) ro.observe(canvas.parentElement);
 
-    type P = { x:number;y:number;vx:number;vy:number;w:number;h:number;rot:number;vr:number;color:string;life:number };
-    const colors = ['#fde047','#60a5fa','#f472b6','#34d399','#fca5a5','#c084fc'];
-    const rand = (a:number,b:number)=>a+Math.random()*(b-a);
-    const particles:P[] = [];
-    const measureOrigin = () => {
-      originX = canvas.width/2; // single point at bottom center
-    };
-    measureOrigin();
-    const spawn = (n:number)=>{
-      for (let i=0;i<n;i++){
-        // launch in a cone upwards for a natural confetti spray
-        const angle = rand((-135*Math.PI)/180, (-45*Math.PI)/180); // wider cone: -90deg +/- 45deg
-        const speed = rand(5, 8);
+    type P = { x: number; y: number; vx: number; vy: number; w: number; h: number; rot: number; vr: number; color: string; life: number };
+    const colors = ['#fde047', '#60a5fa', '#f472b6', '#34d399', '#fca5a5', '#c084fc', '#fb923c', '#a78bfa'];
+    const rand = (a: number, b: number) => a + Math.random() * (b - a);
+    const particles: P[] = [];
+
+    const spawn = (n: number, fullArea = false) => {
+      if (!canvas.width) return;
+      for (let i = 0; i < n; i++) {
+        const angle = rand((-140 * Math.PI) / 180, (-40 * Math.PI) / 180);
+        const speed = rand(4, 9);
         particles.push({
-          x: originX + rand(-6, 6),
-          y: canvas.height + rand(12, 120),
+          x: rand(10, canvas.width - 10),
+          y: fullArea ? rand(0, canvas.height) : canvas.height + rand(0, 40),
           vx: Math.cos(angle) * speed,
           vy: Math.sin(angle) * speed,
-          w: rand(6,10),
-          h: rand(10,16),
-          rot: rand(0,Math.PI*2),
-          vr: rand(-0.2,0.2),
-          color: colors[(Math.random()*colors.length)|0],
-          life: rand(0.8,1)
+          w: rand(7, 12),
+          h: rand(10, 18),
+          rot: rand(0, Math.PI * 2),
+          vr: rand(-0.25, 0.25),
+          color: colors[(Math.random() * colors.length) | 0],
+          life: rand(0.9, 1.2),
         });
       }
     };
-    // Lighter initial stream
-    spawn(50);
 
-    // movie credits feel: steady upward motion, slightly varying
-    const gravity = -0.03;
-    const drag = 0.997;
+    // Initial bursts across the entire feedback area
+    spawn(80, true);
+    spawn(40, false);
 
-    const step = (t:number)=>{
+    const gravity = -0.02;
+    const drag = 0.995;
+
+    const step = (t: number) => {
       if (startRef.current === null) startRef.current = t;
       const elapsed = t - startRef.current;
-      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       if (elapsed < durationMs) {
-        // lighter, natural, intermittent bursts
-        if (Math.random() < 0.02) spawn(3);
+        if (Math.random() < 0.08) spawn(4, false);
       }
 
-      particles.forEach((p, idx)=>{
+      particles.forEach((p, idx) => {
         p.vx *= drag;
-        p.vy = p.vy*drag + gravity;
-        // subtle horizontal sway for a more natural feel
-        const sway = Math.sin((p.y + t*0.12 + idx) / 18) * 0.8;
+        p.vy = p.vy * drag + gravity;
+        const sway = Math.sin((p.y + t * 0.12 + idx) / 20) * 0.9;
         p.x += p.vx + sway;
         p.y += p.vy;
         p.rot += p.vr;
       });
 
       // draw
-      particles.forEach((p)=>{
+      particles.forEach((p) => {
         ctx.save();
-        ctx.translate(p.x,p.y);
+        ctx.translate(p.x, p.y);
         ctx.rotate(p.rot);
         ctx.fillStyle = p.color;
-        ctx.globalAlpha = Math.max(0, p.life);
-        ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+        ctx.globalAlpha = Math.max(0, Math.min(1, p.life));
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
         ctx.restore();
-        p.life -= 0.004;
+        p.life -= 0.003;
       });
 
       // remove offscreen/expired
-      for (let i=particles.length-1;i>=0;i--) {
+      for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
-        if (p.y + p.h < 0 || p.life <= 0) particles.splice(i,1);
+        if (p.y + p.h < -20 || p.life <= 0) particles.splice(i, 1);
       }
 
       rafRef.current = requestAnimationFrame(step);
@@ -125,12 +118,12 @@ interface FeedbackFormProps {
   colors: any;
 }
 
-const SlideContainer: React.FC<{ children: React.ReactNode; colors: any; bottomLeft?: React.ReactNode }>=({ children, colors, bottomLeft })=>{
+const SlideContainer: React.FC<{ children: React.ReactNode; colors: any; bottomLeft?: React.ReactNode }> = ({ children, colors, bottomLeft }) => {
   return (
     <div className={`w-full rounded-xl ${colors.container} ${colors.text} border ${colors.softBorder} shadow-inner overflow-hidden min-h-[560px] sm:min-h-[640px] p-10 sm:p-14 flex flex-col justify-center relative animate-fadeIn`}>
       {/* overlay tinted with button color at 50% opacity */}
       <div className={`absolute inset-0 rounded-xl ${colors.buttonAccent} opacity-50 z-0 pointer-events-none`} />
-      <div className="relative z-10">
+      <div className="relative z-10 w-full">
         {children}
       </div>
       {bottomLeft && (
@@ -145,7 +138,7 @@ const SlideContainer: React.FC<{ children: React.ReactNode; colors: any; bottomL
 const PrimaryButton: React.FC<{ className?: string; children: React.ReactNode; onClick?: () => void; disabled?: boolean; colors: any }> = ({ className = '', children, colors, ...rest }) => {
   return (
     <button
-      className={`px-6 py-3 rounded-lg ${colors.buttonAccent} ${colors.buttonAccentHover} disabled:opacity-50 disabled:cursor-not-allowed font-medium ${colors.buttonText} focus-visible:outline-none focus-visible:ring-2 focus-visible:${colors.accent} focus-visible:ring-offset-2 transform-gpu transition-colors transition-transform duration-200 hover:scale-105 focus:scale-105 active:scale-95 ${className}`}
+      className={`px-6 py-3 rounded-lg ${colors.buttonAccent} ${colors.buttonAccentHover} disabled:opacity-50 disabled:cursor-not-allowed font-medium ${colors.buttonText} focus-visible:outline-none focus-visible:ring-2 focus-visible:${colors.accent} focus-visible:ring-offset-2 transform-gpu transition-all duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] hover:scale-105 active:scale-95 ${className}`}
       {...rest}
     >
       {children}
@@ -159,7 +152,7 @@ const RatingButton: React.FC<{ active: boolean; onClick: () => void; label: stri
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className={`w-12 h-12 rounded-lg font-bold text-lg inline-flex items-center justify-center transition-all border ${colors.softBorder} focus-visible:outline-none focus-visible:ring-2 focus-visible:${colors.accent} focus-visible:ring-offset-2 ${
+      className={`w-12 h-12 rounded-lg font-bold text-lg inline-flex items-center justify-center transition-all duration-200 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] border ${colors.softBorder} focus-visible:outline-none focus-visible:ring-2 focus-visible:${colors.accent} focus-visible:ring-offset-2 hover:scale-105 active:scale-95 ${
         active ? `${colors.buttonAccent} ${colors.buttonText} scale-110 border-transparent` : `${colors.buttonSecondary} ${colors.buttonSecondaryHover}`
       }`}
     >
@@ -168,16 +161,18 @@ const RatingButton: React.FC<{ active: boolean; onClick: () => void; label: stri
   );
 };
 
-const SlideContent: React.FC<{ children: React.ReactNode; exiting?: boolean }>=({ children, exiting })=>{
+const SlideContent: React.FC<{ children: React.ReactNode; exiting?: boolean }> = ({ children, exiting }) => {
   const [mounted, setMounted] = useState(false);
-  useEffect(()=>{
-    const id = requestAnimationFrame(()=> setMounted(true));
-    return ()=> cancelAnimationFrame(id);
-  },[]);
-  const base = 'transition-all duration-300 ease-out transform';
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+  const base = 'w-full transition-all duration-300 ease-out transform';
   const cls = exiting
-    ? '-translate-y-3'
-    : (mounted ? 'translate-y-0' : 'translate-y-3');
+    ? '-translate-y-5 opacity-0 pointer-events-none'
+    : mounted
+    ? 'translate-y-0 opacity-100'
+    : 'translate-y-5 opacity-0';
   return <div className={`${base} ${cls}`}>{children}</div>;
 };
 

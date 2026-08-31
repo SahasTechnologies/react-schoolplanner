@@ -68,7 +68,7 @@ export default defineConfig({
                         // proxying, etc) must always hit the real network --
                         // never get served from cache or turned into an
                         // opaque "service worker" error response.
-                        urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
+                        urlPattern: ({ url }: { url: URL }) => url.pathname.startsWith('/api/'),
                         handler: 'NetworkOnly',
                     },
                 ],
@@ -76,7 +76,7 @@ export default defineConfig({
         }),
     ],
     build: {
-        sourcemap: true,
+        sourcemap: false,
         chunkSizeWarningLimit: 1000,
         minify: 'terser',
         terserOptions: {

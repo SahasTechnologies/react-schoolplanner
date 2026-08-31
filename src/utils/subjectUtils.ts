@@ -226,9 +226,11 @@ const iconComponentMap: Record<string, React.ComponentType<any>> = {
   Tent: Tent
 };
 
+import * as LucideIcons from 'lucide-react';
+
 // Function to get the appropriate icon for a subject
 export const getSubjectIcon = (subjectNameOrSubject: string | { name: string; icon?: string }, size: number = 20, mode: 'light' | 'dark' = 'light') => {
-  let IconComponent: React.ComponentType<any>;
+  let IconComponent: React.ComponentType<any> = Book;
 
   if (typeof subjectNameOrSubject === 'string') {
     // Legacy string-based usage
@@ -237,13 +239,30 @@ export const getSubjectIcon = (subjectNameOrSubject: string | { name: string; ic
   } else {
     // New object-based usage with custom icon support
     const subject = subjectNameOrSubject;
-    if (subject.icon && iconComponentMap[subject.icon]) {
-      IconComponent = iconComponentMap[subject.icon];
+    if (subject.icon) {
+      if (iconComponentMap[subject.icon]) {
+        IconComponent = iconComponentMap[subject.icon];
+      } else if ((LucideIcons as any)[subject.icon]) {
+        IconComponent = (LucideIcons as any)[subject.icon];
+      } else {
+        const clean = subject.icon.trim();
+        const cap = clean.charAt(0).toUpperCase() + clean.slice(1);
+        if ((LucideIcons as any)[cap]) {
+          IconComponent = (LucideIcons as any)[cap];
+        } else {
+          const normalized = normalizeSubjectName(subject.name);
+          IconComponent = subjectIconMap[normalized] || Book;
+        }
+      }
     } else {
       // Fallback to default icon mapping based on subject name
       const normalized = normalizeSubjectName(subject.name);
       IconComponent = subjectIconMap[normalized] || Book;
     }
+  }
+
+  if (!IconComponent || typeof IconComponent !== 'function' && typeof IconComponent !== 'object') {
+    IconComponent = Book;
   }
 
   return React.createElement(IconComponent, {

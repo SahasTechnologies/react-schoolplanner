@@ -9,7 +9,7 @@ import {
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router';
 import { ThemeKey, getColors, getColorValues, CustomThemeColors, loadCustomThemeColors, injectCustomThemeStyles, injectSidebarHoverStyle } from './utils/themeUtils';
 import { normalizeSubjectName, getSubjectIcon } from './utils/subjectUtils';
-import { CalendarEvent, WeekData, insertBreaksBetweenEvents, isBreakEvent } from './utils/calendarUtils';
+import { CalendarEvent, WeekData, insertBreaksBetweenEvents, isBreakEvent, groupDoublePeriodEvents } from './utils/calendarUtils';
 import TodayScheduleTimeline from './components/TodayScheduleTimeline';
 import { ThemeModal } from './components/ThemeModal';
 import WelcomeScreen from './components/WelcomeScreen';
@@ -19,7 +19,7 @@ import { Subject } from './types';
 import Sidebar from './components/Sidebar';
 import EventDetailsOverlay from './components/EventDetailsOverlay';
 import { createOfflineIndicatorElement } from './utils/offlineIndicatorUtils';
-import { processFile, exportData, exportAllData, defaultColours } from './utils/fileUtils';
+import { processFile, exportData, exportAllData, defaultColours, ALLOWED_PREFERENCE_KEYS } from './utils/fileUtils';
 import { registerServiceWorker, unregisterServiceWorker, clearAllCaches, isServiceWorkerSupported } from './utils/cacheUtils';
 import { showSuccess, showError, showInfo, removeNotification } from './utils/notificationUtils';
 import NotFound from './components/NotFound';
@@ -281,6 +281,15 @@ const SchoolPlanner = () => {
   const [showThemeInterferenceModal, setShowThemeInterferenceModal] = useState(false);
   const [customCssDetected, setCustomCssDetected] = useState(false);
 
+  const [doublePeriodsVersion, setDoublePeriodsVersion] = useState(0);
+  useEffect(() => {
+    const handleDoublePeriodsChange = () => {
+      setDoublePeriodsVersion(v => v + 1);
+    };
+    window.addEventListener('doublePeriodsSettingChanged', handleDoublePeriodsChange);
+    return () => window.removeEventListener('doublePeriodsSettingChanged', handleDoublePeriodsChange);
+  }, []);
+
   const handleOfflineCachingToggle = async (enabled: boolean) => {
     setOfflineCachingEnabled(enabled);
     if (enabled) {
@@ -413,9 +422,12 @@ const SchoolPlanner = () => {
         localStorage.setItem('links', JSON.stringify(result.links));
         hasCompleteBackupExtras = true;
       }
-      if (result.preferences) {
+      if (result.preferences && typeof result.preferences === 'object') {
+        const allowedSet = new Set<string>(ALLOWED_PREFERENCE_KEYS);
         Object.entries(result.preferences).forEach(([key, value]) => {
-          localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
+          if (allowedSet.has(key)) {
+            localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
+          }
         });
         hasCompleteBackupExtras = true;
       }
@@ -1781,11 +1793,14 @@ const SchoolPlanner = () => {
         // Keep the events array as-is (today's events, even if they've ended)
       }
     }
+    // Apply double period grouping if enabled
+    const shouldGroup = localStorage.getItem('groupDoublePeriods') === 'true';
+    const effectiveEvents = shouldGroup ? groupDoublePeriodEvents(events) : events;
     // Insert breaks between events for home screen too
-    const eventsWithBreaks = insertBreaksBetweenEvents(events);
+    const eventsWithBreaks = insertBreaksBetweenEvents(effectiveEvents);
 
-    return { dayLabel, events, selectedScheduleDate, eventsWithBreaks, autoSwitchedToNextDay };
-  }, [showNextDay, weekData, nowTs, forceShowActualToday]); // Add nowTs and forceShowActualToday to recalculate when they change
+    return { dayLabel, events: effectiveEvents, selectedScheduleDate, eventsWithBreaks, autoSwitchedToNextDay };
+  }, [showNextDay, weekData, nowTs, forceShowActualToday, doublePeriodsVersion]); // Recalculate when double periods setting changes
 
 
 

@@ -223,7 +223,13 @@ export default function MarkbookPage({
           )}
 
           <div className="space-y-5 overflow-y-auto pr-2 flex-1">
-            {sortedSubjects.length === 0 ? (
+            {markbookPasswordEnabled && isMarkbookLocked ? (
+              <div className="text-center py-20">
+                <Shield size={56} className={`mx-auto mb-4 ${effectiveMode === 'light' ? 'text-blue-600' : 'text-blue-400'}`} />
+                <p className={`text-lg font-semibold ${colors.text}`}>Subjects Hidden</p>
+                <p className={`text-sm opacity-70 ${colors.containerText}`}>Unlock Markbook to view your subjects and marks</p>
+              </div>
+            ) : sortedSubjects.length === 0 ? (
               <div className="text-center py-20">
                 <BarChart3 size={64} className="mx-auto mb-6 text-gray-600" />
                 <p className={`text-gray-400 text-lg ${effectiveMode === 'light' ? 'text-gray-700' : 'text-gray-400'}`}>No subjects found</p>
@@ -237,7 +243,7 @@ export default function MarkbookPage({
                   effectiveMode={effectiveMode}
                   colors={colors}
                   onEdit={startEditingSubject}
-                  onSelect={(markbookPasswordEnabled && isMarkbookLocked) ? () => {} : handleSubjectSelect}
+                  onSelect={handleSubjectSelect}
                 />
               ))
             )}

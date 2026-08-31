@@ -74,7 +74,7 @@ export default defineConfig({
         }),
     ],
     build: {
-        sourcemap: true,
+        sourcemap: false,
         chunkSizeWarningLimit: 1000,
         minify: 'terser',
         terserOptions: {

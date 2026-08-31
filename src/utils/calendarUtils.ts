@@ -273,6 +273,57 @@ export function insertBreaksBetweenEvents(events: CalendarEvent[]): (CalendarEve
   return result;
 }
 
+/**
+ * Helper to group consecutive/contiguous events of the same subject on the same day into a single block
+ */
+export function groupDoublePeriodEvents(events: CalendarEvent[]): CalendarEvent[] {
+  if (!events || events.length <= 1) return events || [];
+  const result: CalendarEvent[] = [];
+  
+  for (let i = 0; i < events.length; i++) {
+    const current: CalendarEvent = { ...events[i] };
+    if (isBreakEvent(current) || isEndOfDayEvent(current)) {
+      result.push(current);
+      continue;
+    }
+
+    // Attempt to merge with subsequent consecutive events
+    while (i + 1 < events.length) {
+      const next = events[i + 1];
+      if (isBreakEvent(next) || isEndOfDayEvent(next)) break;
+      
+      const currentNorm = (current.summary || '').trim().toLowerCase();
+      const nextNorm = (next.summary || '').trim().toLowerCase();
+      
+      const currentStart = new Date(current.dtstart);
+      const currentEnd = current.dtend ? new Date(current.dtend) : currentStart;
+      const nextStart = new Date(next.dtstart);
+      const nextEnd = next.dtend ? new Date(next.dtend) : nextStart;
+      
+      const sameDay = currentStart.getDay() === nextStart.getDay();
+      const sameSubject = currentNorm === nextNorm || (currentNorm.length > 0 && (currentNorm.includes(nextNorm) || nextNorm.includes(currentNorm)));
+      // Contiguous if gap between end of current and start of next is <= 5 minutes
+      const gapMs = nextStart.getTime() - currentEnd.getTime();
+      const isContiguous = gapMs >= 0 && gapMs <= 5 * 60 * 1000;
+
+      if (sameDay && sameSubject && isContiguous) {
+        current.dtend = nextEnd;
+        if (next.location && !current.location?.includes(next.location)) {
+          current.location = current.location ? `${current.location}, ${next.location}` : next.location;
+        }
+        if (next.description && !current.description?.includes(next.description)) {
+          current.description = current.description ? `${current.description}\n${next.description}` : next.description;
+        }
+        i++;
+      } else {
+        break;
+      }
+    }
+    result.push(current);
+  }
+  return result;
+}
+
 export const formatTime = (date: Date): string => {
   const use24Hour = localStorage.getItem('use24HourFormat') === 'true';
   return date.toLocaleTimeString('en-US', {

@@ -234,10 +234,22 @@ export default function LinksWidget({ effectiveMode, colors }: LinksWidgetProps)
     setEditCustomImage('');
   };
 
+  const sanitizeUrl = (raw: string): string | null => {
+    try {
+      const trimmed = raw.trim();
+      const candidate = trimmed.startsWith('http://') || trimmed.startsWith('https://') ? trimmed : `https://${trimmed}`;
+      const parsed = new URL(candidate);
+      if (!['https:', 'http:'].includes(parsed.protocol)) return null;
+      return parsed.href;
+    } catch {
+      return null;
+    }
+  };
+
   const openLink = (url: string) => {
-    // Ensure URL has protocol
-    const finalUrl = url.startsWith('http') ? url : `https://${url}`;
-    window.open(finalUrl, '_blank', 'noopener,noreferrer');
+    const validUrl = sanitizeUrl(url);
+    if (!validUrl) return;
+    window.open(validUrl, '_blank', 'noopener,noreferrer');
   };
 
   return (

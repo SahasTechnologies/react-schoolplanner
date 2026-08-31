@@ -38,7 +38,9 @@ import {
   BookOpen,
   Link as LinkIcon,
   Copy,
-  AlertTriangle
+  AlertTriangle,
+  HandHeart,
+  Share2
 } from 'lucide-react';
 import { ThemeKey } from '../utils/themeUtils';
 import { isServiceWorkerSupported, forceCacheUpdate } from '../utils/cacheUtils';
@@ -240,8 +242,13 @@ const Settings: React.FC<SettingsProps> = ({
   const CONTACT_EMAIL_CHARS = [115,97,104,97,115,64,115,104,105,109,112,105,46,100,101,118];
   const [copyButtonPressed, setCopyButtonPressed] = useState(false);
 
-  // Contact details are intentionally kept out of the donation UI; feedback is
-  // delivered by the configured server-side endpoint.
+  // Group double periods setting
+  const [groupDoublePeriods, setGroupDoublePeriods] = React.useState<boolean>(() => localStorage.getItem('groupDoublePeriods') === 'true');
+
+  // Support / heart animation state
+  const [isHeartHovered, setIsHeartHovered] = useState(false);
+  const [floatingHearts, setFloatingHearts] = useState<{ id: number; x: number; y: number }[]>([]);
+  const [heartIdCounter, setHeartIdCounter] = useState(0);
 
   useEffect(() => {
     if (showTerms && !termsContent) {
@@ -573,6 +580,29 @@ const Settings: React.FC<SettingsProps> = ({
             <label className="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" checked={use24HourFormat} onChange={e => setUse24HourFormat(e.target.checked)} className="sr-only peer" />
               <div className={`w-14 h-7 rounded-full relative transition-colors ${use24HourFormat ? colors.buttonAccent : 'bg-gray-500'} peer-focus:outline-none peer-checked:after:translate-x-7 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-white/20 after:rounded-full after:h-6 after:w-6 after:transition-all`}></div>
+            </label>
+          </div>
+          <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
+            <div className="flex items-center gap-3">
+              <Grid2x2 className={`${colors.accentText}`} size={18} />
+              <div>
+                <p className={`font-medium ${colors.containerText}`}>Group Double Periods</p>
+                <p className={`text-sm ${colors.containerText} opacity-80`}>Group consecutive periods of the same subject into one big block for the countdown and today's schedule</p>
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={groupDoublePeriods} 
+                onChange={e => {
+                  const val = e.target.checked;
+                  setGroupDoublePeriods(val);
+                  localStorage.setItem('groupDoublePeriods', String(val));
+                  window.dispatchEvent(new CustomEvent('doublePeriodsSettingChanged'));
+                }} 
+                className="sr-only peer" 
+              />
+              <div className={`w-14 h-7 rounded-full relative transition-colors ${groupDoublePeriods ? colors.buttonAccent : 'bg-gray-500'} peer-focus:outline-none peer-checked:after:translate-x-7 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-white/20 after:rounded-full after:h-6 after:w-6 after:transition-all`}></div>
             </label>
           </div>
           <div className="space-y-1">
@@ -1666,26 +1696,43 @@ const Settings: React.FC<SettingsProps> = ({
                 <p className={`text-sm ${colors.containerText} opacity-80`}>Choose your preferred color mode</p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className={`relative p-1.5 rounded-xl border ${colors.border} ${effectiveMode === 'light' ? 'bg-gray-100' : 'bg-gray-800/80'} flex items-center`}>
+              {/* Sliding Background Pill Indicator */}
+              <div 
+                className={`absolute top-1.5 bottom-1.5 rounded-lg ${colors.buttonAccent} shadow-sm transition-all duration-300 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] pointer-events-none`}
+                style={{
+                  width: 'calc((100% - 12px) / 3)',
+                  left: themeMode === 'light' ? '6px' : themeMode === 'dark' ? 'calc(6px + (100% - 12px) / 3)' : 'calc(6px + ((100% - 12px) / 3) * 2)',
+                }}
+              />
               <button
                 onClick={() => setThemeMode('light')}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${themeMode === 'light' ? `${colors.buttonAccent} ${colors.buttonText}` : `${colors.buttonSecondary} ${colors.buttonSecondaryHover}`}`}
+                type="button"
+                className={`relative z-10 flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-lg transition-colors duration-200 ${
+                  themeMode === 'light' ? colors.buttonText : `${colors.containerText} opacity-70 hover:opacity-100`
+                }`}
               >
-                <Sun size={18} />
+                <Sun size={17} />
                 Light
               </button>
               <button
                 onClick={() => setThemeMode('dark')}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${themeMode === 'dark' ? `${colors.buttonAccent} ${colors.buttonText}` : `${colors.buttonSecondary} ${colors.buttonSecondaryHover}`}`}
+                type="button"
+                className={`relative z-10 flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-lg transition-colors duration-200 ${
+                  themeMode === 'dark' ? colors.buttonText : `${colors.containerText} opacity-70 hover:opacity-100`
+                }`}
               >
-                <Moon size={18} />
+                <Moon size={17} />
                 Dark
               </button>
               <button
                 onClick={() => setThemeMode('system')}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors duration-200 ${themeMode === 'system' ? `${colors.buttonAccent} ${colors.buttonText}` : `${colors.buttonSecondary} ${colors.buttonSecondaryHover}`}`}
+                type="button"
+                className={`relative z-10 flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-lg transition-colors duration-200 ${
+                  themeMode === 'system' ? colors.buttonText : `${colors.containerText} opacity-70 hover:opacity-100`
+                }`}
               >
-                <Monitor size={18} />
+                <Monitor size={17} />
                 System
               </button>
             </div>
@@ -1719,6 +1766,100 @@ const Settings: React.FC<SettingsProps> = ({
               </div>
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Donate / Support Section */}
+      <section className="mb-8">
+        <style>{`
+          @keyframes floatHeart {
+            0% {
+              transform: translate(0, 0) scale(1);
+              opacity: 1;
+            }
+            100% {
+              transform: translate(0, -60px) scale(1.4);
+              opacity: 0;
+            }
+          }
+          @keyframes heartPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+          }
+          @keyframes heartPulseFast {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+          }
+        `}</style>
+        <div className="flex items-center gap-2 mb-3">
+          <div 
+            className={`p-3 rounded-xl ${effectiveMode === 'light' ? 'bg-red-100' : 'bg-red-900/30'} cursor-pointer transition-transform duration-200 hover:scale-105 active:scale-95`}
+            onMouseEnter={() => setIsHeartHovered(true)}
+            onMouseLeave={() => setIsHeartHovered(false)}
+          >
+            <Heart 
+              size={20} 
+              className="text-red-500"
+              style={{
+                animation: isHeartHovered ? 'heartPulseFast 0.8s ease-in-out infinite' : 'heartPulse 1.5s ease-in-out infinite',
+                transition: 'transform 0.3s ease-in-out, fill 0.2s ease-in-out'
+              }}
+              fill={isHeartHovered ? 'currentColor' : 'none'}
+            />
+          </div>
+          <h3 className={`text-lg font-medium ${colors.text}`}>Support</h3>
+        </div>
+        <div className="space-y-3">
+          <div className={`${colors.container} ${colors.border} border rounded-2xl p-4`}>
+            <div className="flex items-center gap-3">
+              <div 
+                className="relative cursor-pointer select-none"
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const x = e.clientX - rect.left;
+                  const y = e.clientY - rect.top;
+                  const newHeart = { id: heartIdCounter, x, y };
+                  setFloatingHearts(prev => [...prev, newHeart]);
+                  setHeartIdCounter(prev => prev + 1);
+                  setTimeout(() => {
+                    setFloatingHearts(prev => prev.filter(h => h.id !== newHeart.id));
+                  }, 2000);
+                }}
+              >
+                <HandHeart className={`${colors.accentText} hover:scale-110 transition-transform duration-150 active:scale-90`} size={20} />
+                {floatingHearts.map(heart => (
+                  <Heart
+                    key={heart.id}
+                    size={16}
+                    className="absolute pointer-events-none text-red-500"
+                    fill="currentColor"
+                    style={{
+                      left: heart.x,
+                      top: heart.y,
+                      animation: 'floatHeart 2s ease-out forwards'
+                    }}
+                  />
+                ))}
+              </div>
+              <div>
+                <p className={`font-medium ${colors.containerText}`}>Support Our Work</p>
+                <p className={`text-sm ${colors.containerText} opacity-80`}>
+                  Creating and maintaining a website like this takes time, effort, and resources. If you find this app helpful and would like to support its continued development, we appreciate your love and feedback!
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className={`${colors.container} ${colors.border} border rounded-2xl p-4`}>
+            <div className="flex items-center gap-3">
+              <Share2 className={`${colors.accentText}`} size={20} />
+              <div>
+                <p className={`font-medium ${colors.containerText}`}>Share the Love</p>
+                <p className={`text-sm ${colors.containerText} opacity-80`}>
+                  You can help by sharing this platform with friends, classmates, teachers, and anyone who might find it useful. Every share helps us grow and improve!
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
