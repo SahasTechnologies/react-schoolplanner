@@ -29,6 +29,16 @@ async function fetchFromMerriamWebster(): Promise<WordOfTheDay | null> {
       const raw = mPron[1].replace(/<[^>]*>/g, '').trim();
       pronunciation = sanitizePronunciation(raw, word);
     }
+    // Audio
+    let audioUrl: string | undefined;
+    const fileMatch = html.match(/data-file=["']([^"']+)["']/i);
+    const dirMatch = html.match(/data-dir=["']([^"']+)["']/i);
+    if (fileMatch) {
+      const file = fileMatch[1];
+      const dir = dirMatch ? dirMatch[1] : (file.startsWith('bix') ? 'bix' : file.startsWith('gg') ? 'gg' : (file.match(/^[0-9]/) ? 'number' : file[0]));
+      audioUrl = `https://media.merriam-webster.com/audio/prons/en/us/mp3/${dir}/${file}.mp3`;
+    }
+    console.log('[WordOfTheDay] MW HTML parsed audioUrl:', audioUrl || '(none)');
     // Type
     let type = 'word';
     const typeMatch = html.match(/<span class="main-attr">(.+?)<\/span>/);
@@ -37,7 +47,7 @@ async function fetchFromMerriamWebster(): Promise<WordOfTheDay | null> {
     let definition = 'Visit Merriam-Webster to see the full definition.';
     const defMatch = html.match(/<h2>What It Means<\/h2>\s+?<p>([\s\S]+?)<\/p>/);
     if (defMatch) definition = parseHtmlEntities(defMatch[1].replace(/<[^>]*>/g, ''));
-    return { word, pronunciation, type, definition, source: 'merriam-webster' };
+    return { word, pronunciation, type, definition, source: 'merriam-webster', audioUrl };
   } catch (e) {
     console.error('[WordOfTheDay] Merriam-Webster HTML failed:', e);
     return null;
@@ -57,11 +67,23 @@ async function fetchFromDictionaryCom(): Promise<WordOfTheDay | null> {
 
     // Pronunciation: <p class="wotd-entry-phonetics">[puhngk-<b>til</b>-ee-oh]</p>
     let pronunciation = word;
-    const pronMatch = html.match(/<p\s+class\s*=\s*["']wotd-entry-phonetics["'][^>]*>([\s\S]*?)<\/p>/i);
+    const pronMatch = html.match(/<p\s+class\s*=\s*["']wotd-entry-phonetics["'][^>]*>([\s\S]*?)<\/p>/i) ||
+                      html.match(/<span\s+class\s*=\s*["']txt-phonetics["'][^>]*>([\s\S]*?)<\/span>/i);
     if (pronMatch) {
       const raw = pronMatch[1].replace(/<[^>]*>/g, '').replace(/[[\]]/g, '').trim();
       pronunciation = sanitizePronunciation(parseHtmlEntities(raw), word);
     }
+
+    // Audio: <button ... data-audiosrc="tts/i/idiolect/idiolect-gKgNKi.mp3" data-audioorigin="https://audio.dictionary.com">
+    let audioUrl: string | undefined;
+    const audioMatch = html.match(/data-audiosrc=["']([^"']+)["']/i);
+    if (audioMatch) {
+      const originMatch = html.match(/data-audioorigin=["']([^"']+)["']/i);
+      const origin = originMatch ? originMatch[1].replace(/\/$/, '') : 'https://audio.dictionary.com';
+      const path = audioMatch[1].replace(/^\//, '');
+      audioUrl = `${origin}/${path}`;
+    }
+    console.log('[WordOfTheDay] Dict.com parsed audioUrl:', audioUrl || '(none)');
 
     // Type: <div class="wotd-entry-pos">noun</div>
     let type = 'word';
@@ -76,7 +98,7 @@ async function fetchFromDictionaryCom(): Promise<WordOfTheDay | null> {
       if (text) definition = text;
     }
 
-    return { word, pronunciation, type, definition, source: 'dictionary' };
+    return { word, pronunciation, type, definition, source: 'dictionary', audioUrl };
   } catch (e) {
     console.error('[WordOfTheDay] Dictionary.com failed:', e);
     return null;
@@ -144,6 +166,14 @@ async function fetchFromVocabularyCom(): Promise<WordOfTheDay | null> {
     const pronunciation = word;
     console.log('[WordOfTheDay] Using word as pronunciation');
 
+    // Audio: <button class="btn-wod-audio" data-code="D/VXL6GJMSSHV5LSQE" data-wod="demonym"></button>
+    let audioUrl: string | undefined;
+    const audioMatch = html.match(/data-code=["']([^"']+)["']/i);
+    if (audioMatch) {
+      audioUrl = `https://audio.vocab.com/1.0/us/${audioMatch[1]}.mp3`;
+    }
+    console.log('[WordOfTheDay] Vocab.com parsed audioUrl:', audioUrl || '(none)');
+
     // Type - extract from usage or default to "word"
     const type = 'word';
     console.log('[WordOfTheDay] Type:', type);
@@ -176,6 +206,7 @@ async function fetchFromVocabularyCom(): Promise<WordOfTheDay | null> {
       type,
       definition,
       source: 'vocabulary',
+      audioUrl,
     };
   } catch (error) {
     console.error('[WordOfTheDay] Vocabulary.com failed:', error);
@@ -383,12 +414,24 @@ async function fetchFromBritannica(): Promise<WordOfTheDay | null> {
     }
     console.log('[WordOfTheDay] Parsed definition:', definition.substring(0, 50) + '...');
 
+    // Audio: <a class="hpron_icon play_pron" data-dir="h" data-file="hybrid01" ...>
+    let audioUrl: string | undefined;
+    const fileMatch = html.match(/data-file=["']([^"']+)["']/i);
+    const dirMatch = html.match(/data-dir=["']([^"']+)["']/i);
+    if (fileMatch) {
+      const file = fileMatch[1];
+      const dir = dirMatch ? dirMatch[1] : (file.startsWith('bix') ? 'bix' : file.startsWith('gg') ? 'gg' : (file.match(/^[0-9]/) ? 'number' : file[0]));
+      audioUrl = `https://media.merriam-webster.com/audio/prons/en/us/mp3/${dir}/${file}.mp3`;
+    }
+    console.log('[WordOfTheDay] Britannica parsed audioUrl:', audioUrl || '(none)');
+
     return {
       word,
       pronunciation,
       type,
       definition,
       source: 'britannica',
+      audioUrl,
     };
   } catch (error) {
     console.error('[WordOfTheDay] Britannica failed:', error);
@@ -461,7 +504,16 @@ async function fetchFromMerriamWebsterRSS(): Promise<WordOfTheDay | null> {
       const stripped = parseHtmlEntities(desc.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim());
       definition = stripped.length > 20 ? stripped : 'Visit Merriam-Webster to see the full definition.';
     }
-    return { word, pronunciation, type, definition, source: 'merriam-webster' };
+
+    // Audio: check RSS enclosure if present
+    let audioUrl: string | undefined;
+    if (item?.enclosure && typeof item.enclosure === 'object') {
+      const encUrl = item.enclosure?.['@_url'] || item.enclosure?.url;
+      if (typeof encUrl === 'string' && encUrl.endsWith('.mp3')) {
+        audioUrl = encUrl;
+      }
+    }
+    return { word, pronunciation, type, definition, source: 'merriam-webster', audioUrl };
   } catch (e) {
     console.error('[WordOfTheDay] Merriam-Webster RSS failed:', e);
     return null;

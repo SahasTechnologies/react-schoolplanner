@@ -1,6 +1,6 @@
 import React from 'react';
 import { Clock, MapPin, User, Utensils, CalendarRange, Clock3 } from 'lucide-react';
-import { CalendarEvent, formatTime, isEndOfDayEvent } from '../utils/calendarUtils';
+import { CalendarEvent, formatTime, isEndOfDayEvent, isDoublePeriodEvent } from '../utils/calendarUtils';
 import { normalizeSubjectName, getSubjectIcon } from '../utils/subjectUtils';
 
 interface EventCardProps {
@@ -153,20 +153,26 @@ const EventCard: React.FC<EventCardProps> = ({
   };
 
   const segmentColor = getEventColour(event.summary);
+  const isDouble = isDoublePeriodEvent(event);
 
   return (
     <div
       onClick={onClick}
       key={index}
       className={`rounded-2xl p-3 text-white text-sm transition-all duration-300 cursor-pointer shadow-sm`}
-      style={{ backgroundColor: segmentColor, minHeight: forceTall ? 96 : 56 }}
+      style={{ backgroundColor: segmentColor, minHeight: isDouble ? (forceTall ? 140 : 88) : (forceTall ? 96 : 56) }}
       onMouseEnter={() => { if (showFirstInfoBeside) setExpanded(true); }}
       onMouseLeave={() => { if (showFirstInfoBeside) setExpanded(false); }}
     >
       <div className="flex items-center justify-between min-h-[40px]">
         <div className="flex items-center min-h-[40px]">
-          <span className="font-semibold leading-tight flex items-center min-h-[40px]" style={{ fontSize: '1.1rem' }}>
+          <span className="font-semibold leading-tight flex items-center min-h-[40px] flex-wrap gap-1.5" style={{ fontSize: '1.1rem' }}>
             {normalizeSubjectName(event.summary, autoNamingEnabled)}
+            {isDouble && (
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-white/20 tracking-wide inline-flex items-center">
+                Double Period
+              </span>
+            )}
             {getFirstEnabledFieldNode()}
           </span>
         </div>

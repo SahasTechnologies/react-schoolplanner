@@ -242,8 +242,9 @@ const Settings: React.FC<SettingsProps> = ({
   const CONTACT_EMAIL_CHARS = [115,97,104,97,115,64,115,104,105,109,112,105,46,100,101,118];
   const [copyButtonPressed, setCopyButtonPressed] = useState(false);
 
-  // Group double periods setting
+  // Group double periods settings
   const [groupDoublePeriods, setGroupDoublePeriods] = React.useState<boolean>(() => localStorage.getItem('groupDoublePeriods') === 'true');
+  const [groupDoublePeriodsWeekly, setGroupDoublePeriodsWeekly] = React.useState<boolean>(() => localStorage.getItem('groupDoublePeriodsWeekly') === 'true');
 
   // Support / heart animation state
   const [isHeartHovered, setIsHeartHovered] = useState(false);
@@ -586,7 +587,7 @@ const Settings: React.FC<SettingsProps> = ({
             <div className="flex items-center gap-3">
               <Grid2x2 className={`${colors.accentText}`} size={18} />
               <div>
-                <p className={`font-medium ${colors.containerText}`}>Group Double Periods</p>
+                <p className={`font-medium ${colors.containerText}`}>Group Double Periods (Today's Schedule)</p>
                 <p className={`text-sm ${colors.containerText} opacity-80`}>Group consecutive periods of the same subject into one big block for the countdown and today's schedule</p>
               </div>
             </div>
@@ -603,6 +604,29 @@ const Settings: React.FC<SettingsProps> = ({
                 className="sr-only peer" 
               />
               <div className={`w-14 h-7 rounded-full relative transition-colors ${groupDoublePeriods ? colors.buttonAccent : 'bg-gray-500'} peer-focus:outline-none peer-checked:after:translate-x-7 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-white/20 after:rounded-full after:h-6 after:w-6 after:transition-all`}></div>
+            </label>
+          </div>
+          <div className={`${colors.container} ${colors.border} border rounded-2xl p-4 flex items-center justify-between`}>
+            <div className="flex items-center gap-3">
+              <Grid2x2 className={`${colors.accentText}`} size={18} />
+              <div>
+                <p className={`font-medium ${colors.containerText}`}>Group Double Periods (Weekly Schedule)</p>
+                <p className={`text-sm ${colors.containerText} opacity-80`}>Group consecutive periods of the same subject into one big block in the weekly schedule view</p>
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={groupDoublePeriodsWeekly} 
+                onChange={e => {
+                  const val = e.target.checked;
+                  setGroupDoublePeriodsWeekly(val);
+                  localStorage.setItem('groupDoublePeriodsWeekly', String(val));
+                  window.dispatchEvent(new CustomEvent('doublePeriodsSettingChanged'));
+                }} 
+                className="sr-only peer" 
+              />
+              <div className={`w-14 h-7 rounded-full relative transition-colors ${groupDoublePeriodsWeekly ? colors.buttonAccent : 'bg-gray-500'} peer-focus:outline-none peer-checked:after:translate-x-7 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-white/20 after:rounded-full after:h-6 after:w-6 after:transition-all`}></div>
             </label>
           </div>
           <div className="space-y-1">

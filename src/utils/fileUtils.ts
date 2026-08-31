@@ -81,6 +81,7 @@ export const ALLOWED_PREFERENCE_KEYS = [
   'linksView',
   'linksViewMode',
   'groupDoublePeriods',
+  'groupDoublePeriodsWeekly',
   'showCountdownWidget'
 ] as const;
 

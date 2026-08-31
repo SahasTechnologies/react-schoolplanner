@@ -4,6 +4,7 @@ export interface CalendarEvent {
   summary: string;
   location?: string;
   description?: string;
+  isDoublePeriod?: boolean;
 }
 
 export interface WeekData {
@@ -308,6 +309,7 @@ export function groupDoublePeriodEvents(events: CalendarEvent[]): CalendarEvent[
 
       if (sameDay && sameSubject && isContiguous) {
         current.dtend = nextEnd;
+        current.isDoublePeriod = true;
         if (next.location && !current.location?.includes(next.location)) {
           current.location = current.location ? `${current.location}, ${next.location}` : next.location;
         }
@@ -322,6 +324,23 @@ export function groupDoublePeriodEvents(events: CalendarEvent[]): CalendarEvent[
     result.push(current);
   }
   return result;
+}
+
+/**
+ * Checks whether an event is a double period (either tagged by grouping or with duration >= 70 minutes)
+ */
+export function isDoublePeriodEvent(event: CalendarEvent | null | undefined): boolean {
+  if (!event) return false;
+  if (event.isDoublePeriod) return true;
+  if (isBreakEvent(event) || isEndOfDayEvent(event)) return false;
+  if (event.dtstart && event.dtend) {
+    const startMs = new Date(event.dtstart).getTime();
+    const endMs = new Date(event.dtend).getTime();
+    if (!isNaN(startMs) && !isNaN(endMs) && (endMs - startMs >= 70 * 60 * 1000)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export const formatTime = (date: Date): string => {

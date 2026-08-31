@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Calendar, LoaderCircle, Maximize } from 'lucide-react';
-import { CalendarEvent } from '../utils/calendarUtils';
+import { CalendarEvent, isDoublePeriodEvent } from '../utils/calendarUtils';
 import { normalizeSubjectName } from '../utils/subjectUtils';
 import { getSubjectIcon } from '../utils/subjectUtils';
 import { Subject } from '../types';
@@ -32,6 +32,8 @@ export default function CountdownBox({
   autoNamingEnabled,
   subjects
 }: CountdownBoxProps) {
+  const isDouble = isDoublePeriodEvent(nextEvent);
+
   // Custom colored icon
   function ColoredSubjectIcon({ summary }: { summary: string }) {
     const color = getEventColour(summary);
@@ -56,7 +58,7 @@ export default function CountdownBox({
   }
 
   return (
-    <div className={`${colors.container} rounded-lg ${colors.border} border p-6 flex flex-col items-center justify-center h-fit`}>
+    <div className={`${colors.container} rounded-lg ${colors.border} border ${isDouble ? 'p-7' : 'p-6'} flex flex-col items-center justify-center h-fit transition-all duration-300`}>
       <div className="flex items-center justify-between w-full mb-2">
         <div className="flex items-center gap-2">
           <Calendar className={colors.containerText} size={20} />
@@ -88,9 +90,14 @@ export default function CountdownBox({
           >
             {formatCountdown(timeLeft)}
           </div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap justify-center">
             <ColoredSubjectIcon summary={nextEvent.summary} />
             <span className="text-base font-medium" style={{ color: getEventColour(nextEvent.summary) }}>{normalizeSubjectName(nextEvent.summary, true)}</span>
+            {isDouble && (
+              <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${effectiveMode === 'light' ? 'bg-black/10 text-gray-800' : 'bg-white/15 text-gray-200'}`}>
+                Double Period
+              </span>
+            )}
           </div>
           <div className={`text-sm ${effectiveMode === 'light' ? 'text-black opacity-80' : 'text-white opacity-80'}`}>
             {(() => {

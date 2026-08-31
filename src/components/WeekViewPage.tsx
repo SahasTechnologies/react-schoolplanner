@@ -1,5 +1,6 @@
+import * as React from 'react';
 import { Calendar } from 'lucide-react';
-import { CalendarEvent, WeekData, insertBreaksBetweenEvents, isBreakEvent } from '../utils/calendarUtils';
+import { CalendarEvent, WeekData, insertBreaksBetweenEvents, isBreakEvent, groupDoublePeriodEvents } from '../utils/calendarUtils';
 import EventCard from '../components/EventCard';
 import { Subject } from '../types';
 
@@ -26,6 +27,14 @@ export default function WeekViewPage({
   setSelectedEvent,
   subjects
 }: WeekViewPageProps) {
+  const [, setSettingVersion] = React.useState(0);
+
+  React.useEffect(() => {
+    const handleSettingChange = () => setSettingVersion(v => v + 1);
+    window.addEventListener('doublePeriodsSettingChanged', handleSettingChange);
+    return () => window.removeEventListener('doublePeriodsSettingChanged', handleSettingChange);
+  }, []);
+
   if (!weekData) return null;
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
@@ -62,10 +71,12 @@ export default function WeekViewPage({
     }
   });
 
-  // Sort and insert breaks
+  // Sort and insert breaks (and group double periods if enabled)
+  const shouldGroupWeekly = localStorage.getItem('groupDoublePeriodsWeekly') === 'true';
   const dayEventsWithBreaks = dayEvents.map(dayList => {
     const sorted = [...dayList].sort((a, b) => a.dtstart.getTime() - b.dtstart.getTime());
-    return insertBreaksBetweenEvents(sorted);
+    const effectiveEvents = shouldGroupWeekly ? groupDoublePeriodEvents(sorted) : sorted;
+    return insertBreaksBetweenEvents(effectiveEvents);
   });
 
   return (

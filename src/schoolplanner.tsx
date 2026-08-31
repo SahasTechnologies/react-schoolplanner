@@ -9,7 +9,7 @@ import {
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router';
 import { ThemeKey, getColors, getColorValues, CustomThemeColors, loadCustomThemeColors, injectCustomThemeStyles, injectSidebarHoverStyle } from './utils/themeUtils';
 import { normalizeSubjectName, getSubjectIcon } from './utils/subjectUtils';
-import { CalendarEvent, WeekData, insertBreaksBetweenEvents, isBreakEvent, groupDoublePeriodEvents } from './utils/calendarUtils';
+import { CalendarEvent, WeekData, insertBreaksBetweenEvents, isBreakEvent, groupDoublePeriodEvents, isDoublePeriodEvent } from './utils/calendarUtils';
 import TodayScheduleTimeline from './components/TodayScheduleTimeline';
 import { ThemeModal } from './components/ThemeModal';
 import WelcomeScreen from './components/WelcomeScreen';
@@ -1231,14 +1231,20 @@ const SchoolPlanner = () => {
                           const displayLocationRaw = nextEvent ? (nextEvent.location || '') : (event.location || '');
                           const displayColor = getEventColour(displaySummary);
                           const cleanedLoc = displayLocationRaw.replace(/^Room:\s*/i, '').trim();
+                          const isDouble = isDoublePeriodEvent(event) || isDoublePeriodEvent(nextEvent);
                           return (
-                            <div className={`mt-3 rounded-2xl px-4 py-3 ${colors.container} border ${colors.border} shadow-md`}>
+                            <div className={`mt-3 rounded-2xl ${isDouble ? 'px-5 py-4' : 'px-4 py-3'} ${colors.container} border ${colors.border} shadow-md transition-all`}>
                               <div className="flex items-center justify-between gap-4">
-                                <div className="flex items-center gap-2 text-base">
+                                <div className="flex items-center gap-2 text-base flex-wrap">
                                   <span className={`${colors.containerText}`}>to</span>
                                   <span className="font-semibold" style={{ color: displayColor }}>
                                     {normalizeSubjectName(displaySummary, autoNamingEnabled)}
                                   </span>
+                                  {isDouble && (
+                                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${effectiveMode === 'light' ? 'bg-black/10 text-gray-800' : 'bg-white/15 text-gray-200'}`}>
+                                      Double Period
+                                    </span>
+                                  )}
                                   {cleanedLoc ? (
                                     <span className={`${colors.containerText}`}>in {cleanedLoc}</span>
                                   ) : null}
